@@ -1,73 +1,153 @@
-# Home Assistant Custom Integration - Claude Code Instructions
+# My Music Library — Claude Project Instructions
 
-## Project Overview
-This is a Home Assistant custom integration project. Target: latest HA release (2025.x / 2026.x).
+## What this project is
 
-## Integration Name
-- Domain: `my_integration` (rename folder + update `DOMAIN` const when decided)
-- HACS compatible
+A Home Assistant custom integration that provides a fully-featured Lovelace music player card
+connected to [Music Assistant](https://music-assistant.io/).
 
-## HA Development Standards
+- **Domain:** `my_music_library`
+- **GitHub:** https://github.com/Patafoin/ha-my-music-library
+- **Current version:** `2.6.1` (both `CARD_VERSION` in JS and `manifest.json`)
+- **Target HA:** 2025.x / 2026.x, HACS compatible
 
-### Code Style
-- Python 3.12+
-- Type hints required on all functions and class attributes
-- Use `from __future__ import annotations`
-- Follow HA coding style: https://developers.home-assistant.io/docs/development_guidelines
+---
 
-### Key HA Patterns
-- Always use `config_flow.py` for setup (no `configuration.yaml` only integrations)
-- Use `DataUpdateCoordinator` for polling integrations
-- Use `entity_description` pattern for entities (HA 2022.5+)
-- Translations in `strings.json` + `translations/en.json`
-- Use `homeassistant.helpers.aiohttp_client` for HTTP calls (never bare `aiohttp`)
-- Use `homeassistant.helpers.device_registry` and `entity_registry` APIs
-- Async-first: all I/O must be `async`
+## Repository structure
 
-### manifest.json Requirements
-- `iot_class`: one of `cloud_polling`, `cloud_push`, `local_polling`, `local_push`, `assumed_state`, `calculated`
-- `version`: semver (e.g. `1.0.0`)
-- `requirements`: pip packages needed
-- `dependencies`: other HA integrations needed
-- `codeowners`: GitHub usernames
-
-### File Structure
 ```
-custom_components/my_integration/
-├── __init__.py          # Setup & unload entry
-├── manifest.json        # Integration metadata
-├── config_flow.py       # UI configuration flow
-├── const.py             # Constants (DOMAIN, etc.)
-├── coordinator.py       # DataUpdateCoordinator (if polling)
-├── entity.py            # Base entity class
-├── sensor.py            # Sensor platform (if needed)
-├── binary_sensor.py     # Binary sensor platform (if needed)
-├── switch.py            # Switch platform (if needed)
-├── strings.json         # Translation source
-└── translations/
-    └── en.json          # English translations
+custom_components/my_music_library/
+├── __init__.py       # Integration setup, static paths, Lovelace resource, queue Store
+├── manifest.json     # Integration metadata (version must match CARD_VERSION in JS)
+├── config_flow.py    # UI config flow (MA URL, default player, default tab)
+├── const.py          # DOMAIN, CARD_URL, ICON_URL, etc.
+├── api.py            # HTTP proxy views: search, library, subitems, queue (→ Music Assistant)
+├── strings.json      # Config flow translation source
+├── icon.png          # Integration icon (256×256)
+├── icon.svg          # Source SVG for the icon
+├── translations/
+│   ├── en.json
+│   ├── fr.json
+│   └── de.json
+└── www/
+    └── my-music-library-card.js   # Lovelace custom element (vanilla JS, no build step)
+
+custom_integrations/my_music_library/
+├── icon.png          # 256×256 — for home-assistant/brands
+└── icon@2x.png       # 512×512 — for home-assistant/brands
+
 tests/
-├── conftest.py
-└── test_*.py
+├── conftest.py       # sys.modules stubs for homeassistant.*
+├── test_const.py
+├── test_init.py
+└── test_config_flow.py
 ```
 
-### Testing
-- Use `pytest-homeassistant-custom-component` for tests
-- Mock external APIs with `unittest.mock` or `pytest-mock`
-- Run tests: `pytest tests/`
+---
 
-### Common Imports
-```python
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, CoordinatorEntity
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+## Architecture
+
+### Backend (Python)
+- Thin integration: no polling coordinator, no entities
+- `async_setup`: initialises per-player queue Store (`homeassistant.helpers.storage.Store`)
+- `async_setup_entry`: registers static paths (card JS, icon), Lovelace resource, HTTP views, WebSocket command
+- HTTP views in `api.py`:
+  - `MusicAssistantSearchView` — proxy search to MA REST API
+  - `MusicAssistantLibraryView` — proxy library browse to MA Python client
+  - `MusicAssistantSubitemsView` — proxy artist/album/playlist sub-items
+  - `PlayerQueueView` — GET/POST per-player queue storage (`/api/my_music_library/queue?player=<entity_id>`)
+- WebSocket command `my_music_library/config` — returns MA entry_id + default player to the card
+
+### Frontend (JavaScript)
+- Vanilla JS Custom Element (`MyMusicLibraryCard extends HTMLElement`), no build step
+- Communicates with HA via `hass.callService`, `hass.callWS`, `hass.callApi`
+- Three tabs: **Player** (now playing + controls + queue), **Search**, **Library**
+- Queue stored server-side per player via `POST /api/my_music_library/queue`
+- Responsive layout:
+  - `< 480px`: nav tabs stack (icon above label)
+  - `< 640px`: player stacked (art + controls + queue below)
+  - `≥ 640px`: player panel (2/3) + queue panel (1/3) side-by-side
+  - `≥ 1024px`: larger fonts, taller modals
+
+---
+
+## Critical rules (always follow)
+
+### Versioning — NEVER skip this
+Every code change **must** bump the version in **both** places simultaneously:
+1. `www/my-music-library-card.js` → `const CARD_VERSION = "X.Y.Z";`
+2. `manifest.json` → `"version": "X.Y.Z"`
+
+Both must always be identical. The JS version busts the browser cache; the manifest version is what HA displays.
+
+### Translations — update all 3 languages
+The card supports `en`, `fr`, `de`. Every new user-visible string must be added to all three language blocks of the `TRANSLATIONS` const in `my-music-library-card.js`. Access strings with `this._t("section.key")`.
+
+For the Python config flow: update `strings.json` + `translations/en.json`, `translations/fr.json`, `translations/de.json`.
+
+### Deploy instructions
+Always include at the end of each coding session:
+1. Which files to copy to `/config/custom_components/my_music_library/` on HA
+2. Whether a **full HA restart** is needed (always required for Python changes) or just a hard refresh
+3. Hard refresh = Ctrl+Shift+R to bypass Lovelace cache for JS-only changes
+
+---
+
+## Card YAML configuration
+
+```yaml
+type: custom:my-music-library-card
+default_tab: player          # player | search | library
+height: 600                  # px, number, or CSS value — omit to fill container
+entity: media_player.xxx     # pre-select a player
+nav_buttons_left:            # custom buttons left of tab bar
+  - icon: mdi:home
+    tap_action: { action: navigate, navigation_path: / }
+nav_buttons_right:           # custom buttons right of tab bar
+  - icon: mdi:lightbulb
+    entity: light.living_room
+    tap_action: { action: toggle }
+    hold_action: { action: more-info }
 ```
 
-## Development Setup
-- Install deps: `pip install -r requirements_dev.txt`
-- Lint: `ruff check custom_components/`
-- Format: `ruff format custom_components/`
-- Type check: `mypy custom_components/`
-- Tests: `pytest tests/ -v`
+### Nav button actions
+`tap_action`, `hold_action`, `double_tap_action` support:
+- `none`, `toggle`, `more-info`, `navigate` (+ `navigation_path`), `url` (+ `url_path`), `call-service` / `perform-action` (+ `perform_action`, `data`, `target`), `assist`
+
+---
+
+## Queue system
+
+- Queue is stored server-side in HA (`homeassistant.helpers.storage.Store`, key: `my_music_library_queues`)
+- One queue per `media_player` entity, shared across all browsers/devices
+- Card loads queue on startup and whenever the active player changes
+- Auto-detects when MA switches to a track not in the current queue → clears stale queue
+- Endpoint: `GET /api/my_music_library/queue?player=<entity_id>` → `{queue: [], source: null}`
+- Endpoint: `POST /api/my_music_library/queue` body: `{player, queue, source}`
+
+---
+
+## Integration icon
+
+- `icon.png` (256×256) served at `/api/config/custom_components/my_music_library/icon`
+- `custom_integrations/my_music_library/` folder follows `home-assistant/brands` structure
+- Generated via `/tmp/gen_icon.py` (pure Python stdlib, no Pillow)
+
+---
+
+## Development environment
+
+- **macOS**, no Xcode CLI tools → no C extensions → `homeassistant` pip package not installable
+- Python 3.9 (system) available
+- Tests use `sys.modules` stubs in `conftest.py` — run: `python3 -m pytest tests/ -v`
+- No Homebrew, no git initially (git initialised for GitHub push)
+- **No automatic git push** — user explicitly requests pushes
+
+---
+
+## Python standards
+
+- Python 3.12+ target (tests run on 3.9 with stubs)
+- `from __future__ import annotations` on all Python files
+- Type hints on all functions and class attributes
+- Async-first: all I/O must be `async`
+- Use `homeassistant.helpers.aiohttp_client` for HTTP (never bare `aiohttp`)

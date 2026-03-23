@@ -481,6 +481,57 @@ async def _get_subitems(
     return None
 
 
+class PlayerQueueView(HomeAssistantView):
+    """Per-player queue storage — accessible from any browser/device.
+
+    GET  /api/my_music_library/queue?player=<entity_id>
+         → {"queue": [...], "source": "<uri or null>"}
+
+    POST /api/my_music_library/queue
+         body: {"player": "<entity_id>", "queue": [...], "source": "<uri or null>"}
+         → {"ok": true}
+    """
+
+    url = "/api/my_music_library/queue"
+    name = "api:my_music_library:queue"
+    requires_auth = True
+
+    async def get(self, request: web.Request) -> web.Response:
+        """Return the stored queue for a player."""
+        hass: HomeAssistant = request.app["hass"]
+        player = request.query.get("player", "").strip()
+        if not player:
+            return self.json_message("Missing 'player' parameter.", HTTPStatus.BAD_REQUEST)
+        queues: dict = hass.data.get(DOMAIN, {}).get("queues", {})
+        data = queues.get(player, {"queue": [], "source": None})
+        return web.json_response(data)
+
+    async def post(self, request: web.Request) -> web.Response:
+        """Save the queue for a player."""
+        hass: HomeAssistant = request.app["hass"]
+        try:
+            body: dict = await request.json()
+        except Exception:  # noqa: BLE001
+            return self.json_message("Invalid JSON body.", HTTPStatus.BAD_REQUEST)
+
+        player = (body.get("player") or "").strip()
+        if not player:
+            return self.json_message("Missing 'player' field.", HTTPStatus.BAD_REQUEST)
+
+        entry = {
+            "queue": body.get("queue") or [],
+            "source": body.get("source") or None,
+        }
+        domain_data = hass.data.setdefault(DOMAIN, {})
+        domain_data.setdefault("queues", {})[player] = entry
+
+        store = domain_data.get("queue_store")
+        if store:
+            await store.async_save({"queues": domain_data["queues"]})
+
+        return web.json_response({"ok": True})
+
+
 class MusicAssistantSubitemsView(HomeAssistantView):
     """Return sub-items of a MA library item.
 

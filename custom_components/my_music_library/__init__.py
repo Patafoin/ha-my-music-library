@@ -8,6 +8,7 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.components.http import StaticPathConfig
+from homeassistant.helpers.storage import Store
 from homeassistant.components.websocket_api import (
     ActiveConnection,
     async_register_command,
@@ -17,7 +18,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
-from .api import MusicAssistantLibraryView, MusicAssistantSearchView, MusicAssistantSubitemsView
+from .api import MusicAssistantLibraryView, MusicAssistantSearchView, MusicAssistantSubitemsView, PlayerQueueView
 from .const import CARD_JS_FILENAME, CARD_URL, CONF_MA_URL, DOMAIN, ICON_URL, WS_CONFIG_COMMAND
 
 _LOGGER = logging.getLogger(__name__)
@@ -27,10 +28,18 @@ PLATFORMS: list[str] = []
 WWW_DIR = os.path.join(os.path.dirname(__file__), "www")
 ICON_PATH = os.path.join(os.path.dirname(__file__), "icon.png")
 
+_QUEUE_STORE_KEY = f"{DOMAIN}_queues"
+_QUEUE_STORE_VERSION = 1
+
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the My Music Library component."""
     hass.data.setdefault(DOMAIN, {})
+    # Load persisted per-player queues from disk
+    store = Store(hass, _QUEUE_STORE_VERSION, _QUEUE_STORE_KEY)
+    stored = await store.async_load() or {}
+    hass.data[DOMAIN]["queue_store"] = store
+    hass.data[DOMAIN]["queues"] = stored.get("queues", {})
     return True
 
 
@@ -70,6 +79,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.http.register_view(MusicAssistantSearchView)
     hass.http.register_view(MusicAssistantLibraryView)
     hass.http.register_view(MusicAssistantSubitemsView)
+    hass.http.register_view(PlayerQueueView)
 
     # Register WebSocket command so the card can fetch its config
     _register_websocket_commands(hass)

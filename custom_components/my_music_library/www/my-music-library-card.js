@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "2.5.2";
+const CARD_VERSION = "2.6.1";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -429,6 +429,7 @@ const STYLES = `
   .device-row svg { width: 18px; height: 18px; fill: var(--text2); flex-shrink: 0; }
   .device-name { flex: 1; font-size: 13px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .device-chevron { width: 16px; height: 16px; fill: var(--text2); flex-shrink: 0; }
+
 
   /* Device modal */
   .modal-overlay {
@@ -859,7 +860,6 @@ class MyMusicLibraryCard extends HTMLElement {
     this._localPositionTime = null;
     this._queue = [];
     this._lastQueueSource = null;  // URI of the album/playlist whose queue is loaded
-    this._loadQueueState();        // restore from localStorage if available
     this._rendered = false;
     // MA config fetched from backend via WebSocket
     this._maUrl = null;       // stored but only used as a last-resort hint
@@ -877,26 +877,31 @@ class MyMusicLibraryCard extends HTMLElement {
     return key.split(".").reduce((o, k) => o?.[k], TRANSLATIONS.en) ?? key;
   }
 
-  /* ── Queue persistence (localStorage) ── */
-  _loadQueueState() {
+  /* ── Queue persistence (server-side, per player) ── */
+
+  /** Load queue for a given player from the HA backend. Fire-and-forget safe. */
+  async _loadQueueFromServer(player) {
+    if (!player || !this._hass) { this._queue = []; this._lastQueueSource = null; return; }
     try {
-      const raw = localStorage.getItem("mml_queue_state");
-      if (!raw) return;
-      const { queue, source } = JSON.parse(raw);
-      if (Array.isArray(queue) && queue.length) {
-        this._queue = queue;
-        this._lastQueueSource = source || null;
-      }
-    } catch (_) { /* ignore parse errors */ }
+      const data = await this._hass.callApi("GET", `my_music_library/queue?player=${encodeURIComponent(player)}`);
+      this._queue = data?.queue || [];
+      this._lastQueueSource = data?.source || null;
+    } catch (_) {
+      this._queue = [];
+      this._lastQueueSource = null;
+    }
+    const card = this.shadowRoot?.querySelector(".card-root");
+    if (card) this._updateQueueDisplay(card);
   }
 
+  /** Persist the current queue to the HA backend (fire-and-forget). */
   _saveQueueState() {
-    try {
-      localStorage.setItem("mml_queue_state", JSON.stringify({
-        queue: this._queue,
-        source: this._lastQueueSource,
-      }));
-    } catch (_) { /* ignore quota errors */ }
+    if (!this._activePlayer || !this._hass) return;
+    this._hass.callApi("POST", "my_music_library/queue", {
+      player: this._activePlayer,
+      queue: this._queue,
+      source: this._lastQueueSource,
+    }).catch(() => {});
   }
 
   /* ── Lovelace required ── */
@@ -942,9 +947,13 @@ class MyMusicLibraryCard extends HTMLElement {
       if (!this._activePlayer || !this._players.find(p => p.entity_id === this._activePlayer)) {
         // Priority: 1) localStorage  2) card config entity  3) currently playing  4) first player
         const saved = this._loadSavedPlayer();
+        const prevActive = this._activePlayer;
         this._activePlayer = (saved && this._players.find(p => p.entity_id === saved) ? saved : null)
           || this._config.entity
           || (this._players.find(p => p.state === "playing") || this._players[0])?.entity_id;
+        if (this._activePlayer && this._activePlayer !== prevActive) {
+          this._loadQueueFromServer(this._activePlayer);
+        }
       }
     }
 
@@ -1611,8 +1620,12 @@ class MyMusicLibraryCard extends HTMLElement {
           <span class="device-item-name">${p.name}</span>
           <span class="device-item-state">${p.state}</span>`;
         item.addEventListener("click", () => {
+          const prevActive = this._activePlayer;
           this._activePlayer = p.entity_id;
           this._savePlayer(p.entity_id);
+          if (this._activePlayer !== prevActive) {
+            this._loadQueueFromServer(this._activePlayer);
+          }
           this._closeDeviceModal(card);
           this._updatePlayerContent(card);
         });
