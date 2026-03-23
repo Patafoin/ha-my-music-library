@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "2.5.1";
+const CARD_VERSION = "2.5.2";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -782,6 +782,10 @@ const STYLES = `
   /* ═══════════════════════════════════════════
      RESPONSIVE LAYOUT — TABLET (≥640px)
   ═══════════════════════════════════════════ */
+  @media (max-width: 479px) {
+    .nav-tab { flex-direction: column; gap: 3px; padding: 8px 4px; font-size: 11px; }
+  }
+
   @media (min-width: 640px) {
     .player-panel { flex: 2; min-width: 0; padding: 20px 24px; overflow-y: auto; }
     .track-title { font-size: 20px; }
@@ -1455,9 +1459,11 @@ class MyMusicLibraryCard extends HTMLElement {
       deviceNameEl.textContent = attr.friendly_name || this._activePlayer || this._t("player.no_player");
     }
 
-    // Queue — auto-load only when a NEW album/playlist URI is detected.
-    // Never clear the queue automatically: MA changes media_content_id to the
-    // current track URI as soon as playback starts, which must not wipe the queue.
+    // Queue update logic:
+    // - New album/playlist URI detected → fetch its tracks.
+    // - Track URI detected AND track is in current queue → keep queue (normal playback).
+    // - Track URI detected AND track NOT in queue → source changed externally, clear stale queue.
+    // - Any other URI type (null, stopped, etc.) → just redisplay, never clear.
     const currentUri = attr.media_content_id || null;
     const uriType = this._maUriType(currentUri);
     if ((uriType === "album" || uriType === "playlist") && currentUri !== this._lastQueueSource) {
@@ -1465,6 +1471,15 @@ class MyMusicLibraryCard extends HTMLElement {
       this._saveQueueState();
       const action = uriType === "album" ? "album_tracks" : "playlist_tracks";
       this._fetchQueueForUri(currentUri, action, card);
+    } else if (uriType === "track" && this._queue.length > 0) {
+      const inQueue = this._queue.some(t => t.media_content_id === currentUri);
+      if (!inQueue) {
+        // Playing something outside our cached queue → discard stale queue
+        this._queue = [];
+        this._lastQueueSource = null;
+        this._saveQueueState();
+      }
+      this._updateQueueDisplay(card);
     } else {
       this._updateQueueDisplay(card);
     }
