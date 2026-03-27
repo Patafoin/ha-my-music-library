@@ -51,10 +51,10 @@ def _get_ma_players(hass: HomeAssistant) -> dict[str, str]:
 def _get_all_players(hass: HomeAssistant) -> dict[str, str]:
     """Return a dict of {entity_id: friendly_name} for all non-unavailable media_player entities."""
     players: dict[str, str] = {}
-    for entity_id, state in hass.states.items():
-        if entity_id.startswith("media_player.") and state.state != "unavailable":
-            name = state.attributes.get("friendly_name", entity_id)
-            players[entity_id] = name
+    for state in hass.states.async_all("media_player"):
+        if state.state != "unavailable":
+            name = state.attributes.get("friendly_name", state.entity_id)
+            players[state.entity_id] = name
     return dict(sorted(players.items(), key=lambda x: x[1].lower()))
 
 
