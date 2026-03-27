@@ -1,0 +1,12 @@
+{
+  "domain": "my_music_library",
+  "name": "My Music Library",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://github.com/your-user/my-music-library",
+  "iot_class": "local_push",
+  "version": "2.7.0",
+  "requirements": [],
+  "dependencies": ["http"],
+  "after_dependencies": ["music_assistant", "lovelace"]
+}
