@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "2.7.0";
+const CARD_VERSION = "2.7.1";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -1803,10 +1803,22 @@ class MyMusicLibraryCard extends HTMLElement {
 
   _detachPlayer(entityId, card) {
     if (!this._hass) return;
-    this._hass.callService("media_player", "unjoin", {
-      entity_id: entityId,
-    });
-    this._groupMembers = this._groupMembers.filter(id => id !== entityId);
+    const remainingMembers = this._groupMembers.filter(id => id !== entityId);
+    if (remainingMembers.length > 0) {
+      // Reduce the group by re-issuing join with the smaller list.
+      // This removes the detached player without calling unjoin on it directly,
+      // which is not supported by all media_player platforms.
+      this._hass.callService("media_player", "join", {
+        entity_id: this._activePlayer,
+        group_members: remainingMembers,
+      });
+    } else {
+      // Last member removed → dissolve the group by unjoining the master.
+      this._hass.callService("media_player", "unjoin", {
+        entity_id: this._activePlayer,
+      });
+    }
+    this._groupMembers = remainingMembers;
     this._saveGroupToServer();
     this._openDeviceModal(card);
     this._updateDeviceRow(card);
