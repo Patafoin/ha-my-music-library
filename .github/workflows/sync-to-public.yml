@@ -45,7 +45,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add custom_components/ hacs.json README.md .gitignore
+          git add custom_components/ .github/ hacs.json README.md .gitignore
           if git diff --cached --quiet; then
             echo "No changes to sync."
             echo "changed=false" >> "$GITHUB_OUTPUT"
