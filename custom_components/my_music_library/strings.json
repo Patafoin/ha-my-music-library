@@ -20,5 +20,16 @@
       "already_configured": "My Music Library is already configured",
       "single_instance_allowed": "Only a single instance is allowed"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Player settings",
+        "description": "Select the players you want to hide from the device picker.",
+        "data": {
+          "excluded_players": "Hidden players"
+        }
+      }
+    }
   }
 }

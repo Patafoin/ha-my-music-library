@@ -20,5 +20,16 @@
       "already_configured": "My Music Library ist bereits konfiguriert",
       "single_instance_allowed": "Nur eine Instanz ist erlaubt"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Player-Einstellungen",
+        "description": "Wählen Sie die Player aus, die in der Geräteauswahl ausgeblendet werden sollen.",
+        "data": {
+          "excluded_players": "Ausgeblendete Player"
+        }
+      }
+    }
   }
 }

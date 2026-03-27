@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "2.6.1";
+const CARD_VERSION = "2.7.0";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -31,6 +31,8 @@ const ICONS = {
   artist: `<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>`,
   playlist: `<svg viewBox="0 0 24 24"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/></svg>`,
   chevronRight: `<svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>`,
+  plus: `<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>`,
+  group: `<svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>`,
 };
 
 /* ─── i18n ────────────────────────────────────────────────── */
@@ -71,6 +73,14 @@ const TRANSLATIONS = {
     },
     queue: { up_next: "Up Next" },
     nav: { back: "← Back" },
+    group: {
+      section_master: "Active",
+      section_members: "Group members",
+      section_available: "Available",
+      attach: "Add to group",
+      detach: "Remove from group",
+      no_players: "No Music Assistant players found.",
+    },
   },
   fr: {
     tabs: { player: "Lecteur", search: "Recherche", library: "Bibliothèque" },
@@ -108,6 +118,14 @@ const TRANSLATIONS = {
     },
     queue: { up_next: "À suivre" },
     nav: { back: "← Retour" },
+    group: {
+      section_master: "Actif",
+      section_members: "Membres du groupe",
+      section_available: "Disponible",
+      attach: "Ajouter au groupe",
+      detach: "Retirer du groupe",
+      no_players: "Aucun lecteur Music Assistant trouvé.",
+    },
   },
   de: {
     tabs: { player: "Wiedergabe", search: "Suche", library: "Bibliothek" },
@@ -145,6 +163,14 @@ const TRANSLATIONS = {
     },
     queue: { up_next: "Als Nächstes" },
     nav: { back: "← Zurück" },
+    group: {
+      section_master: "Aktiv",
+      section_members: "Gruppenmitglieder",
+      section_available: "Verfügbar",
+      attach: "Zur Gruppe hinzufügen",
+      detach: "Aus der Gruppe entfernen",
+      no_players: "Keine Music Assistant Player gefunden.",
+    },
   },
 };
 
@@ -473,9 +499,29 @@ const STYLES = `
   }
   .device-item:hover { background: rgba(255,255,255,.06); }
   .device-item.selected { color: var(--accent); }
+  .device-item.master { cursor: default; }
+  .device-item.master:hover { background: none; }
+  .device-item.member { color: var(--accent); opacity: .9; }
   .device-item svg { width: 20px; height: 20px; fill: currentColor; }
   .device-item-name { flex: 1; font-size: 14px; }
   .device-item-state { font-size: 11px; color: var(--text2); }
+
+  /* Device modal sections */
+  .device-section + .device-section { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 4px; }
+  .device-section-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text2); padding: 10px 12px 4px; opacity: .65;
+  }
+  .device-item-action {
+    background: none; border: none; cursor: pointer; color: var(--text2); padding: 4px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    transition: color .15s, background .15s; flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .device-item-action:hover { color: var(--text); background: rgba(255,255,255,.12); }
+  .device-item-action svg { width: 16px; height: 16px; fill: currentColor; }
+  .device-item-action.attach { color: var(--accent); }
+  .device-item-action.detach:hover { color: #ff6b6b; background: rgba(255,107,107,.15); }
 
   /* ══════════════════════════════════════════
      SEARCH TAB
@@ -860,6 +906,8 @@ class MyMusicLibraryCard extends HTMLElement {
     this._localPositionTime = null;
     this._queue = [];
     this._lastQueueSource = null;  // URI of the album/playlist whose queue is loaded
+    this._groupMembers = [];       // entity_ids attached to _activePlayer as group
+    this._excludedPlayers = [];    // entity_ids hidden from the device picker (HA options)
     this._rendered = false;
     // MA config fetched from backend via WebSocket
     this._maUrl = null;       // stored but only used as a last-resort hint
@@ -901,6 +949,39 @@ class MyMusicLibraryCard extends HTMLElement {
       player: this._activePlayer,
       queue: this._queue,
       source: this._lastQueueSource,
+    }).catch(() => {});
+  }
+
+  /* ── Group persistence (server-side, per player) ── */
+
+  /** Load group members for a given player from the HA backend. */
+  async _loadGroupFromServer(player) {
+    if (!player || !this._hass) { this._groupMembers = []; return; }
+    try {
+      const data = await this._hass.callApi("GET", `my_music_library/groups?player=${encodeURIComponent(player)}`);
+      const stored = (data?.members || []).filter(id => this._players.find(p => p.entity_id === id));
+      // Reconcile with actual HA state: if HA has no group_members, the group was dissolved externally
+      const haState = this._hass.states[player];
+      const haMembers = (haState?.attributes?.group_members || []).filter(id => id !== player);
+      if (stored.length > 0 && haMembers.length === 0) {
+        this._groupMembers = [];
+        this._saveGroupToServer();
+      } else {
+        this._groupMembers = stored;
+      }
+    } catch (_) {
+      this._groupMembers = [];
+    }
+    const card = this.shadowRoot?.querySelector(".card-root");
+    if (card) this._updateDeviceRow(card);
+  }
+
+  /** Persist group members to the HA backend (fire-and-forget). */
+  _saveGroupToServer() {
+    if (!this._activePlayer || !this._hass) return;
+    this._hass.callApi("POST", "my_music_library/groups", {
+      player: this._activePlayer,
+      members: this._groupMembers,
     }).catch(() => {});
   }
 
@@ -953,6 +1034,7 @@ class MyMusicLibraryCard extends HTMLElement {
           || (this._players.find(p => p.state === "playing") || this._players[0])?.entity_id;
         if (this._activePlayer && this._activePlayer !== prevActive) {
           this._loadQueueFromServer(this._activePlayer);
+          this._loadGroupFromServer(this._activePlayer);
         }
       }
     }
@@ -997,6 +1079,13 @@ class MyMusicLibraryCard extends HTMLElement {
       if (cfg?.ma_url) {
         this._maUrl = cfg.ma_url.replace(/\/$/, "");
       }
+      if (Array.isArray(cfg?.excluded_players)) {
+        this._excludedPlayers = cfg.excluded_players;
+        // Refresh player list now that exclusions are known
+        this._players = this._getMaPlayers();
+        const card = this.shadowRoot?.querySelector(".card-root");
+        if (card) this._updatePlayerContent(card);
+      }
     } catch (e) {
       console.warn("[MML] Could not fetch integration config:", e.message || e);
     }
@@ -1021,8 +1110,9 @@ class MyMusicLibraryCard extends HTMLElement {
   /* ── Get media_player entities (all non-unavailable, MA players first) ── */
   _getMaPlayers() {
     if (!this._hass) return [];
+    const excluded = new Set(this._excludedPlayers || []);
     const all = Object.entries(this._hass.states)
-      .filter(([id, state]) => id.startsWith("media_player.") && state.state !== "unavailable")
+      .filter(([id, state]) => id.startsWith("media_player.") && state.state !== "unavailable" && !excluded.has(id))
       .map(([entity_id, state]) => {
         const attr = state.attributes || {};
         // mass_player_id is set exclusively by the MA HA integration on its entities
@@ -1152,7 +1242,7 @@ class MyMusicLibraryCard extends HTMLElement {
                 <input type="range" id="volume-slider" min="0" max="100" value="50">
               </div>
               <div class="device-row" id="device-row">
-                ${ICONS.device}
+                <span id="device-icon-wrap">${ICONS.device}</span>
                 <span class="device-name" id="device-name">${this._t("player.no_player")}</span>
                 ${ICONS.chevronRight}
               </div>
@@ -1462,11 +1552,8 @@ class MyMusicLibraryCard extends HTMLElement {
     // Progress
     this._updateProgress(card, state);
 
-    // Device
-    const deviceNameEl = card.querySelector("#device-name");
-    if (deviceNameEl) {
-      deviceNameEl.textContent = attr.friendly_name || this._activePlayer || this._t("player.no_player");
-    }
+    // Device row (name + icon reflect group state)
+    this._updateDeviceRow(card);
 
     // Queue update logic:
     // - New album/playlist URI detected → fetch its tracks.
@@ -1603,6 +1690,20 @@ class MyMusicLibraryCard extends HTMLElement {
     this._callService("volume_mute", { is_volume_muted: !this._getActiveState()?.attributes?.is_volume_muted });
   }
 
+  /* ── Device row ── */
+  _updateDeviceRow(card) {
+    const state = this._getActiveState();
+    const attr = state?.attributes || {};
+    const name = attr.friendly_name || this._activePlayer || this._t("player.no_player");
+    const count = this._groupMembers.length;
+
+    const nameEl = card.querySelector("#device-name");
+    if (nameEl) nameEl.textContent = count > 0 ? `${name} +${count}` : name;
+
+    const iconWrap = card.querySelector("#device-icon-wrap");
+    if (iconWrap) iconWrap.innerHTML = count > 0 ? ICONS.group : ICONS.device;
+  }
+
   /* ── Device modal ── */
   _openDeviceModal(card) {
     const modal = card.querySelector("#device-modal");
@@ -1610,30 +1711,105 @@ class MyMusicLibraryCard extends HTMLElement {
     list.innerHTML = "";
 
     if (this._players.length === 0) {
-      list.innerHTML = `<div class="empty-state"><p>No Music Assistant players found.</p><p>Install the Music Assistant integration first.</p></div>`;
-    } else {
-      this._players.forEach(p => {
-        const item = document.createElement("div");
-        item.className = `device-item${p.entity_id === this._activePlayer ? " selected" : ""}`;
-        item.innerHTML = `
-          ${ICONS.device}
-          <span class="device-item-name">${p.name}</span>
-          <span class="device-item-state">${p.state}</span>`;
-        item.addEventListener("click", () => {
-          const prevActive = this._activePlayer;
-          this._activePlayer = p.entity_id;
-          this._savePlayer(p.entity_id);
-          if (this._activePlayer !== prevActive) {
-            this._loadQueueFromServer(this._activePlayer);
-          }
-          this._closeDeviceModal(card);
-          this._updatePlayerContent(card);
-        });
-        list.appendChild(item);
-      });
+      list.innerHTML = `<div class="empty-state"><p>${this._t("group.no_players")}</p></div>`;
+      modal.classList.add("open");
+      return;
     }
 
+    const addSection = (title, entries) => {
+      if (!entries.length) return;
+      const section = document.createElement("div");
+      section.className = "device-section";
+      section.innerHTML = `<div class="device-section-title">${title}</div>`;
+      entries.forEach(({ player, role }) => section.appendChild(this._buildDeviceItem(player, role, card)));
+      list.appendChild(section);
+    };
+
+    const masterPlayer = this._players.find(p => p.entity_id === this._activePlayer);
+    const members     = this._players.filter(p => this._groupMembers.includes(p.entity_id));
+    const available   = this._players.filter(p => p.entity_id !== this._activePlayer && !this._groupMembers.includes(p.entity_id));
+
+    if (masterPlayer) addSection(this._t("group.section_master"), [{ player: masterPlayer, role: "master" }]);
+    addSection(this._t("group.section_members"), members.map(p => ({ player: p, role: "member" })));
+    addSection(this._t("group.section_available"), available.map(p => ({ player: p, role: "available" })));
+
     modal.classList.add("open");
+  }
+
+  _buildDeviceItem(player, role, card) {
+    const item = document.createElement("div");
+    item.className = `device-item${role === "master" ? " selected master" : role === "member" ? " member" : ""}`;
+
+    const iconSvg = role === "member" ? ICONS.group : ICONS.device;
+    let actionHtml = "";
+    if (role === "member") {
+      actionHtml = `<button class="device-item-action detach" title="${this._t("group.detach")}">${ICONS.close}</button>`;
+    } else if (role === "available") {
+      actionHtml = `<button class="device-item-action attach" title="${this._t("group.attach")}">${ICONS.plus}</button>`;
+    }
+
+    item.innerHTML = `
+      ${iconSvg}
+      <span class="device-item-name">${this._esc(player.name)}</span>
+      <span class="device-item-state">${this._esc(player.state)}</span>
+      ${actionHtml}`;
+
+    if (role === "available") {
+      item.addEventListener("click", (e) => {
+        if (e.target.closest(".attach")) return;
+        const prevActive = this._activePlayer;
+        this._activePlayer = player.entity_id;
+        this._savePlayer(player.entity_id);
+        if (this._activePlayer !== prevActive) {
+          this._groupMembers = [];
+          this._loadQueueFromServer(this._activePlayer);
+          this._loadGroupFromServer(this._activePlayer);
+        }
+        this._closeDeviceModal(card);
+        this._updatePlayerContent(card);
+      });
+      const attachBtn = item.querySelector(".attach");
+      if (attachBtn) {
+        attachBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          this._attachPlayer(player.entity_id, card);
+        });
+      }
+    } else if (role === "member") {
+      const detachBtn = item.querySelector(".detach");
+      if (detachBtn) {
+        detachBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          this._detachPlayer(player.entity_id, card);
+        });
+      }
+    }
+    return item;
+  }
+
+  _attachPlayer(entityId, card) {
+    if (!this._hass || !this._activePlayer || entityId === this._activePlayer) return;
+    if (this._groupMembers.includes(entityId)) return;
+    const newMembers = [...this._groupMembers, entityId];
+    this._hass.callService("media_player", "join", {
+      entity_id: this._activePlayer,
+      group_members: newMembers,
+    });
+    this._groupMembers = newMembers;
+    this._saveGroupToServer();
+    this._openDeviceModal(card);
+    this._updateDeviceRow(card);
+  }
+
+  _detachPlayer(entityId, card) {
+    if (!this._hass) return;
+    this._hass.callService("media_player", "unjoin", {
+      entity_id: entityId,
+    });
+    this._groupMembers = this._groupMembers.filter(id => id !== entityId);
+    this._saveGroupToServer();
+    this._openDeviceModal(card);
+    this._updateDeviceRow(card);
   }
 
   _savePlayer(entityId) {

@@ -6,13 +6,19 @@ from urllib.parse import urlparse
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
-from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.selector import (
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from .const import (
     CONF_DEFAULT_PLAYER,
     CONF_DEFAULT_TAB,
+    CONF_EXCLUDED_PLAYERS,
     CONF_MA_URL,
     DEFAULT_MA_URL,
     DEFAULT_TAB,
@@ -42,6 +48,16 @@ def _get_ma_players(hass: HomeAssistant) -> dict[str, str]:
     return players
 
 
+def _get_all_players(hass: HomeAssistant) -> dict[str, str]:
+    """Return a dict of {entity_id: friendly_name} for all non-unavailable media_player entities."""
+    players: dict[str, str] = {}
+    for entity_id, state in hass.states.items():
+        if entity_id.startswith("media_player.") and state.state != "unavailable":
+            name = state.attributes.get("friendly_name", entity_id)
+            players[entity_id] = name
+    return dict(sorted(players.items(), key=lambda x: x[1].lower()))
+
+
 def _validate_url(url: str) -> str | None:
     """Return None if valid, or an error key if invalid."""
     if not url:
@@ -59,6 +75,12 @@ class MyMusicLibraryConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for My Music Library."""
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        """Return the options flow handler."""
+        return MyMusicLibraryOptionsFlow()
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -111,3 +133,35 @@ class MyMusicLibraryConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
             description_placeholders=description_placeholders,
         )
+
+
+class MyMusicLibraryOptionsFlow(OptionsFlow):
+    """Handle options for My Music Library (player exclusion, etc.)."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Manage the options."""
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+
+        all_players = _get_all_players(self.hass)
+        current_excluded: list[str] = list(
+            self.config_entry.options.get(CONF_EXCLUDED_PLAYERS, [])
+        )
+        # Drop stale entries (player no longer exists)
+        current_excluded = [p for p in current_excluded if p in all_players]
+
+        schema = vol.Schema(
+            {
+                vol.Optional(CONF_EXCLUDED_PLAYERS, default=current_excluded): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[{"value": k, "label": v} for k, v in all_players.items()],
+                        multiple=True,
+                        mode=SelectSelectorMode.LIST,
+                    )
+                ),
+            }
+        )
+
+        return self.async_show_form(step_id="init", data_schema=schema)

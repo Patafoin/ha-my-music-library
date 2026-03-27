@@ -527,7 +527,61 @@ class PlayerQueueView(HomeAssistantView):
 
         store = domain_data.get("queue_store")
         if store:
-            await store.async_save({"queues": domain_data["queues"]})
+            await store.async_save({
+                "queues": domain_data["queues"],
+                "groups": domain_data.get("groups", {}),
+            })
+
+        return web.json_response({"ok": True})
+
+
+class PlayerGroupView(HomeAssistantView):
+    """Per-player group membership storage.
+
+    GET  /api/my_music_library/groups?player=<entity_id>
+         → {"player": "<entity_id>", "members": [...]}
+
+    POST /api/my_music_library/groups
+         body: {"player": "<entity_id>", "members": [...]}
+         → {"ok": true}
+    """
+
+    url = "/api/my_music_library/groups"
+    name = "api:my_music_library:groups"
+    requires_auth = True
+
+    async def get(self, request: web.Request) -> web.Response:
+        """Return the stored group members for a player."""
+        hass: HomeAssistant = request.app["hass"]
+        player = request.query.get("player", "").strip()
+        if not player:
+            return self.json_message("Missing 'player' parameter.", HTTPStatus.BAD_REQUEST)
+        groups: dict = hass.data.get(DOMAIN, {}).get("groups", {})
+        members = groups.get(player, [])
+        return web.json_response({"player": player, "members": members})
+
+    async def post(self, request: web.Request) -> web.Response:
+        """Save the group members for a player."""
+        hass: HomeAssistant = request.app["hass"]
+        try:
+            body: dict = await request.json()
+        except Exception:  # noqa: BLE001
+            return self.json_message("Invalid JSON body.", HTTPStatus.BAD_REQUEST)
+
+        player = (body.get("player") or "").strip()
+        if not player:
+            return self.json_message("Missing 'player' field.", HTTPStatus.BAD_REQUEST)
+
+        members = [m for m in (body.get("members") or []) if isinstance(m, str) and m]
+        domain_data = hass.data.setdefault(DOMAIN, {})
+        domain_data.setdefault("groups", {})[player] = members
+
+        store = domain_data.get("queue_store")
+        if store:
+            await store.async_save({
+                "queues": domain_data.get("queues", {}),
+                "groups": domain_data["groups"],
+            })
 
         return web.json_response({"ok": True})
 

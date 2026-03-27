@@ -18,8 +18,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
-from .api import MusicAssistantLibraryView, MusicAssistantSearchView, MusicAssistantSubitemsView, PlayerQueueView
-from .const import CARD_JS_FILENAME, CARD_URL, CONF_MA_URL, DOMAIN, ICON_URL, WS_CONFIG_COMMAND
+from .api import MusicAssistantLibraryView, MusicAssistantSearchView, MusicAssistantSubitemsView, PlayerGroupView, PlayerQueueView
+from .const import CARD_JS_FILENAME, CARD_URL, CONF_EXCLUDED_PLAYERS, CONF_MA_URL, DOMAIN, ICON_URL, WS_CONFIG_COMMAND
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,6 +40,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     stored = await store.async_load() or {}
     hass.data[DOMAIN]["queue_store"] = store
     hass.data[DOMAIN]["queues"] = stored.get("queues", {})
+    hass.data[DOMAIN]["groups"] = stored.get("groups", {})
     return True
 
 
@@ -80,6 +81,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.http.register_view(MusicAssistantLibraryView)
     hass.http.register_view(MusicAssistantSubitemsView)
     hass.http.register_view(PlayerQueueView)
+    hass.http.register_view(PlayerGroupView)
 
     # Register WebSocket command so the card can fetch its config
     _register_websocket_commands(hass)
@@ -126,6 +128,7 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
                 "ma_entry_id": ma_entry_id,
                 "default_player": entry.data.get("default_player") or None,
                 "default_tab": entry.data.get("default_tab", "player"),
+                "excluded_players": list(entry.options.get(CONF_EXCLUDED_PLAYERS, [])),
             },
         )
 

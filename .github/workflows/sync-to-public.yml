@@ -1,0 +1,44 @@
+name: Sync to public repo
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "custom_components/**"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout private repo
+        uses: actions/checkout@v4
+        with:
+          path: private
+
+      - name: Checkout public repo
+        uses: actions/checkout@v4
+        with:
+          repository: Patafoin/ha-my-music-library
+          token: ${{ secrets.PUBLIC_REPO_TOKEN }}
+          path: public
+
+      - name: Sync custom_components
+        run: |
+          rsync -av --delete \
+            private/custom_components/ \
+            public/custom_components/
+
+      - name: Commit and push to public repo
+        working-directory: public
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add custom_components/
+          if git diff --cached --quiet; then
+            echo "No changes to sync."
+          else
+            VERSION=$(grep -oP '(?<="version": ")[^"]+' custom_components/my_music_library/manifest.json || echo "unknown")
+            git commit -m "sync: update from private repo (v${VERSION})"
+            git push
+          fi
