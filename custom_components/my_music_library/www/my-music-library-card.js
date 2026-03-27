@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "2.7.2";
+const CARD_VERSION = "2.8.0";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -1108,11 +1108,28 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   /* ── Get media_player entities (all non-unavailable, MA players first) ── */
+  /** Return true if entityId matches a plain ID or a glob pattern (supports *). */
+  _isExcluded(entityId) {
+    for (const pattern of (this._excludedPlayers || [])) {
+      if (!pattern) continue;
+      if (pattern.includes("*")) {
+        // Glob → regex: escape regex meta-chars except *, then replace * with .*
+        const re = new RegExp(
+          "^" + pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$"
+        );
+        // Test against full entity_id AND against the name part (after "media_player.")
+        if (re.test(entityId) || re.test(entityId.replace(/^media_player\./, ""))) return true;
+      } else {
+        if (pattern === entityId) return true;
+      }
+    }
+    return false;
+  }
+
   _getMaPlayers() {
     if (!this._hass) return [];
-    const excluded = new Set(this._excludedPlayers || []);
     const all = Object.entries(this._hass.states)
-      .filter(([id, state]) => id.startsWith("media_player.") && state.state !== "unavailable" && !excluded.has(id))
+      .filter(([id, state]) => id.startsWith("media_player.") && state.state !== "unavailable" && !this._isExcluded(id))
       .map(([entity_id, state]) => {
         const attr = state.attributes || {};
         // mass_player_id is set exclusively by the MA HA integration on its entities

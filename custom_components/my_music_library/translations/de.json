@@ -25,7 +25,7 @@
     "step": {
       "init": {
         "title": "Player-Einstellungen",
-        "description": "Wählen Sie die Player aus, die in der Geräteauswahl ausgeblendet werden sollen.",
+        "description": "Wählen Sie Player aus, die in der Geräteauswahl ausgeblendet werden sollen. Sie können auch ein Wildcard-Muster eingeben (z.B. `media_player.browser_mod_*`) und Enter drücken, um alle passenden Player auszuschließen.",
         "data": {
           "excluded_players": "Ausgeblendete Player"
         }
