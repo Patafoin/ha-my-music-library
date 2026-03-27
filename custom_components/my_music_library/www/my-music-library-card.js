@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "2.7.1";
+const CARD_VERSION = "2.7.2";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -1741,10 +1741,12 @@ class MyMusicLibraryCard extends HTMLElement {
     item.className = `device-item${role === "master" ? " selected master" : role === "member" ? " member" : ""}`;
 
     const iconSvg = role === "member" ? ICONS.group : ICONS.device;
+    // Grouping requires Music Assistant — only MA players support join/unjoin.
+    const canGroup = player.isMa;
     let actionHtml = "";
     if (role === "member") {
       actionHtml = `<button class="device-item-action detach" title="${this._t("group.detach")}">${ICONS.close}</button>`;
-    } else if (role === "available") {
+    } else if (role === "available" && canGroup) {
       actionHtml = `<button class="device-item-action attach" title="${this._t("group.attach")}">${ICONS.plus}</button>`;
     }
 
