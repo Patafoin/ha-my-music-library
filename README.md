@@ -341,3 +341,4 @@ custom_components/my_music_library/
 ## License
 
 [MIT](LICENSE)
+x
