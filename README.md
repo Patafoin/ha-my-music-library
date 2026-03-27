@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-2.5.1-blue)
+![Version](https://img.shields.io/badge/version-2.8.2-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-custom-orange)
 
@@ -12,10 +12,11 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 
 - **Now Playing** — album art, track title, artist, progress bar, volume control
 - **Playback controls** — play/pause, previous, next, shuffle, repeat (off / all / one)
-- **Queue** — live queue display alongside the player, persisted across page reloads
+- **Queue** — live queue display alongside the player, persisted server-side per player across page reloads and devices
 - **Search** — full-text search across artists, albums, tracks and playlists via Music Assistant
 - **Library** — browse favorite artists, albums, playlists and favorite tracks
-- **Multi-player** — select and switch between any Music Assistant media player
+- **Multi-player** — device picker to select and switch between any media player; supports grouping (attach / detach players)
+- **Player exclusion** — hide specific players from the device picker via integration options; supports wildcard patterns (`media_player.browser_mod_*`)
 - **Custom tab-bar buttons** — add your own icon buttons on the left or right of the tab bar, with tap / hold / double-tap actions
 - **Responsive layout** — stacked on mobile, side-by-side on tablet/desktop
 - **Multilingual** — English, French, German (auto-detected from HA language setting)
@@ -46,6 +47,20 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 4. Restart Home Assistant and add the integration via the UI.
 
 > The Lovelace card resource (`/my_music_library/my-music-library-card.js`) is registered automatically — no manual resource addition required.
+
+---
+
+## Integration Options
+
+After installation, you can configure additional options via **Settings → Devices & Services → My Music Library → Configure**.
+
+### Hidden players
+
+Select one or more media player entities to hide from the device picker inside the card. This is useful to exclude virtual players, browser tabs, or any device you do not want to see in the list.
+
+You can also type a **wildcard pattern** (e.g. `media_player.browser_mod_*`) and press **Enter** to exclude all matching players at once.
+
+The card re-fetches this list every time it is reloaded or the user navigates back to the dashboard, so changes take effect without a full page refresh.
 
 ---
 
@@ -219,11 +234,13 @@ nav_buttons_right:
 
 ```
 custom_components/my_music_library/
-├── __init__.py          # Integration setup, static paths, Lovelace resource registration
+├── __init__.py          # Integration setup, static paths, Lovelace resource registration,
+│                        # WebSocket command (my_music_library/config),
+│                        # per-player queue and group storage (Store)
 ├── manifest.json        # Integration metadata (version, dependencies)
-├── config_flow.py       # UI configuration flow
+├── config_flow.py       # UI configuration flow (setup + options: excluded players)
 ├── const.py             # Domain constants
-├── api.py               # HTTP proxy views (search, library, subitems → Music Assistant)
+├── api.py               # HTTP proxy views (search, library, subitems, queue, groups → Music Assistant)
 ├── strings.json         # Config flow translation source
 ├── icon.png             # Integration icon
 ├── translations/
@@ -233,6 +250,52 @@ custom_components/my_music_library/
 └── www/
     └── my-music-library-card.js   # Lovelace custom element (vanilla JS, no build step)
 ```
+
+---
+
+## Changelog
+
+### 2.8.2
+- **Fix** — device picker dropdown not reflecting updated exclusion list after integration options were changed. The card now re-fetches its configuration from the backend every time it reconnects to the DOM (e.g. when navigating back to the dashboard), ensuring the hidden-players list is always in sync with what is set in **Settings → Devices & Services → Configure**.
+
+### 2.8.1
+- **Fix** — stale group members no longer persist across player switches when the group was dissolved externally in HA.
+- **Fix** — excluded players list pruned of deleted entity IDs on each options save.
+
+### 2.8.0
+- **Feature** — player grouping: attach and detach players directly from the device picker inside the card.
+- **Feature** — group state is persisted server-side per player and reconciled with HA's actual `group_members` attribute on load.
+
+### 2.7.0
+- **Feature** — player exclusion: hide specific players from the device picker via integration options. Supports exact entity IDs and wildcard patterns (e.g. `media_player.browser_mod_*`).
+- **Feature** — wildcard glob patterns for player exclusion (e.g. `media_player.prefix_*`).
+
+### 2.6.0
+- **Feature** — queue persisted server-side per player via `POST /api/my_music_library/queue`; shared across browsers and devices.
+- **Feature** — auto-detection of externally triggered album/playlist changes; stale queue cleared automatically.
+- **Improvement** — search falls back through three strategies (HA proxy → Music Assistant WebSocket → browse_media) for maximum compatibility.
+
+### 2.5.0
+- **Feature** — custom tab-bar buttons (`nav_buttons_left` / `nav_buttons_right`) with tap, hold and double-tap actions.
+- **Feature** — `height` card config option to set a fixed card height.
+- **Feature** — `entity` card config option to pre-select a default player.
+
+### 2.4.0
+- **Feature** — Library tab: browse favorite artists, albums, playlists and tracks.
+- **Feature** — infinite scroll / pagination for large libraries.
+
+### 2.3.0
+- **Feature** — Search tab: full-text search across artists, albums, tracks and playlists.
+
+### 2.2.0
+- **Feature** — multilingual support: English, French, German.
+- **Feature** — responsive layout (stacked on mobile, side-by-side on tablet/desktop).
+
+### 2.1.0
+- **Feature** — device picker: switch between media players at runtime; selection saved in `localStorage`.
+
+### 2.0.0
+- Initial public release: Player tab with now-playing display, playback controls, progress bar, volume and queue.
 
 ---
 
