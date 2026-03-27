@@ -5,8 +5,9 @@
   "codeowners": [],
   "config_flow": true,
   "dependencies": ["http"],
-  "documentation": "https://github.com/your-user/my-music-library",
+  "documentation": "https://github.com/Patafoin/ha-my-music-library",
   "iot_class": "local_push",
+  "issue_tracker": "https://github.com/Patafoin/ha-my-music-library/issues",
   "requirements": [],
   "version": "2.8.2"
 }
