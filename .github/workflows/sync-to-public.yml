@@ -8,6 +8,9 @@ on:
       - "custom_components/**"
       - "_public_repo/**"
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -32,12 +35,12 @@ jobs:
 
       - name: Sync root files (_public_repo → repo root)
         run: |
-          rsync -av --delete \
-            --exclude='.git' \
+          rsync -av \
             private/_public_repo/ \
             public/
 
       - name: Commit and push to public repo
+        id: commit
         working-directory: public
         run: |
           git config user.name  "github-actions[bot]"
@@ -45,19 +48,20 @@ jobs:
           git add custom_components/ hacs.json README.md .gitignore
           if git diff --cached --quiet; then
             echo "No changes to sync."
-            echo "CHANGED=false" >> "$GITHUB_ENV"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             VERSION=$(grep -oP '(?<="version": ")[^"]+' custom_components/my_music_library/manifest.json || echo "unknown")
             git commit -m "sync: update from private repo (v${VERSION})"
             git push
-            echo "CHANGED=true"  >> "$GITHUB_ENV"
-            echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create GitHub release on public repo
-        if: env.CHANGED == 'true'
+        if: steps.commit.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
+          VERSION: ${{ steps.commit.outputs.version }}
         run: |
           cd public
           TAG="v${VERSION}"
