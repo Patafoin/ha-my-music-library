@@ -1,7 +1,6 @@
 # My Music Library
 
 
-
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
 ![Version](https://img.shields.io/badge/version-2.7.0-blue)
