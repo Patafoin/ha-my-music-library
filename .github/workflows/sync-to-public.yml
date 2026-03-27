@@ -37,8 +37,29 @@ jobs:
           git add custom_components/
           if git diff --cached --quiet; then
             echo "No changes to sync."
+            echo "CHANGED=false" >> "$GITHUB_ENV"
           else
             VERSION=$(grep -oP '(?<="version": ")[^"]+' custom_components/my_music_library/manifest.json || echo "unknown")
             git commit -m "sync: update from private repo (v${VERSION})"
             git push
+            echo "CHANGED=true"  >> "$GITHUB_ENV"
+            echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Create GitHub release on public repo
+        if: env.CHANGED == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
+        run: |
+          cd public
+          TAG="v${VERSION}"
+          # Skip if the tag already exists
+          if git ls-remote --tags origin | grep -q "refs/tags/${TAG}$"; then
+            echo "Tag ${TAG} already exists, skipping release."
+          else
+            gh release create "${TAG}" \
+              --repo Patafoin/ha-my-music-library \
+              --title "${TAG}" \
+              --notes "Release ${TAG} — synced automatically from private repo." \
+              --latest
           fi
