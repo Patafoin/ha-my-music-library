@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "2.8.0";
+const CARD_VERSION = "2.8.1";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -1128,18 +1128,24 @@ class MyMusicLibraryCard extends HTMLElement {
 
   _getMaPlayers() {
     if (!this._hass) return [];
+    // MediaPlayerEntityFeature.GROUPING = 524288 (bit 19)
+    const FEATURE_GROUPING = 524288;
     const all = Object.entries(this._hass.states)
       .filter(([id, state]) => id.startsWith("media_player.") && state.state !== "unavailable" && !this._isExcluded(id))
       .map(([entity_id, state]) => {
         const attr = state.attributes || {};
-        // mass_player_id is set exclusively by the MA HA integration on its entities
+        // isMa: used for browse/search operations (requires MA Python client)
         const isMa = typeof attr.mass_player_id === "string" && attr.mass_player_id.length > 0;
+        // canJoin: player declares support for media_player.join in HA supported_features
+        const canJoin = typeof attr.supported_features === "number"
+          && (attr.supported_features & FEATURE_GROUPING) !== 0;
         return {
           entity_id,
           name: attr.friendly_name || entity_id,
           state: state.state,
           attributes: attr,
           isMa,
+          canJoin,
         };
       });
     return all
@@ -1758,8 +1764,8 @@ class MyMusicLibraryCard extends HTMLElement {
     item.className = `device-item${role === "master" ? " selected master" : role === "member" ? " member" : ""}`;
 
     const iconSvg = role === "member" ? ICONS.group : ICONS.device;
-    // Grouping requires Music Assistant — only MA players support join/unjoin.
-    const canGroup = player.isMa;
+    // Show + only if the player declares MediaPlayerEntityFeature.GROUPING in HA.
+    const canGroup = player.canJoin;
     let actionHtml = "";
     if (role === "member") {
       actionHtml = `<button class="device-item-action detach" title="${this._t("group.detach")}">${ICONS.close}</button>`;
