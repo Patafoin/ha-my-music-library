@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "2.8.1";
+const CARD_VERSION = "2.8.2";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -1066,6 +1066,9 @@ class MyMusicLibraryCard extends HTMLElement {
 
   disconnectedCallback() {
     this._stopProgressTick();
+    // Force config re-fetch on next reconnect so excluded_players stays in sync
+    // with any options changes made while the card was away from the DOM.
+    this._maConfigLoaded = false;
   }
 
   /* ── Fetch integration config (ma_entry_id, ma_url) via WebSocket ── */
