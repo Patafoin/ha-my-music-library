@@ -149,8 +149,11 @@ class MyMusicLibraryOptionsFlow(OptionsFlow):
         current_excluded: list[str] = list(
             self.config_entry.options.get(CONF_EXCLUDED_PLAYERS, [])
         )
-        # Drop stale entries (player no longer exists)
-        current_excluded = [p for p in current_excluded if p in all_players]
+        # Keep wildcard patterns as-is; drop stale exact entity IDs only.
+        current_excluded = [
+            p for p in current_excluded
+            if "*" in p or p in all_players
+        ]
 
         schema = vol.Schema(
             {
@@ -159,6 +162,9 @@ class MyMusicLibraryOptionsFlow(OptionsFlow):
                         options=[{"value": k, "label": v} for k, v in all_players.items()],
                         multiple=True,
                         mode=SelectSelectorMode.LIST,
+                        # Allows typing wildcard patterns (e.g. media_player.browser_mod_*)
+                        # directly in the selector input field.
+                        custom_value=True,
                     )
                 ),
             }

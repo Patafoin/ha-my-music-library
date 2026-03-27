@@ -25,7 +25,7 @@
     "step": {
       "init": {
         "title": "Player settings",
-        "description": "Select the players you want to hide from the device picker.",
+        "description": "Select players to hide from the device picker. You can also type a wildcard pattern (e.g. `media_player.browser_mod_*`) and press Enter to exclude all matching players.",
         "data": {
           "excluded_players": "Hidden players"
         }
