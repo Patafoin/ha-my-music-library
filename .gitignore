@@ -1,0 +1,52 @@
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# ── Home Assistant dev ────────────────────────────────────────
+# Local HA config used during development (never commit secrets)
+config/
+.storage/
+*.db
+*.log
+
+# ── Node / JS tooling (not needed — no build step) ────────────
+node_modules/
+package-lock.json
+yarn.lock
+.npm/
+
+# ── Editors & IDEs ────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Test & coverage artefacts ─────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# ── Environment files (secrets) ───────────────────────────────
+.env
+.env.*
+secrets.yaml
