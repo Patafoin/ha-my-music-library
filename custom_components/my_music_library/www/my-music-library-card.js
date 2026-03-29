@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "2.8.2";
+const CARD_VERSION = "2.8.5";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -61,10 +61,14 @@ const TRANSLATIONS = {
     lib: {
       loading: "Loading library…",
       loading_short: "Loading…",
-      fav_artists: "Favorite Artists",
-      fav_albums: "Favorite Albums",
+      artists: "Artists",
+      albums: "Albums",
       playlists: "Playlists",
-      fav_tracks: "Favorite Tracks",
+      tracks: "Tracks",
+      filter_all: "All",
+      filter_local: "Local",
+      filter_streaming: "Streaming",
+      filter_favorites: "Favorites",
       empty: "Library is empty or Music Assistant is not connected.",
       empty_hint: "Make sure Music Assistant integration is installed and running.",
       no_albums: "No albums found",
@@ -106,10 +110,14 @@ const TRANSLATIONS = {
     lib: {
       loading: "Chargement de la bibliothèque…",
       loading_short: "Chargement…",
-      fav_artists: "Artistes favoris",
-      fav_albums: "Albums favoris",
+      artists: "Artistes",
+      albums: "Albums",
       playlists: "Playlists",
-      fav_tracks: "Titres favoris",
+      tracks: "Titres",
+      filter_all: "Tout",
+      filter_local: "Local",
+      filter_streaming: "Streaming",
+      filter_favorites: "Favoris",
       empty: "La bibliothèque est vide ou Music Assistant n'est pas connecté.",
       empty_hint: "Assurez-vous que l'intégration Music Assistant est installée et en cours d'exécution.",
       no_albums: "Aucun album trouvé",
@@ -151,10 +159,14 @@ const TRANSLATIONS = {
     lib: {
       loading: "Bibliothek wird geladen…",
       loading_short: "Laden…",
-      fav_artists: "Lieblingskünstler",
-      fav_albums: "Lieblingsalben",
+      artists: "Künstler",
+      albums: "Alben",
       playlists: "Playlists",
-      fav_tracks: "Lieblingstitel",
+      tracks: "Titel",
+      filter_all: "Alle",
+      filter_local: "Lokal",
+      filter_streaming: "Streaming",
+      filter_favorites: "Favoriten",
       empty: "Bibliothek ist leer oder Music Assistant ist nicht verbunden.",
       empty_hint: "Stellen Sie sicher, dass die Music Assistant Integration installiert und aktiv ist.",
       no_albums: "Keine Alben gefunden",
@@ -351,17 +363,20 @@ const STYLES = `
   .progress-wrapper { display: flex; flex-direction: column; gap: 6px; }
   .progress-bar-container {
     position: relative;
-    height: 4px;
+    height: 6px;
     background: var(--border);
-    border-radius: 2px;
+    border-radius: 3px;
     cursor: pointer;
+    padding: 8px 0;
+    background-clip: content-box;
   }
   .progress-bar-fill {
-    height: 100%;
-    border-radius: 2px;
+    height: 6px;
+    border-radius: 3px;
     background: var(--accent);
     pointer-events: none;
     transition: width .5s linear;
+    margin-top: 8px;
   }
   .progress-bar-container:hover .progress-bar-fill { background: var(--accent); }
   .progress-times {
@@ -416,23 +431,24 @@ const STYLES = `
   input[type=range] {
     flex: 1;
     -webkit-appearance: none;
-    height: 4px;
-    border-radius: 2px;
+    height: 6px;
+    border-radius: 3px;
     background: var(--border);
     outline: none;
     cursor: pointer;
+    touch-action: none;
   }
   input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
     background: var(--accent);
     cursor: pointer;
   }
   input[type=range]::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
     background: var(--accent);
     border: none;
@@ -708,7 +724,58 @@ const STYLES = `
   /* ══════════════════════════════════════════
      LIBRARY TAB
   ══════════════════════════════════════════ */
-  .library-panel { flex: 1; overflow-y: auto; padding: 8px 0 16px; }
+  .library-panel { flex: 1; overflow-y: auto; padding: 0 0 16px; display: flex; flex-direction: column; }
+
+  .lib-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px 6px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .lib-filter-group {
+    display: flex;
+    gap: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .lib-filter-btn {
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background: none;
+    color: var(--text2);
+    border: none;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .lib-filter-btn:not(:last-child) { border-right: 1px solid var(--border); }
+  .lib-filter-btn:hover { background: rgba(255,255,255,.06); }
+  .lib-filter-btn.active { background: var(--accent); color: #000; }
+  .lib-filter-fav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    background: none;
+    color: var(--text2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .lib-filter-fav:hover { background: rgba(255,255,255,.06); }
+  .lib-filter-fav.active { background: var(--accent); color: #000; border-color: var(--accent); }
+  .lib-filter-fav svg { width: 14px; height: 14px; fill: currentColor; }
+
+  .lib-content { flex: 1; overflow-y: auto; }
 
   .lib-section { margin-bottom: 8px; }
   .lib-section-header {
@@ -872,10 +939,21 @@ function icon(name) {
 }
 
 function throttle(fn, ms) {
-  let last = 0;
+  let last = 0, timer = null, latestArgs = null;
   return (...args) => {
+    latestArgs = args;
     const now = Date.now();
-    if (now - last >= ms) { last = now; fn(...args); }
+    if (now - last >= ms) {
+      last = now;
+      if (timer) { clearTimeout(timer); timer = null; }
+      fn(...args);
+    } else if (!timer) {
+      timer = setTimeout(() => {
+        last = Date.now();
+        timer = null;
+        fn(...latestArgs);
+      }, ms - (now - last));
+    }
   };
 }
 
@@ -895,6 +973,8 @@ class MyMusicLibraryCard extends HTMLElement {
     this._libLoading = false;
     this._libLoaded = false;
     this._libSections = {}; // type → { offset, loading, exhausted, favorite, iconName }
+    this._libSourceFilter = this._loadPref("mml_lib_source") || "all";
+    this._libFavFilter = this._loadPref("mml_lib_fav") === "true";
     this._deviceModalOpen = false;
     this._searching = false;
     this._searchTimeout = null;
@@ -1305,10 +1385,24 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   _renderLibraryTab() {
+    const src = this._libSourceFilter;
+    const fav = this._libFavFilter;
     return `
       <div class="tab-panel" data-panel="library">
         <div class="library-panel" id="library-content">
-          <div class="loader"><div class="spinner"></div> ${this._t("lib.loading")}</div>
+          <div class="lib-filters" id="lib-filters">
+            <div class="lib-filter-group" id="lib-source-filter">
+              <button class="lib-filter-btn ${src === "all" ? "active" : ""}" data-source="all">${this._t("lib.filter_all")}</button>
+              <button class="lib-filter-btn ${src === "local" ? "active" : ""}" data-source="local">${this._t("lib.filter_local")}</button>
+              <button class="lib-filter-btn ${src === "streaming" ? "active" : ""}" data-source="streaming">${this._t("lib.filter_streaming")}</button>
+            </div>
+            <button class="lib-filter-fav ${fav ? "active" : ""}" id="lib-fav-filter">
+              ${fav ? ICONS.heart : ICONS.heartOutline}<span>${this._t("lib.filter_favorites")}</span>
+            </button>
+          </div>
+          <div class="lib-content" id="lib-content-inner">
+            <div class="loader"><div class="spinner"></div> ${this._t("lib.loading")}</div>
+          </div>
         </div>
       </div>`;
   }
@@ -1337,6 +1431,27 @@ class MyMusicLibraryCard extends HTMLElement {
       });
     });
 
+    // Library source filter (All / Local / Streaming)
+    card.querySelector("#lib-source-filter")?.addEventListener("click", (e) => {
+      const btn = e.target.closest(".lib-filter-btn");
+      if (!btn || btn.classList.contains("active")) return;
+      const source = btn.dataset.source;
+      this._libSourceFilter = source;
+      this._savePref("mml_lib_source", source);
+      card.querySelectorAll("#lib-source-filter .lib-filter-btn").forEach(b => b.classList.toggle("active", b.dataset.source === source));
+      this._reloadLibrary();
+    });
+
+    // Library favorites filter
+    card.querySelector("#lib-fav-filter")?.addEventListener("click", () => {
+      this._libFavFilter = !this._libFavFilter;
+      this._savePref("mml_lib_fav", String(this._libFavFilter));
+      const btn = card.querySelector("#lib-fav-filter");
+      btn.classList.toggle("active", this._libFavFilter);
+      btn.querySelector("svg").outerHTML = this._libFavFilter ? ICONS.heart : ICONS.heartOutline;
+      this._reloadLibrary();
+    });
+
     // Player controls
     card.querySelector("#btn-playpause").addEventListener("click", () => this._togglePlayPause());
     card.querySelector("#btn-prev").addEventListener("click", () => this._callService("media_previous_track"));
@@ -1347,6 +1462,10 @@ class MyMusicLibraryCard extends HTMLElement {
 
     // Volume
     const volSlider = card.querySelector("#volume-slider");
+    volSlider.addEventListener("pointerdown", () => { this._volumeDragging = true; });
+    const endVolDrag = () => { this._volumeDragging = false; };
+    volSlider.addEventListener("pointerup", endVolDrag);
+    volSlider.addEventListener("pointercancel", endVolDrag);
     volSlider.addEventListener("input", throttle((e) => {
       this._callService("volume_set", { volume_level: parseInt(e.target.value) / 100 });
     }, 300));
@@ -1562,9 +1681,9 @@ class MyMusicLibraryCard extends HTMLElement {
       repeatBtn.classList.toggle("active", repeat !== "off");
     }
 
-    // Volume
+    // Volume — skip update while user is dragging to prevent snap-back
     const volSlider = card.querySelector("#volume-slider");
-    if (volSlider && attr.volume_level !== undefined) {
+    if (volSlider && attr.volume_level !== undefined && !this._volumeDragging) {
       volSlider.value = Math.round(attr.volume_level * 100);
     }
 
@@ -1860,6 +1979,14 @@ class MyMusicLibraryCard extends HTMLElement {
     try { return localStorage.getItem("mml_active_player"); } catch (_) { return null; }
   }
 
+  _savePref(key, value) {
+    try { localStorage.setItem(key, value); } catch (_) {}
+  }
+
+  _loadPref(key) {
+    try { return localStorage.getItem(key); } catch (_) { return null; }
+  }
+
   _closeDeviceModal(card) {
     card.querySelector("#device-modal").classList.remove("open");
   }
@@ -2093,21 +2220,50 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   /* ── Library ── */
+
+  static _LOCAL_PROVIDERS = ["filesystem_local", "filesystem_smb", "filesystem_nfs", "plex"];
+
+  _isLocalProvider(domain) {
+    return MyMusicLibraryCard._LOCAL_PROVIDERS.some(p => domain.startsWith(p));
+  }
+
+  _filterLibItems(items) {
+    if (this._libSourceFilter === "all") return items;
+    return items.filter(item => {
+      const provs = item.providers || [];
+      if (provs.length === 0) {
+        // Fallback: infer from URI scheme
+        const uri = item.media_content_id || "";
+        const scheme = uri.includes("://") ? uri.split("://")[0] : "";
+        if (this._libSourceFilter === "local") return this._isLocalProvider(scheme);
+        return scheme && !this._isLocalProvider(scheme);
+      }
+      if (this._libSourceFilter === "local") return provs.some(p => this._isLocalProvider(p));
+      return provs.some(p => !this._isLocalProvider(p));
+    });
+  }
+
+  _reloadLibrary() {
+    this._libLoaded = false;
+    this._loadLibrary();
+  }
+
   async _loadLibrary() {
-    if (!this._hass || this._libLoaded) return;
+    if (!this._hass) return;
 
     const card = this.shadowRoot.querySelector(".card-root");
-    const libEl = card?.querySelector("#library-content");
+    const libEl = card?.querySelector("#lib-content-inner");
     if (!libEl) return;
 
     this._libLoaded = true;
-    console.info("[MML] Library loading via HA proxy");
+    const favorite = this._libFavFilter;
+    console.info("[MML] Library loading via HA proxy (favorite=%s, source=%s)", favorite, this._libSourceFilter);
 
     const SECTIONS = [
-      { type: "artists",   label: this._t("lib.fav_artists"), icon: "artist",   favorite: true },
-      { type: "albums",    label: this._t("lib.fav_albums"),  icon: "album",    favorite: true },
-      { type: "playlists", label: this._t("lib.playlists"),   icon: "playlist", favorite: false },
-      { type: "tracks",    label: this._t("lib.fav_tracks"),  icon: "music",    favorite: true },
+      { type: "artists",   label: this._t("lib.artists"),   icon: "artist",   favorite },
+      { type: "albums",    label: this._t("lib.albums"),    icon: "album",    favorite },
+      { type: "playlists", label: this._t("lib.playlists"), icon: "playlist", favorite },
+      { type: "tracks",    label: this._t("lib.tracks"),    icon: "music",    favorite },
     ];
     const PAGE = 25;
 
@@ -2137,9 +2293,10 @@ class MyMusicLibraryCard extends HTMLElement {
     let html = "";
     for (const res of results) {
       if (res.status !== "fulfilled") continue;
-      const { type, label, icon: iconName, items } = res.value;
+      const { type, label, icon: iconName } = res.value;
+      const items = this._filterLibItems(res.value.items);
       if (items.length === 0) { this._libSections[type].exhausted = true; continue; }
-      if (items.length < PAGE) this._libSections[type].exhausted = true;
+      if (res.value.items.length < PAGE) this._libSections[type].exhausted = true;
 
       const isTrackList = iconName === "music";
       html += `
@@ -2208,11 +2365,12 @@ class MyMusicLibraryCard extends HTMLElement {
     try {
       const data = await this._hass.callApi("GET",
         `my_music_library/library?type=${type}&limit=${PAGE}&offset=${offset}&favorite=${favorite}`);
-      const items = data?.items || [];
-      console.info("[MML] Load more", type, "offset", offset, "→", items.length, "items");
+      const rawItems = data?.items || [];
+      const items = this._filterLibItems(rawItems);
+      console.info("[MML] Load more", type, "offset", offset, "→", rawItems.length, "fetched,", items.length, "after filter");
 
-      if (items.length < PAGE) state.exhausted = true;
-      state.offset += items.length;
+      if (rawItems.length < PAGE) state.exhausted = true;
+      state.offset += rawItems.length;
 
       if (items.length > 0) {
         const sentinel = libEl.querySelector(`#lib-sentinel-${type}`);
