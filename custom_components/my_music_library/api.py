@@ -219,6 +219,13 @@ def _normalize_library_item(item: dict) -> dict:
     track_number = item.get("track_number") or item.get("position") or 0
     duration = item.get("duration") or 0
 
+    # Provider domains this item belongs to (e.g. ["filesystem_local", "deezer"])
+    provider_mappings = item.get("provider_mappings") or []
+    providers = sorted({
+        m.get("provider_domain", "")
+        for m in provider_mappings if isinstance(m, dict) and m.get("provider_domain")
+    })
+
     return {
         "title": title,
         "media_content_id": uri,
@@ -228,6 +235,7 @@ def _normalize_library_item(item: dict) -> dict:
         "album_type": str(album_type).lower() if album_type else "album",
         "track_number": int(track_number) if track_number else 0,
         "duration": float(duration) if duration else 0,
+        "providers": providers,
     }
 
 

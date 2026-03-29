@@ -9,5 +9,5 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/Patafoin/ha-my-music-library/issues",
   "requirements": [],
-  "version": "2.8.2"
+  "version": "2.8.5"
 }
