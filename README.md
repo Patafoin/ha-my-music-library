@@ -3,7 +3,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-2.7.0-blue)
+![Version](https://img.shields.io/badge/version-2.8.5-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2F2026.x-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-custom-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -19,7 +19,7 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 | **Volume** | Volume slider + mute toggle |
 | **Queue** | Track queue displayed alongside the player; persisted server-side across all browsers and devices |
 | **Search** | Full-text search across artists, albums, tracks and playlists via Music Assistant |
-| **Library** | Browse favorite artists, albums (with infinite scroll), playlists and favorite tracks |
+| **Library** | Browse artists, albums (with infinite scroll), playlists and tracks — filter by source (local / streaming) and favorites |
 | **Multi-player** | Select and switch between any media_player entity |
 | **Player groups** | Attach / detach additional players to the active player to synchronize playback |
 | **Hidden players** | Exclude unwanted media_player entities from the picker (configured via the HA options flow) |
@@ -320,6 +320,14 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 2.8.5
+- **Library source filters** — filter library items by source (All / Local / Streaming) and favorites
+- **Wildcard player exclusion** — hidden players now support glob patterns (e.g. `media_player.browser_mod_*`)
+- **Improved touch targets** — larger progress bar and volume slider thumbs for easier mobile interaction
+- **Throttle trailing edge** — throttle utility now fires a trailing call, preventing missed final updates
+- Reduced noisy console logging
+- `disconnectedCallback` now resets config so excluded players stay in sync after options changes
 
 ### 2.7.0
 - **Player groups** — attach/detach players from the device picker; group persisted server-side
