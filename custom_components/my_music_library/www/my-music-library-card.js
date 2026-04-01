@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "2.8.5";
+const CARD_VERSION = "2.8.9";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -1157,7 +1157,7 @@ class MyMusicLibraryCard extends HTMLElement {
       const cfg = await this._hass.callWS({ type: "my_music_library/config" });
       if (cfg?.ma_entry_id) {
         this._maEntryId = cfg.ma_entry_id;
-        console.info("[MML] MA entry_id:", this._maEntryId);
+        // MA entry_id loaded
       }
       if (cfg?.ma_url) {
         this._maUrl = cfg.ma_url.replace(/\/$/, "");
@@ -1170,7 +1170,7 @@ class MyMusicLibraryCard extends HTMLElement {
         if (card) this._updatePlayerContent(card);
       }
     } catch (e) {
-      console.warn("[MML] Could not fetch integration config:", e.message || e);
+      // Integration config fetch failed
     }
   }
 
@@ -1499,7 +1499,7 @@ class MyMusicLibraryCard extends HTMLElement {
         this._renderSearchResults(card, null);
         return;
       }
-      this._searchTimeout = setTimeout(() => this._doSearch(card), 300);
+      this._searchTimeout = setTimeout(() => this._doSearch(card), 700);
     });
 
     // Nav extra buttons (tap / hold / double-tap → HA actions)
@@ -1747,7 +1747,7 @@ class MyMusicLibraryCard extends HTMLElement {
       this._saveQueueState();
       this._updateQueueDisplay(card);
     } catch (err) {
-      console.warn("[MML] Auto-queue fetch failed:", err);
+      // Auto-queue fetch failed
     }
   }
 
@@ -2005,12 +2005,14 @@ class MyMusicLibraryCard extends HTMLElement {
 
     let results = null;
 
-    // Strategy 1 — HA proxy endpoint → MA REST API (server-side, no CORS/Mixed-Content)
-    results = await this._searchViaHaProxy(query);
-
-    // Strategy 2 — music_assistant/* WebSocket commands (registered by some MA versions)
-    if (!results && this._maEntryId) {
-      results = await this._searchViaMaWs(query);
+    // Strategies 1+2 in parallel — use first non-null result
+    {
+      const candidates = [this._searchViaHaProxy(query)];
+      if (this._maEntryId) candidates.push(this._searchViaMaWs(query));
+      const settled = await Promise.allSettled(candidates);
+      for (const r of settled) {
+        if (r.status === "fulfilled" && r.value) { results = r.value; break; }
+      }
     }
 
     // Strategy 3 — browse_media on a confirmed MA entity (last resort)
@@ -2048,10 +2050,10 @@ class MyMusicLibraryCard extends HTMLElement {
       );
       if (!data) return null;
       const results = this._parseMaWsSearchResults(data);
-      if (results) console.info("[MML] Search via HA proxy succeeded");
+      // Search via HA proxy done
       return results;
     } catch (e) {
-      console.warn("[MML] HA proxy search failed:", e.message || e);
+      // HA proxy search failed
       return null;
     }
   }
@@ -2071,11 +2073,11 @@ class MyMusicLibraryCard extends HTMLElement {
       try {
         const result = await this._hass.callWS(msg);
         if (result) {
-          console.info("[MML] music_assistant/search succeeded with", msg.type);
+          // MA WS search succeeded
           return this._parseMaWsSearchResults(result);
         }
       } catch (e) {
-        console.warn("[MML] MA WS search attempt failed:", msg.type, e.message || e);
+        // MA WS search attempt failed
       }
     }
     return null;
@@ -2121,7 +2123,7 @@ class MyMusicLibraryCard extends HTMLElement {
         });
         return this._parseSearchResults(result);
       } catch (e) {
-        console.warn("[MML] browse_media search failed", attempt.media_content_type, e.message || e);
+        // browse_media search failed
       }
     }
     return null;
@@ -2166,42 +2168,44 @@ class MyMusicLibraryCard extends HTMLElement {
       return;
     }
 
-    let html = "";
     const sections = [
-      { key: "artists",   label: this._t("search.artists"),   icon: "artist",   card: true  },
-      { key: "albums",    label: this._t("search.albums"),    icon: "album",    card: true  },
-      { key: "tracks",    label: this._t("search.tracks"),    icon: "music",    card: false },
-      { key: "playlists", label: this._t("search.playlists"), icon: "playlist", card: true  },
+      { key: "artists",   label: this._t("search.artists"),   icon: "artist",   card: true,  limit: 15 },
+      { key: "albums",    label: this._t("search.albums"),    icon: "album",    card: true,  limit: 15 },
+      { key: "tracks",    label: this._t("search.tracks"),    icon: "music",    card: false, limit: 10 },
+      { key: "playlists", label: this._t("search.playlists"), icon: "playlist", card: true,  limit: 15 },
     ];
 
+    // Clear and render each section progressively via microtasks
+    el.innerHTML = "";
     let total = 0;
-    for (const { key, label, icon: iconName, card } of sections) {
-      const items = results[key] || [];
-      if (items.length === 0) continue;
+    let pending = sections.length;
+
+    for (const { key, label, icon: iconName, card: isCard, limit } of sections) {
+      const items = (results[key] || []).slice(0, limit);
+      if (items.length === 0) { pending--; continue; }
       total += items.length;
-      if (card) {
-        html += `
-          <div class="search-section">
-            <div class="search-section-title">${label}</div>
-            <div class="lib-scroll">
-              ${items.slice(0, 15).map(i => this._renderSearchCard(i, iconName)).join("")}
-            </div>
-          </div>`;
-      } else {
-        html += `
-          <div class="search-section">
-            <div class="search-section-title">${label}</div>
-            ${items.slice(0, 10).map(i => this._renderResultItem(i, iconName)).join("")}
-          </div>`;
-      }
+
+      // Use a microtask so each section paints independently
+      queueMicrotask(() => {
+        const secHtml = isCard
+          ? `<div class="search-section">
+               <div class="search-section-title">${label}</div>
+               <div class="lib-scroll">${items.map(i => this._renderSearchCard(i, iconName)).join("")}</div>
+             </div>`
+          : `<div class="search-section">
+               <div class="search-section-title">${label}</div>
+               ${items.map(i => this._renderResultItem(i, iconName)).join("")}
+             </div>`;
+        const tmp = document.createElement("div");
+        tmp.innerHTML = secHtml;
+        while (tmp.firstChild) el.appendChild(tmp.firstChild);
+        this._attachItemActions(el);
+      });
     }
 
     if (total === 0) {
-      html = `<div class="empty-state">${ICONS.search}<p>${this._t("search.no_results")} « ${this._searchQuery} »</p></div>`;
+      el.innerHTML = `<div class="empty-state">${ICONS.search}<p>${this._t("search.no_results")} « ${this._searchQuery} »</p></div>`;
     }
-
-    el.innerHTML = html;
-    this._attachItemActions(el);
   }
 
   _renderResultItem(item, iconName) {
@@ -2256,8 +2260,10 @@ class MyMusicLibraryCard extends HTMLElement {
     if (!libEl) return;
 
     this._libLoaded = true;
+    this._libLoadId = (this._libLoadId || 0) + 1;
+    const loadId = this._libLoadId;
     const favorite = this._libFavFilter;
-    console.info("[MML] Library loading via HA proxy (favorite=%s, source=%s)", favorite, this._libSourceFilter);
+    const sourceFilter = this._libSourceFilter;
 
     const SECTIONS = [
       { type: "artists",   label: this._t("lib.artists"),   icon: "artist",   favorite },
@@ -2266,40 +2272,15 @@ class MyMusicLibraryCard extends HTMLElement {
       { type: "tracks",    label: this._t("lib.tracks"),    icon: "music",    favorite },
     ];
     const PAGE = 25;
+    const MAX_PAGES = 8;
 
-    libEl.innerHTML = `<div class="loader"><div class="spinner"></div> ${this._t("lib.loading")}</div>`;
-
-    const results = await Promise.allSettled(
-      SECTIONS.map(s =>
-        this._hass.callApi(
-          "GET",
-          `my_music_library/library?type=${s.type}&limit=${PAGE}&offset=0&favorite=${s.favorite}`
-        ).then(r => {
-          console.info("[MML] Library", s.type, "→", r?.items?.length ?? 0, "items");
-          return { ...s, items: r?.items || [] };
-        }).catch(err => {
-          console.warn("[MML] Library fetch failed for", s.type, err);
-          return { ...s, items: [] };
-        })
-      )
-    );
-
-    // Init per-section pagination state
+    libEl.innerHTML = `<div class="loader" id="lib-loader"><div class="spinner"></div> ${this._t("lib.loading")}</div>`;
     this._libSections = {};
-    for (const s of SECTIONS) {
-      this._libSections[s.type] = { offset: PAGE, loading: false, exhausted: false, favorite: s.favorite, iconName: s.icon };
-    }
 
-    let html = "";
-    for (const res of results) {
-      if (res.status !== "fulfilled") continue;
-      const { type, label, icon: iconName } = res.value;
-      const items = this._filterLibItems(res.value.items);
-      if (items.length === 0) { this._libSections[type].exhausted = true; continue; }
-      if (res.value.items.length < PAGE) this._libSections[type].exhausted = true;
-
+    // Helper: build section HTML
+    const sectionHtml = (type, label, iconName, items) => {
       const isTrackList = iconName === "music";
-      html += `
+      return `
         <div class="lib-section" id="lib-sec-${type}">
           <div class="lib-section-header">
             <span class="lib-section-title">${label}</span>
@@ -2313,17 +2294,96 @@ class MyMusicLibraryCard extends HTMLElement {
                </div>`
           }
         </div>`;
-    }
+    };
 
-    if (!html) {
-      html = `<div class="empty-state">${ICONS.library}
+    // Helper: append a section to the DOM and wire up actions
+    const appendSection = (type, label, iconName, items) => {
+      if (loadId !== this._libLoadId) return; // stale load
+      const loader = libEl.querySelector("#lib-loader");
+      if (loader) loader.remove();
+      const tmp = document.createElement("div");
+      tmp.innerHTML = sectionHtml(type, label, iconName, items);
+      while (tmp.firstChild) libEl.appendChild(tmp.firstChild);
+      const sec = libEl.querySelector(`#lib-sec-${type}`);
+      if (sec) this._attachItemActions(sec);
+    };
+
+    // Fetch one section: first page in parallel, then lazy-paginate if source filter needs more
+    const fetchSection = async (s) => {
+      let offset = 0;
+      let exhausted = false;
+      let pages = 0;
+      let rendered = false;
+
+      while (pages < MAX_PAGES && !exhausted) {
+        if (loadId !== this._libLoadId) return; // stale load
+        pages++;
+        const r = await this._hass.callApi(
+          "GET",
+          `my_music_library/library?type=${s.type}&limit=${PAGE}&offset=${offset}&favorite=${s.favorite}`
+        );
+        const raw = r?.items || [];
+        offset += raw.length;
+        if (raw.length < PAGE) exhausted = true;
+
+        const filtered = this._filterLibItems(raw);
+
+        if (filtered.length > 0 && !rendered) {
+          // First batch with results — render immediately
+          this._libSections[s.type] = { offset, loading: false, exhausted, favorite: s.favorite, iconName: s.icon };
+          appendSection(s.type, s.label, s.icon, filtered);
+          rendered = true;
+          // No source filter or server exhausted → done
+          if (sourceFilter === "all" || exhausted) break;
+          // Source filter active — continue fetching more in background to append
+          continue;
+        }
+
+        if (filtered.length > 0 && rendered) {
+          // Subsequent batches — append to existing section
+          this._libSections[s.type].offset = offset;
+          this._libSections[s.type].exhausted = exhausted;
+          const isTrackList = s.icon === "music";
+          const sentinel = libEl.querySelector(`#lib-sentinel-${s.type}`);
+          const container = isTrackList
+            ? libEl.querySelector(`#lib-list-${s.type}`)
+            : libEl.querySelector(`#lib-scroll-${s.type}`);
+          if (container && sentinel) {
+            const tmp = document.createElement("div");
+            tmp.innerHTML = filtered.map(i => isTrackList ? this._renderLibListItem(i) : this._renderLibCard(i, s.icon)).join("");
+            while (tmp.firstChild) container.insertBefore(tmp.firstChild, sentinel);
+            this._attachItemActions(container);
+          }
+          break;
+        }
+
+        // 0 filtered results — stop if no source filter or server exhausted
+        if (sourceFilter === "all" || exhausted) break;
+        // Source filter active, 0 matches so far — try next page
+      }
+
+      // Register section state even if nothing rendered
+      if (!this._libSections[s.type]) {
+        this._libSections[s.type] = { offset, loading: false, exhausted: true, favorite: s.favorite, iconName: s.icon };
+      }
+    };
+
+    // Launch all sections in parallel — each renders itself as soon as ready
+    await Promise.allSettled(SECTIONS.map(s => fetchSection(s)));
+
+    if (loadId !== this._libLoadId) return;
+
+    // Clean up loader if still present (all sections empty)
+    const loader = libEl.querySelector("#lib-loader");
+    if (loader) loader.remove();
+
+    if (!libEl.querySelector(".lib-section")) {
+      libEl.innerHTML = `<div class="empty-state">${ICONS.library}
         <p>${this._t("lib.empty")}</p>
         <p style="font-size:11px;opacity:.6;margin-top:4px">${this._t("lib.empty_hint")}</p>
       </div>`;
     }
 
-    libEl.innerHTML = html;
-    this._attachItemActions(libEl);
     this._attachLibInfiniteScroll(libEl);
   }
 
@@ -2358,35 +2418,44 @@ class MyMusicLibraryCard extends HTMLElement {
     if (!state || state.loading || state.exhausted) return;
     state.loading = true;
 
-    const { offset, favorite, iconName } = state;
+    const { favorite, iconName } = state;
     const isTrackList = iconName === "music";
     const PAGE = 25;
+    const MAX_PAGES = 8;
+    const sourceFilter = this._libSourceFilter;
+
+    const appendItems = (items) => {
+      const sentinel = libEl.querySelector(`#lib-sentinel-${type}`);
+      const container = isTrackList
+        ? libEl.querySelector(`#lib-list-${type}`)
+        : libEl.querySelector(`#lib-scroll-${type}`);
+      if (!container || !sentinel) return;
+      const tmp = document.createElement("div");
+      tmp.innerHTML = items.map(i => isTrackList ? this._renderLibListItem(i) : this._renderLibCard(i, iconName)).join("");
+      while (tmp.firstChild) container.insertBefore(tmp.firstChild, sentinel);
+      this._attachItemActions(container);
+    };
 
     try {
-      const data = await this._hass.callApi("GET",
-        `my_music_library/library?type=${type}&limit=${PAGE}&offset=${offset}&favorite=${favorite}`);
-      const rawItems = data?.items || [];
-      const items = this._filterLibItems(rawItems);
-      console.info("[MML] Load more", type, "offset", offset, "→", rawItems.length, "fetched,", items.length, "after filter");
+      let pages = 0;
+      while (pages < MAX_PAGES && !state.exhausted) {
+        pages++;
+        const data = await this._hass.callApi("GET",
+          `my_music_library/library?type=${type}&limit=${PAGE}&offset=${state.offset}&favorite=${favorite}`);
+        const rawItems = data?.items || [];
 
-      if (rawItems.length < PAGE) state.exhausted = true;
-      state.offset += rawItems.length;
+        if (rawItems.length < PAGE) state.exhausted = true;
+        state.offset += rawItems.length;
 
-      if (items.length > 0) {
-        const sentinel = libEl.querySelector(`#lib-sentinel-${type}`);
-        const container = isTrackList
-          ? libEl.querySelector(`#lib-list-${type}`)
-          : libEl.querySelector(`#lib-scroll-${type}`);
-
-        if (container && sentinel) {
-          const tmp = document.createElement("div");
-          tmp.innerHTML = items.map(i => isTrackList ? this._renderLibListItem(i) : this._renderLibCard(i, iconName)).join("");
-          while (tmp.firstChild) container.insertBefore(tmp.firstChild, sentinel);
-          this._attachItemActions(container);
+        const filtered = this._filterLibItems(rawItems);
+        if (filtered.length > 0) {
+          appendItems(filtered);
+          break;
         }
+        // Source filter active, 0 matches — try next page
+        if (sourceFilter === "all" || state.exhausted) break;
       }
     } catch (err) {
-      console.warn("[MML] Load more failed for", type, err);
       state.exhausted = true;
     } finally {
       state.loading = false;
@@ -2498,7 +2567,7 @@ class MyMusicLibraryCard extends HTMLElement {
         }
       })
       .catch(err => {
-        console.warn("[MML] Artist albums fetch failed:", err);
+        // Artist albums fetch failed
         const sections = artistPanel.querySelector(".artist-page-sections");
         if (sections) sections.innerHTML = `<div class="empty-state">${ICONS.library}<p>${this._t("lib.load_error")}</p></div>`;
       });
@@ -2528,7 +2597,7 @@ class MyMusicLibraryCard extends HTMLElement {
       this._saveQueueState();
       this._updateQueueDisplay(card);
     } catch (err) {
-      console.warn("[MML] Queue fetch failed:", err);
+      // Queue fetch failed
     }
   }
 

@@ -30,7 +30,7 @@ def _to_json_safe(obj: Any) -> Any:
         return {f.name: _to_json_safe(getattr(obj, f.name)) for f in dataclasses.fields(obj)}
     if isinstance(obj, dict):
         return {k: _to_json_safe(v) for k, v in obj.items()}
-    if isinstance(obj, (list, tuple)):
+    if isinstance(obj, (list, tuple, set, frozenset)):
         return [_to_json_safe(i) for i in obj]
     return str(obj)
 
@@ -225,7 +225,6 @@ def _normalize_library_item(item: dict) -> dict:
         m.get("provider_domain", "")
         for m in provider_mappings if isinstance(m, dict) and m.get("provider_domain")
     })
-
     return {
         "title": title,
         "media_content_id": uri,
@@ -296,7 +295,7 @@ async def _get_library_via_ma_client(
             try:
                 result = await fn(**kwargs)
                 items = list(result) if not isinstance(result, list) else result
-                _LOGGER.info("Library %s fetched: %d items (kwargs=%s)", media_type, len(items), kwargs)
+                _LOGGER.debug("Library %s fetched: %d items (kwargs=%s)", media_type, len(items), kwargs)
                 return [_normalize_library_item(_to_json_safe(i)) for i in items[:limit]]
             except TypeError:
                 continue
