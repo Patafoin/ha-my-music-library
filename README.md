@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-2.8.2-blue)
+![Version](https://img.shields.io/badge/version-2.8.9-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-custom-orange)
 
@@ -14,7 +14,7 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 - **Playback controls** — play/pause, previous, next, shuffle, repeat (off / all / one)
 - **Queue** — live queue display alongside the player, persisted server-side per player across page reloads and devices
 - **Search** — full-text search across artists, albums, tracks and playlists via Music Assistant
-- **Library** — browse favorite artists, albums, playlists and favorite tracks
+- **Library** — browse artists, albums, playlists and tracks with source filter (All / Local / Streaming) and favorites toggle
 - **Multi-player** — device picker to select and switch between any media player; supports grouping (attach / detach players)
 - **Player exclusion** — hide specific players from the device picker via integration options; supports wildcard patterns (`media_player.browser_mod_*`)
 - **Custom tab-bar buttons** — add your own icon buttons on the left or right of the tab bar, with tap / hold / double-tap actions
@@ -254,6 +254,19 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 2.8.9
+- **Fix** — library source filter (Local / Streaming) now works correctly; provider mappings (`set` type) are properly serialized from Music Assistant.
+- **Improvement** — library sections render progressively as each section loads, instead of waiting for all sections to complete.
+- **Improvement** — library auto-paginates when source filter hides all results on a page, fetching up to 200 items per section to find matching providers.
+- **Improvement** — search strategies (HA proxy + MA WebSocket) run in parallel for faster results.
+- **Improvement** — search debounce increased to 700 ms to avoid firing searches while still typing.
+- **Improvement** — search results render progressively per section (artists, albums, tracks, playlists).
+- **Cleanup** — removed all console logging from the card (except version banner).
+
+### 2.8.5
+- **Feature** — library source filter (All / Local / Streaming) and favorites toggle.
+- **Improvement** — slider UX improvements.
 
 ### 2.8.2
 - **Fix** — device picker dropdown not reflecting updated exclusion list after integration options were changed. The card now re-fetches its configuration from the backend every time it reconnects to the DOM (e.g. when navigating back to the dashboard), ensuring the hidden-players list is always in sync with what is set in **Settings → Devices & Services → Configure**.
