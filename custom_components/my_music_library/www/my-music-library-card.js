@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "2.8.9";
+const CARD_VERSION = "2.9.0";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -1460,27 +1460,59 @@ class MyMusicLibraryCard extends HTMLElement {
     card.querySelector("#btn-repeat").addEventListener("click", () => this._cycleRepeat());
     card.querySelector("#btn-mute").addEventListener("click", () => this._toggleMute());
 
-    // Volume
+    // Volume — send command only on release (pointerup), not during drag
     const volSlider = card.querySelector("#volume-slider");
     volSlider.addEventListener("pointerdown", () => { this._volumeDragging = true; });
-    const endVolDrag = () => { this._volumeDragging = false; };
-    volSlider.addEventListener("pointerup", endVolDrag);
-    volSlider.addEventListener("pointercancel", endVolDrag);
-    volSlider.addEventListener("input", throttle((e) => {
+    const endVolDrag = (e) => {
+      if (!this._volumeDragging) return;
+      this._volumeDragging = false;
       this._callService("volume_set", { volume_level: parseInt(e.target.value) / 100 });
-    }, 300));
+    };
+    volSlider.addEventListener("pointerup", endVolDrag);
+    volSlider.addEventListener("pointercancel", () => { this._volumeDragging = false; });
 
-    // Progress bar click
-    card.querySelector("#progress-bar").addEventListener("click", (e) => {
+    // Progress bar — seek on release only (covers both tap and drag)
+    const progressBar = card.querySelector("#progress-bar");
+    const progressFill = card.querySelector("#progress-fill");
+    const posTimeEl = card.querySelector("#pos-time");
+    const getSeekPct = (e) => {
+      const rect = progressBar.getBoundingClientRect();
+      return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    };
+    progressBar.addEventListener("pointerdown", (e) => {
       const state = this._getActiveState();
-      if (!state) return;
-      const dur = state.attributes.media_duration;
-      if (!dur) return;
-      const rect = e.currentTarget.getBoundingClientRect();
-      const pct = (e.clientX - rect.left) / rect.width;
-      this._callService("media_seek", { seek_position: Math.round(pct * dur) });
-      this._localPosition = pct * dur;
+      if (!state?.attributes?.media_duration) return;
+      this._seekDragging = true;
+      progressBar.setPointerCapture(e.pointerId);
+      progressFill.style.transition = "none";
+      const pct = getSeekPct(e);
+      progressFill.style.width = `${(pct * 100).toFixed(1)}%`;
+      if (posTimeEl) posTimeEl.textContent = fmt(pct * state.attributes.media_duration);
+    });
+    progressBar.addEventListener("pointermove", (e) => {
+      if (!this._seekDragging) return;
+      const state = this._getActiveState();
+      if (!state?.attributes?.media_duration) return;
+      const pct = getSeekPct(e);
+      progressFill.style.width = `${(pct * 100).toFixed(1)}%`;
+      if (posTimeEl) posTimeEl.textContent = fmt(pct * state.attributes.media_duration);
+    });
+    const endSeekDrag = (e) => {
+      if (!this._seekDragging) return;
+      this._seekDragging = false;
+      progressFill.style.transition = "";
+      const state = this._getActiveState();
+      if (!state?.attributes?.media_duration) return;
+      const pct = getSeekPct(e);
+      const pos = pct * state.attributes.media_duration;
+      this._callService("media_seek", { seek_position: Math.round(pos) });
+      this._localPosition = pos;
       this._localPositionTime = Date.now() / 1000;
+    };
+    progressBar.addEventListener("pointerup", endSeekDrag);
+    progressBar.addEventListener("pointercancel", () => {
+      this._seekDragging = false;
+      progressFill.style.transition = "";
     });
 
     // Device row
@@ -1781,8 +1813,8 @@ class MyMusicLibraryCard extends HTMLElement {
     const posTime = card.querySelector("#pos-time");
     const durTime = card.querySelector("#dur-time");
 
-    if (fill) fill.style.width = `${pct.toFixed(1)}%`;
-    if (posTime) posTime.textContent = fmt(pos);
+    if (fill && !this._seekDragging) fill.style.width = `${pct.toFixed(1)}%`;
+    if (posTime && !this._seekDragging) posTime.textContent = fmt(pos);
     if (durTime) durTime.textContent = fmt(dur);
   }
 
