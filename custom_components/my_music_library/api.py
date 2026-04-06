@@ -395,6 +395,162 @@ class MusicAssistantLibraryView(HomeAssistantView):
         return web.json_response({"type": media_type, "items": items})
 
 
+# ── Browse (filesystem directory tree) ───────────────────────────────────────
+
+def _normalize_browse_item(item: dict) -> dict:
+    """Normalise a MA browse result item (BrowseFolder or MediaItem) for the card."""
+    # Detect folders: BrowseFolder has 'path' and no 'media_type', or media_type == "folder"
+    media_type = item.get("media_type", "")
+    if isinstance(media_type, dict):
+        media_type = media_type.get("value", "")
+    media_type = str(media_type).lower() if media_type else ""
+
+    is_folder = (
+        "path" in item and media_type in ("", "folder", "directory")
+    ) or media_type in ("folder", "directory")
+
+    title = item.get("name") or item.get("label") or item.get("title") or ""
+    uri = item.get("uri") or item.get("media_content_id") or ""
+
+    # MA sometimes returns URIs like "provider://folder/Deftones" where "folder/"
+    # is an internal prefix, not a real directory. Strip it so navigation works.
+    if "://" in uri:
+        _scheme, _path = uri.split("://", 1)
+        if _path.startswith("folder/"):
+            uri = f"{_scheme}://{_path[len('folder/'):]}"
+
+    thumbnail = item.get("thumbnail") or ""
+    if not thumbnail:
+        metadata = item.get("metadata") or {}
+        images = metadata.get("images") or []
+        for img in images:
+            path = img.get("path", "") if isinstance(img, dict) else ""
+            if path and path.startswith("http"):
+                thumbnail = path
+                break
+
+    artist = item.get("media_artist") or ""
+    if not artist:
+        artists = item.get("artists") or []
+        if artists and isinstance(artists[0], dict):
+            artist = artists[0].get("name", "")
+
+    duration = item.get("duration") or 0
+
+    return {
+        "title": title,
+        "uri": uri,
+        "media_content_type": media_type or ("folder" if is_folder else "music"),
+        "thumbnail": thumbnail,
+        "subtitle": artist,
+        "duration": float(duration) if duration else 0,
+        "is_folder": is_folder,
+    }
+
+
+def _is_ma_back_item(item: dict) -> bool:
+    """Return True for MA virtual 'back' navigation items (uri ends with ://back or ://..)."""
+    uri = item.get("uri", "")
+    if "://" in uri:
+        path = uri.split("://", 1)[1].lower().rstrip("/")
+        if path in ("back", ".."):
+            return True
+    return False
+
+
+async def _browse_via_ma_client(
+    hass: HomeAssistant,
+    uri: str | None,
+    limit: int = 200,
+) -> list | None:
+    """Browse a MA path via the MA Python client.
+
+    Tries, in order:
+      1. mass.music.browse(uri)
+      2. mass.browse(uri)           — top-level, used in some MA versions
+    """
+    ma_entries = hass.config_entries.async_entries("music_assistant")
+    if not ma_entries:
+        return None
+
+    for ma_entry in ma_entries:
+        entry_data = getattr(ma_entry, "runtime_data", None)
+        if entry_data is None:
+            entry_data = hass.data.get("music_assistant", {}).get(ma_entry.entry_id)
+
+        mass = getattr(entry_data, "mass", None)
+        if not mass:
+            continue
+
+        music = getattr(mass, "music", None)
+
+        # Collect candidate browse functions: music.browse first, then mass.browse
+        candidates: list[tuple[str, Any]] = []
+        if music:
+            fn = getattr(music, "browse", None)
+            if fn:
+                candidates.append(("mass.music.browse", fn))
+        fn = getattr(mass, "browse", None)
+        if fn:
+            candidates.append(("mass.browse", fn))
+
+        if not candidates:
+            _LOGGER.warning("No browse() method found on mass or mass.music")
+            continue
+
+        for fn_name, browse_fn in candidates:
+            attempts: list[tuple[tuple, dict]] = [
+                ((uri,), {}) if uri else ((), {}),
+                ((), {"uri": uri}) if uri else ((), {}),
+                ((), {"path": uri}) if uri else ((), {}),
+            ]
+            for call_args, call_kwargs in attempts:
+                try:
+                    result = await browse_fn(*call_args, **call_kwargs)
+                    items = list(result) if not isinstance(result, list) else result
+                    _LOGGER.debug("%s(%r) → %d items", fn_name, uri, len(items))
+                    normalized = [_normalize_browse_item(_to_json_safe(i)) for i in items]
+                    # Mark back items instead of removing them — client handles the click
+                    for n in normalized:
+                        if _is_ma_back_item(n):
+                            n["is_back"] = True
+                    return normalized[:limit]
+                except TypeError:
+                    continue
+                except Exception as err:  # noqa: BLE001
+                    _LOGGER.warning("%s(%r) failed: %s", fn_name, uri, err)
+                    break  # try next candidate
+
+    return None
+
+
+class MusicAssistantBrowseView(HomeAssistantView):
+    """Browse the MA filesystem tree.
+
+    GET /api/my_music_library/browse?uri=<uri>
+        uri is optional — omit for root.
+    """
+
+    url = "/api/my_music_library/browse"
+    name = "api:my_music_library:browse"
+    requires_auth = True
+
+    async def get(self, request: web.Request) -> web.Response:
+        """Handle browse request."""
+        hass: HomeAssistant = request.app["hass"]
+        uri = request.query.get("uri", "").strip() or None
+        limit = min(int(request.query.get("limit", 200)), 500)
+
+        _LOGGER.info("Browse request: uri=%r limit=%d", uri, limit)
+        items = await _browse_via_ma_client(hass, uri, limit)
+        if items is None:
+            return self.json_message(
+                "Could not browse Music Assistant. Check HA logs.",
+                HTTPStatus.BAD_GATEWAY,
+            )
+        return web.json_response({"uri": uri or "", "items": items})
+
+
 # ── Subitems (artist albums, album tracks, playlist tracks) ───────────────────
 
 _SUBITEM_METHODS: dict[str, list[str]] = {
