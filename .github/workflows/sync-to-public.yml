@@ -7,6 +7,7 @@ on:
     paths:
       - "custom_components/**"
       - "_public_repo/**"
+      - "README.md"
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -33,11 +34,16 @@ jobs:
             private/custom_components/ \
             public/custom_components/
 
-      - name: Sync root files (_public_repo → repo root)
+      - name: Sync root files (_public_repo → repo root, excluding README.md)
         run: |
-          rsync -av \
+          rsync -av --exclude='README.md' \
             private/_public_repo/ \
             public/
+
+      - name: Sync README and update version badge
+        run: |
+          VERSION=$(grep -oP '(?<="version": ")[^"]+' private/custom_components/my_music_library/manifest.json || echo "unknown")
+          sed "s/version-[0-9][^-]*-blue/version-${VERSION}-blue/" private/README.md > public/README.md
 
       - name: Commit and push to public repo
         id: commit
@@ -45,13 +51,13 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add custom_components/ .github/ hacs.json README.md .gitignore
+          git add -A
           if git diff --cached --quiet; then
             echo "No changes to sync."
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             VERSION=$(grep -oP '(?<="version": ")[^"]+' custom_components/my_music_library/manifest.json || echo "unknown")
-            git commit -m "sync: update from private repo (v${VERSION})"
+            git commit -m "v${VERSION}"
             git push
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
@@ -63,15 +69,13 @@ jobs:
           GH_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
           VERSION: ${{ steps.commit.outputs.version }}
         run: |
-          cd public
           TAG="v${VERSION}"
-          # Skip if the tag already exists
-          if git ls-remote --tags origin | grep -q "refs/tags/${TAG}$"; then
+          if git -C public ls-remote --tags origin | grep -q "refs/tags/${TAG}$"; then
             echo "Tag ${TAG} already exists, skipping release."
           else
             gh release create "${TAG}" \
               --repo Patafoin/ha-my-music-library \
               --title "${TAG}" \
-              --notes "Release ${TAG} — synced automatically from private repo." \
+              --notes "Release ${TAG}" \
               --latest
           fi

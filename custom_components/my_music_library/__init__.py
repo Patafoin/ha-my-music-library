@@ -18,7 +18,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
-from .api import MusicAssistantLibraryView, MusicAssistantSearchView, MusicAssistantSubitemsView, PlayerGroupView, PlayerQueueView
+from .api import MusicAssistantBrowseView, MusicAssistantLibraryView, MusicAssistantSearchView, MusicAssistantSubitemsView, PlayerGroupView, PlayerQueueView
 from .const import CARD_JS_FILENAME, CARD_URL, CONF_EXCLUDED_PLAYERS, CONF_MA_URL, DOMAIN, ICON_URL, WS_CONFIG_COMMAND
 
 _LOGGER = logging.getLogger(__name__)
@@ -82,6 +82,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.http.register_view(MusicAssistantSubitemsView)
     hass.http.register_view(PlayerQueueView)
     hass.http.register_view(PlayerGroupView)
+    hass.http.register_view(MusicAssistantBrowseView)
 
     # Register WebSocket command so the card can fetch its config
     _register_websocket_commands(hass)

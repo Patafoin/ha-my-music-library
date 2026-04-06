@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-2.8.9-blue)
+![Version](https://img.shields.io/badge/version-2.9.6-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-custom-orange)
 
@@ -14,7 +14,7 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 - **Playback controls** — play/pause, previous, next, shuffle, repeat (off / all / one)
 - **Queue** — live queue display alongside the player, persisted server-side per player across page reloads and devices
 - **Search** — full-text search across artists, albums, tracks and playlists via Music Assistant
-- **Library** — browse artists, albums, playlists and tracks with source filter (All / Local / Streaming) and favorites toggle
+- **Library** — browse artists, albums, playlists and tracks with source filter (All / Local / Streaming) and favorites toggle; **Browse mode** to navigate the filesystem directory tree and play folders
 - **Multi-player** — device picker to select and switch between any media player; supports grouping (attach / detach players)
 - **Player exclusion** — hide specific players from the device picker via integration options; supports wildcard patterns (`media_player.browser_mod_*`)
 - **Custom tab-bar buttons** — add your own icon buttons on the left or right of the tab bar, with tap / hold / double-tap actions
@@ -254,6 +254,30 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 2.9.6
+- **Fix** — filesystem browse: MA virtual "back" navigation items are now correctly intercepted and translated to breadcrumb navigation instead of being sent to the API.
+
+### 2.9.5
+- **Fix** — filesystem browse: root level was erroneously filtered; only `back`/`..` virtual items are excluded.
+
+### 2.9.4
+- **Fix** — filesystem browse: MA virtual `back` items filtered server-side to prevent erroneous API calls.
+
+### 2.9.3
+- **Fix** — browse mode: breadcrumb navigation now displayed in all states (loading, empty, error) so the user can always navigate back.
+- **Fix** — browse mode: MA URI prefix `folder/` stripped server-side so navigation into subdirectories works correctly.
+
+### 2.9.2
+- **Fix** — browse mode: `mass.browse()` now tried at top-level (in addition to `mass.music.browse()`) for compatibility with all MA versions.
+- **Fix** — library mode toggle: switching between Catalogue and Browse no longer requires a tab change to take effect.
+
+### 2.9.1
+- **Feature** — Library **Browse mode**: navigate the local filesystem directory tree, play individual files or entire folders.
+- **Backend** — new endpoint `GET /api/my_music_library/browse?uri=<uri>`.
+
+### 2.9.0
+- **Fix** — volume slider and progress bar: HA commands now sent only on pointer release, not during drag. Visual feedback (fill + time display) updates live while dragging.
 
 ### 2.8.9
 - **Fix** — library source filter (Local / Streaming) now works correctly; provider mappings (`set` type) are properly serialized from Music Assistant.

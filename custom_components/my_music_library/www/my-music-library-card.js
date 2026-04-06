@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "2.9.0";
+const CARD_VERSION = "2.9.6";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -33,6 +33,9 @@ const ICONS = {
   chevronRight: `<svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>`,
   plus: `<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>`,
   group: `<svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>`,
+  folder: `<svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
+  folderOpen: `<svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>`,
+  home: `<svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`,
 };
 
 /* ─── i18n ────────────────────────────────────────────────── */
@@ -74,6 +77,12 @@ const TRANSLATIONS = {
       no_albums: "No albums found",
       load_error: "Could not load albums",
       album_types: { album: "Albums", ep: "EPs", single: "Singles", compilation: "Compilations" },
+      mode_catalogue: "Catalogue",
+      mode_browse: "Browse",
+      browse_root: "Root",
+      browse_play: "Play",
+      browse_error: "Could not load folder contents",
+      browse_empty: "Empty folder",
     },
     queue: { up_next: "Up Next" },
     nav: { back: "← Back" },
@@ -123,6 +132,12 @@ const TRANSLATIONS = {
       no_albums: "Aucun album trouvé",
       load_error: "Impossible de charger les albums",
       album_types: { album: "Albums", ep: "EPs", single: "Singles", compilation: "Compilations" },
+      mode_catalogue: "Catalogue",
+      mode_browse: "Parcourir",
+      browse_root: "Racine",
+      browse_play: "Lire",
+      browse_error: "Impossible de charger le contenu du dossier",
+      browse_empty: "Dossier vide",
     },
     queue: { up_next: "À suivre" },
     nav: { back: "← Retour" },
@@ -172,6 +187,12 @@ const TRANSLATIONS = {
       no_albums: "Keine Alben gefunden",
       load_error: "Alben konnten nicht geladen werden",
       album_types: { album: "Alben", ep: "EPs", single: "Singles", compilation: "Kompilationen" },
+      mode_catalogue: "Katalog",
+      mode_browse: "Durchsuchen",
+      browse_root: "Wurzel",
+      browse_play: "Abspielen",
+      browse_error: "Ordnerinhalt konnte nicht geladen werden",
+      browse_empty: "Leerer Ordner",
     },
     queue: { up_next: "Als Nächstes" },
     nav: { back: "← Zurück" },
@@ -641,6 +662,96 @@ const STYLES = `
   .result-play:hover { color: var(--accent); background: rgba(255,255,255,.06); }
   .result-play svg { width: 18px; height: 18px; fill: currentColor; }
 
+  /* ── Browse mode ── */
+  .browse-mode-toggle {
+    display: flex;
+    gap: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .browse-mode-btn {
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background: none;
+    color: var(--text2);
+    border: none;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .browse-mode-btn:not(:last-child) { border-right: 1px solid var(--border); }
+  .browse-mode-btn:hover { background: rgba(255,255,255,.06); }
+  .browse-mode-btn.active { background: var(--accent); color: #000; }
+
+  .browse-breadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 8px 16px 4px;
+    font-size: 12px;
+    color: var(--text2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .browse-crumb {
+    background: none;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: background .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .browse-crumb:hover { background: rgba(255,255,255,.06); }
+  .browse-crumb.current { color: var(--text); cursor: default; }
+  .browse-crumb.current:hover { background: none; }
+  .browse-sep { color: var(--text2); opacity: .5; user-select: none; }
+
+  .browse-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background .15s;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+  }
+  .browse-item:hover { background: rgba(255,255,255,.04); }
+  .browse-item-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg2);
+  }
+  .browse-item-icon img { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; }
+  .browse-item-icon svg { width: 20px; height: 20px; fill: var(--text2); }
+  .browse-item-icon.folder svg { fill: var(--accent); opacity: .8; }
+  .browse-item-info { flex: 1; min-width: 0; }
+  .browse-item-name { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .browse-item-sub { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+  .browse-item-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .browse-play-btn {
+    width: 32px; height: 32px; border: none; background: none; cursor: pointer;
+    color: var(--text2); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: color .15s, background .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .browse-play-btn:hover { color: var(--accent); background: rgba(255,255,255,.06); }
+  .browse-play-btn svg { width: 18px; height: 18px; fill: currentColor; }
+  .browse-chevron { color: var(--text2); opacity: .4; display: flex; align-items: center; }
+  .browse-chevron svg { width: 16px; height: 16px; fill: currentColor; }
+
   .search-section { margin-bottom: 4px; }
   .search-section-title {
     font-size: 13px;
@@ -988,6 +1099,8 @@ class MyMusicLibraryCard extends HTMLElement {
     this._lastQueueSource = null;  // URI of the album/playlist whose queue is loaded
     this._groupMembers = [];       // entity_ids attached to _activePlayer as group
     this._excludedPlayers = [];    // entity_ids hidden from the device picker (HA options)
+    this._libBrowseMode = false;   // true = browse filesystem mode
+    this._browseStack = [];        // [{uri, label}] — navigation stack for browse mode
     this._rendered = false;
     // MA config fetched from backend via WebSocket
     this._maUrl = null;       // stored but only used as a last-resort hint
@@ -1387,6 +1500,7 @@ class MyMusicLibraryCard extends HTMLElement {
   _renderLibraryTab() {
     const src = this._libSourceFilter;
     const fav = this._libFavFilter;
+    const browse = this._libBrowseMode;
     return `
       <div class="tab-panel" data-panel="library">
         <div class="library-panel" id="library-content">
@@ -1396,7 +1510,11 @@ class MyMusicLibraryCard extends HTMLElement {
               <button class="lib-filter-btn ${src === "local" ? "active" : ""}" data-source="local">${this._t("lib.filter_local")}</button>
               <button class="lib-filter-btn ${src === "streaming" ? "active" : ""}" data-source="streaming">${this._t("lib.filter_streaming")}</button>
             </div>
-            <button class="lib-filter-fav ${fav ? "active" : ""}" id="lib-fav-filter">
+            <div class="browse-mode-toggle" id="lib-browse-toggle" style="${src !== "local" ? "display:none" : ""}">
+              <button class="browse-mode-btn ${!browse ? "active" : ""}" data-browse="false">${this._t("lib.mode_catalogue")}</button>
+              <button class="browse-mode-btn ${browse ? "active" : ""}" data-browse="true">${this._t("lib.mode_browse")}</button>
+            </div>
+            <button class="lib-filter-fav ${fav ? "active" : ""}" id="lib-fav-filter" style="${browse ? "display:none" : ""}">
               ${fav ? ICONS.heart : ICONS.heartOutline}<span>${this._t("lib.filter_favorites")}</span>
             </button>
           </div>
@@ -1438,7 +1556,18 @@ class MyMusicLibraryCard extends HTMLElement {
       const source = btn.dataset.source;
       this._libSourceFilter = source;
       this._savePref("mml_lib_source", source);
+      // Reset browse mode when switching away from local
+      if (source !== "local") this._libBrowseMode = false;
       card.querySelectorAll("#lib-source-filter .lib-filter-btn").forEach(b => b.classList.toggle("active", b.dataset.source === source));
+      this._reloadLibrary();
+    });
+
+    // Browse mode toggle (Catalogue / Browse) — only visible in local mode
+    card.querySelector("#lib-browse-toggle")?.addEventListener("click", (e) => {
+      const btn = e.target.closest(".browse-mode-btn");
+      if (!btn || btn.classList.contains("active")) return;
+      this._libBrowseMode = btn.dataset.browse === "true";
+      this._browseStack = [];
       this._reloadLibrary();
     });
 
@@ -2281,6 +2410,23 @@ class MyMusicLibraryCard extends HTMLElement {
 
   _reloadLibrary() {
     this._libLoaded = false;
+    // Update filter bar in-place (no outerHTML replacement — preserves display state)
+    const card = this.shadowRoot.querySelector(".card-root");
+    if (card) {
+      // Source filter active state
+      card.querySelectorAll("#lib-source-filter .lib-filter-btn").forEach(b =>
+        b.classList.toggle("active", b.dataset.source === this._libSourceFilter));
+      // Browse toggle visibility
+      const toggle = card.querySelector("#lib-browse-toggle");
+      if (toggle) {
+        toggle.style.display = this._libSourceFilter === "local" ? "" : "none";
+        toggle.querySelectorAll(".browse-mode-btn").forEach(b =>
+          b.classList.toggle("active", (b.dataset.browse === "true") === this._libBrowseMode));
+      }
+      // Fav button visibility
+      const favBtn = card.querySelector("#lib-fav-filter");
+      if (favBtn) favBtn.style.display = this._libBrowseMode ? "none" : "";
+    }
     this._loadLibrary();
   }
 
@@ -2292,6 +2438,11 @@ class MyMusicLibraryCard extends HTMLElement {
     if (!libEl) return;
 
     this._libLoaded = true;
+
+    if (this._libBrowseMode) {
+      const currentUri = this._browseStack.length ? this._browseStack[this._browseStack.length - 1].uri : null;
+      return this._loadBrowse(currentUri, libEl);
+    }
     this._libLoadId = (this._libLoadId || 0) + 1;
     const loadId = this._libLoadId;
     const favorite = this._libFavFilter;
@@ -2655,6 +2806,145 @@ class MyMusicLibraryCard extends HTMLElement {
     list.querySelectorAll("[data-action='play']").forEach(item => {
       item.addEventListener("click", () => this._playItem(item.dataset.id, item.dataset.type));
     });
+  }
+
+  /* ── Browse mode ── */
+
+  _buildBrowseNav() {
+    // Breadcrumb always rendered — present in all states (success, empty, error)
+    const crumbs = [{ uri: null, label: this._t("lib.browse_root") }, ...this._browseStack];
+    const crumbHtml = crumbs.map((c, i) => {
+      const isLast = i === crumbs.length - 1;
+      const sep = i > 0 ? `<span class="browse-sep">›</span>` : "";
+      return `${sep}<button class="browse-crumb ${isLast ? "current" : ""}" data-crumb-idx="${i}">${this._esc(c.label)}</button>`;
+    }).join("");
+    return `<div class="browse-breadcrumb" id="browse-crumbs">${crumbHtml}</div>`;
+  }
+
+  _attachBrowseNav(libEl) {
+    libEl.querySelector("#browse-crumbs")?.addEventListener("click", (e) => {
+      const btn = e.target.closest(".browse-crumb");
+      if (!btn || btn.classList.contains("current")) return;
+      const idx = parseInt(btn.dataset.crumbIdx, 10);
+      // idx 0 = root → empty stack; idx N → keep first N-1 entries
+      this._browseStack = idx === 0 ? [] : this._browseStack.slice(0, idx);
+      this._libLoaded = false;
+      this._loadLibrary();
+    });
+  }
+
+  async _loadBrowse(uri, libEl) {
+    if (!libEl) {
+      const card = this.shadowRoot.querySelector(".card-root");
+      libEl = card?.querySelector("#lib-content-inner");
+    }
+    if (!libEl) return;
+
+    libEl.innerHTML = `
+      ${this._buildBrowseNav()}
+      <div class="loader"><div class="spinner"></div> ${this._t("lib.loading_short")}</div>`;
+    this._attachBrowseNav(libEl);
+
+    try {
+      const endpoint = uri
+        ? `my_music_library/browse?uri=${encodeURIComponent(uri)}`
+        : "my_music_library/browse";
+      const data = await this._hass.callApi("GET", endpoint);
+      const items = data?.items || [];
+
+      libEl.innerHTML = `
+        ${this._buildBrowseNav()}
+        <div id="browse-list">
+          ${items.length
+            ? items.map(item => this._renderBrowseItem(item)).join("")
+            : `<div class="empty-state">${ICONS.folder}<p>${this._t("lib.browse_empty")}</p></div>`
+          }
+        </div>`;
+
+      this._attachBrowseNav(libEl);
+
+      // Browse item actions
+      libEl.querySelector("#browse-list")?.addEventListener("click", (e) => {
+        const playBtn = e.target.closest(".browse-play-btn");
+        const row = e.target.closest(".browse-item");
+        if (!row) return;
+        const { uri: itemUri, type, folder, title } = row.dataset;
+
+        if (playBtn) {
+          e.stopPropagation();
+          this._playItem(itemUri, type || "music");
+          const card = this.shadowRoot.querySelector(".card-root");
+          if (card) this._setActiveTab("player", card);
+          return;
+        }
+
+        if (row.dataset.back === "true") {
+          // MA virtual back item — navigate up one level
+          if (this._browseStack.length > 0) this._browseStack.pop();
+          this._libLoaded = false;
+          this._loadLibrary();
+        } else if (folder === "true") {
+          this._browseStack.push({ uri: itemUri, label: title });
+          this._libLoaded = false;
+          this._loadLibrary();
+        } else {
+          this._playItem(itemUri, type || "music");
+          const card = this.shadowRoot.querySelector(".card-root");
+          if (card) this._setActiveTab("player", card);
+        }
+      });
+
+    } catch (err) {
+      libEl.innerHTML = `
+        ${this._buildBrowseNav()}
+        <div class="empty-state">${ICONS.library}<p>${this._t("lib.browse_error")}</p></div>`;
+      this._attachBrowseNav(libEl);
+    }
+  }
+
+  _renderBrowseItem(item) {
+    if (item.is_back) {
+      // MA virtual back item — render as a simple "go up" row, no play button
+      return `
+        <div class="browse-item" data-back="true" data-uri="" data-folder="false" data-title="">
+          <div class="browse-item-icon folder">${ICONS.folderOpen}</div>
+          <div class="browse-item-info">
+            <div class="browse-item-name">…</div>
+          </div>
+          <div class="browse-item-actions">
+            <div class="browse-chevron" style="transform:rotate(180deg)">${ICONS.chevronRight}</div>
+          </div>
+        </div>`;
+    }
+
+    const isFolder = item.is_folder;
+    const iconHtml = item.thumbnail
+      ? `<div class="browse-item-icon"><img src="${this._esc(item.thumbnail)}" alt="" loading="lazy"></div>`
+      : `<div class="browse-item-icon ${isFolder ? "folder" : ""}">${isFolder ? ICONS.folderOpen : ICONS.music}</div>`;
+
+    const subtitle = item.subtitle
+      ? `<div class="browse-item-sub">${this._esc(item.subtitle)}</div>` : "";
+
+    const chevron = isFolder
+      ? `<div class="browse-chevron">${ICONS.chevronRight}</div>` : "";
+
+    return `
+      <div class="browse-item"
+        data-uri="${this._esc(item.uri)}"
+        data-type="${this._esc(item.media_content_type || "music")}"
+        data-folder="${isFolder}"
+        data-back="false"
+        data-title="${this._esc(item.title)}">
+        ${iconHtml}
+        <div class="browse-item-info">
+          <div class="browse-item-name">${this._esc(item.title)}</div>
+          ${subtitle}
+        </div>
+        <div class="browse-item-actions">
+          <button class="browse-play-btn" title="${this._t("lib.browse_play")}">${ICONS.play}</button>
+          ${chevron}
+        </div>
+      </div>`;
   }
 
   _renderLibCard(item, iconName) {
