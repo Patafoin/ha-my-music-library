@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "2.9.6";
+const CARD_VERSION = "2.9.7";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -220,10 +220,10 @@ const STYLES = `
     --bg: var(--ha-card-background, var(--card-background-color, #1e1e2e));
     --bg2: color-mix(in srgb, var(--bg) 80%, white 20%);
     --text: var(--primary-text-color, #fff);
-    --text2: var(--secondary-text-color, rgba(255,255,255,0.6));
-    --border: rgba(255,255,255,0.08);
+    --text2: var(--secondary-text-color, rgba(255,255,255,0.78));
+    --border: rgba(255,255,255,0.12);
     --radius: 12px;
-    --control-size: 44px;
+    --control-size: 52px;
     color: var(--text);
   }
 
@@ -332,35 +332,59 @@ const STYLES = `
     min-width: 0;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    padding: 20px 16px 16px;
-    gap: 16px;
+    overflow: hidden;
+  }
+
+  /* Art section — fills all available space above controls */
+  .player-art-section {
+    flex: 1;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 16px 8px;
+    overflow: hidden;
+  }
+
+  /* Controls section — pinned to bottom, never scrolls away */
+  .player-controls-section {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 8px 16px 16px;
   }
 
   /* Album art */
   .art-wrapper {
     display: flex;
     justify-content: center;
-    flex-shrink: 0;
+    align-items: center;
+    height: 100%;
+    max-width: 100%;
   }
   .art {
-    width: min(200px, 55vw);
+    height: 100%;
+    width: auto;
     aspect-ratio: 1;
-    border-radius: 10px;
+    max-width: 100%;
+    border-radius: 12px;
     object-fit: cover;
     background: var(--bg2);
-    box-shadow: 0 8px 32px rgba(0,0,0,.4);
+    box-shadow: 0 8px 40px rgba(0,0,0,.5);
   }
   .art-placeholder {
-    width: min(200px, 55vw);
+    height: 100%;
+    width: auto;
     aspect-ratio: 1;
-    border-radius: 10px;
+    max-width: 100%;
+    border-radius: 12px;
     background: var(--bg2);
     display: flex;
     align-items: center;
     justify-content: center;
   }
-  .art-placeholder svg { width: 64px; height: 64px; fill: var(--text2); opacity: .4; }
+  .art-placeholder svg { width: 72px; height: 72px; fill: var(--text2); opacity: .5; }
 
   /* Track info */
   .track-info { text-align: center; }
@@ -428,17 +452,21 @@ const STYLES = `
     transition: color .15s, background .15s, transform .1s;
     -webkit-tap-highlight-color: transparent;
   }
-  .ctrl-btn svg { width: 22px; height: 22px; fill: currentColor; }
-  .ctrl-btn:hover { color: var(--text); background: rgba(255,255,255,0.07); }
+  .ctrl-btn svg { width: 26px; height: 26px; fill: currentColor; }
+  .ctrl-btn:hover { color: var(--text); background: rgba(255,255,255,0.1); }
   .ctrl-btn:active { transform: scale(.9); }
   .ctrl-btn.active { color: var(--accent); }
+  /* Prev / Next — slightly larger than secondary controls */
+  .ctrl-btn.ctrl-nav { width: 58px; height: 58px; }
+  .ctrl-btn.ctrl-nav svg { width: 30px; height: 30px; }
   .ctrl-btn.primary {
-    width: 56px;
-    height: 56px;
+    width: 70px;
+    height: 70px;
     background: var(--accent);
     color: #000;
+    box-shadow: 0 4px 16px rgba(0,0,0,.35);
   }
-  .ctrl-btn.primary svg { width: 28px; height: 28px; }
+  .ctrl-btn.primary svg { width: 36px; height: 36px; }
   .ctrl-btn.primary:hover { filter: brightness(1.1); }
 
   /* Volume */
@@ -447,8 +475,8 @@ const STYLES = `
     align-items: center;
     gap: 10px;
   }
-  .volume-row .ctrl-btn { width: 36px; height: 36px; flex-shrink: 0; }
-  .volume-row .ctrl-btn svg { width: 18px; height: 18px; }
+  .volume-row .ctrl-btn { width: 42px; height: 42px; flex-shrink: 0; }
+  .volume-row .ctrl-btn svg { width: 22px; height: 22px; }
   input[type=range] {
     flex: 1;
     -webkit-appearance: none;
@@ -1012,7 +1040,9 @@ const STYLES = `
   }
 
   @media (min-width: 640px) {
-    .player-panel { flex: 2; min-width: 0; padding: 20px 24px; overflow-y: auto; }
+    .player-panel { flex: 2; min-width: 0; }
+    .player-art-section { padding: 20px 24px 8px; }
+    .player-controls-section { padding: 8px 24px 20px; }
     .track-title { font-size: 20px; }
     .nav-tab span { display: inline; }
     .player-tab-body { flex-direction: row; }
@@ -1432,10 +1462,10 @@ class MyMusicLibraryCard extends HTMLElement {
       <div class="tab-panel" data-panel="player">
         <div class="player-tab-body">
           <div class="player-panel">
-            <div class="player-left">
+            <div class="player-art-section">
               <div class="art-wrapper" id="art-wrapper"></div>
             </div>
-            <div class="player-right">
+            <div class="player-controls-section">
               <div class="track-info">
                 <div class="track-title" id="track-title">—</div>
                 <div class="track-artist" id="track-artist">${this._t("player.select_player")}</div>
@@ -1451,9 +1481,9 @@ class MyMusicLibraryCard extends HTMLElement {
               </div>
               <div class="controls">
                 <button class="ctrl-btn" id="btn-shuffle" title="${this._t("btns.shuffle")}">${ICONS.shuffle}</button>
-                <button class="ctrl-btn" id="btn-prev" title="${this._t("btns.prev")}">${ICONS.prev}</button>
+                <button class="ctrl-btn ctrl-nav" id="btn-prev" title="${this._t("btns.prev")}">${ICONS.prev}</button>
                 <button class="ctrl-btn primary" id="btn-playpause" title="${this._t("btns.play_pause")}">${ICONS.play}</button>
-                <button class="ctrl-btn" id="btn-next" title="${this._t("btns.next")}">${ICONS.next}</button>
+                <button class="ctrl-btn ctrl-nav" id="btn-next" title="${this._t("btns.next")}">${ICONS.next}</button>
                 <button class="ctrl-btn" id="btn-repeat" title="${this._t("btns.repeat")}">${ICONS.repeat}</button>
               </div>
               <div class="volume-row">
