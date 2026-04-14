@@ -20,6 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: private
+          fetch-depth: 0
 
       - name: Checkout public repo
         uses: actions/checkout@v4
@@ -63,6 +64,22 @@ jobs:
             echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Generate release notes
+        if: steps.commit.outputs.changed == 'true'
+        run: |
+          # Find the commit just before the current version bump in manifest.json
+          PREV=$(git -C private log --pretty=format:"%H" -- custom_components/my_music_library/manifest.json | sed -n '2p')
+          {
+            echo "## What's changed"
+            echo ""
+            if [ -n "$PREV" ]; then
+              git -C private log --pretty="- %s" "${PREV}..HEAD"
+            else
+              git -C private log --pretty="- %s" -20
+            fi
+          } > /tmp/release_notes.md
+          cat /tmp/release_notes.md
+
       - name: Create GitHub release on public repo
         if: steps.commit.outputs.changed == 'true'
         env:
@@ -76,6 +93,6 @@ jobs:
             gh release create "${TAG}" \
               --repo Patafoin/ha-my-music-library \
               --title "${TAG}" \
-              --notes "Release ${TAG}" \
+              --notes-file /tmp/release_notes.md \
               --latest
           fi
