@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "2.9.7";
+const CARD_VERSION = "2.9.16";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -26,6 +26,7 @@ const ICONS = {
   heartOutline: `<svg viewBox="0 0 24 24"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></svg>`,
   device: `<svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 2.5c1.38 0 2.5 1.12 2.5 2.5S13.38 11.5 12 11.5 9.5 10.38 9.5 9s1.12-2.5 2.5-2.5zM20 18H4v-.57c0-.81.48-1.53 1.22-1.85C6.88 14.96 9.26 14.5 12 14.5s5.12.46 6.78 1.08c.74.32 1.22 1.04 1.22 1.85V18z"/></svg>`,
   close: `<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`,
+  settings: `<svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.04.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>`,
   music: `<svg viewBox="0 0 24 24"><path d="M12 3v9.28c-.47-.17-.97-.28-1.5-.28C8.01 12 6 14.01 6 16.5S8.01 21 10.5 21c2.31 0 4.2-1.75 4.45-4H15V6h4V3h-7z"/></svg>`,
   album: `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-5.5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/></svg>`,
   artist: `<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>`,
@@ -94,6 +95,12 @@ const TRANSLATIONS = {
       detach: "Remove from group",
       no_players: "No Music Assistant players found.",
     },
+    settings: {
+      title: "Settings",
+      providers_title: "Library providers",
+      providers_hint: "Choose which providers appear in your library",
+      providers_empty: "No providers found — check Music Assistant connection",
+    },
   },
   fr: {
     tabs: { player: "Lecteur", search: "Recherche", library: "Bibliothèque" },
@@ -149,6 +156,12 @@ const TRANSLATIONS = {
       detach: "Retirer du groupe",
       no_players: "Aucun lecteur Music Assistant trouvé.",
     },
+    settings: {
+      title: "Paramètres",
+      providers_title: "Sources de la bibliothèque",
+      providers_hint: "Choisissez quelles sources apparaissent dans votre bibliothèque",
+      providers_empty: "Aucune source trouvée — vérifiez la connexion à Music Assistant",
+    },
   },
   de: {
     tabs: { player: "Wiedergabe", search: "Suche", library: "Bibliothek" },
@@ -203,6 +216,12 @@ const TRANSLATIONS = {
       attach: "Zur Gruppe hinzufügen",
       detach: "Aus der Gruppe entfernen",
       no_players: "Keine Music Assistant Player gefunden.",
+    },
+    settings: {
+      title: "Einstellungen",
+      providers_title: "Bibliotheksquellen",
+      providers_hint: "Wählen Sie, welche Quellen in Ihrer Bibliothek angezeigt werden",
+      providers_empty: "Keine Quellen gefunden — Music Assistant-Verbindung prüfen",
     },
   },
 };
@@ -304,6 +323,8 @@ const STYLES = `
   .nav-btn.active { color: var(--accent); }
   .nav-btn ha-icon { --mdc-icon-size: 20px; display: block; pointer-events: none; }
   .nav-btn-label { font-size: 10px; font-weight: 500; line-height: 1; pointer-events: none; }
+  #settings-btn { padding: 12px 10px; min-width: 52px; border-radius: 0; gap: 4px; }
+  #settings-btn.active { background: color-mix(in srgb, var(--accent) 10%, transparent); border-bottom: 2px solid var(--accent); }
 
   /* ── CONTENT AREA ── */
   /* position:relative + inset:0 on children is the most reliable way to
@@ -1065,6 +1086,38 @@ const STYLES = `
   .queue-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .queue-sub { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
   .queue-dur { font-size: 11px; color: var(--text2); flex-shrink: 0; }
+
+  /* ══════════════════════════════════════════
+     SETTINGS MODAL
+  ══════════════════════════════════════════ */
+  .settings-section-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text2); padding: 4px 0 10px; opacity: .65;
+  }
+  .settings-hint {
+    font-size: 12px; color: var(--text2); margin-bottom: 12px; line-height: 1.4; opacity: .7;
+  }
+  .provider-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .provider-item:last-child { border-bottom: none; }
+  .provider-name { font-size: 14px; }
+  .toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+  .toggle-switch input { display: none; }
+  .toggle-track {
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,.15); border-radius: 22px;
+    cursor: pointer; transition: background .2s;
+  }
+  .toggle-track::after {
+    content: ""; position: absolute;
+    width: 16px; height: 16px; left: 3px; top: 3px;
+    background: white; border-radius: 50%;
+    transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  }
+  .toggle-switch input:checked + .toggle-track { background: var(--accent); }
+  .toggle-switch input:checked + .toggle-track::after { transform: translateX(18px); }
 `;
 
 /* ─── Helpers ─────────────────────────────────────────────── */
@@ -1116,6 +1169,13 @@ class MyMusicLibraryCard extends HTMLElement {
     this._libSections = {}; // type → { offset, loading, exhausted, favorite, iconName }
     this._libSourceFilter = this._loadPref("mml_lib_source") || "all";
     this._libFavFilter = this._loadPref("mml_lib_fav") === "true";
+    this._maProviders = [];
+    this._enabledProviders = (() => {
+      try {
+        const s = this._loadPref("mml_providers");
+        return s ? new Set(JSON.parse(s)) : null;
+      } catch (_) { return null; }
+    })();
     this._deviceModalOpen = false;
     this._searching = false;
     this._searchTimeout = null;
@@ -1300,7 +1360,7 @@ class MyMusicLibraryCard extends HTMLElement {
       const cfg = await this._hass.callWS({ type: "my_music_library/config" });
       if (cfg?.ma_entry_id) {
         this._maEntryId = cfg.ma_entry_id;
-        // MA entry_id loaded
+        this._fetchProviders();
       }
       if (cfg?.ma_url) {
         this._maUrl = cfg.ma_url.replace(/\/$/, "");
@@ -1314,6 +1374,26 @@ class MyMusicLibraryCard extends HTMLElement {
       }
     } catch (e) {
       // Integration config fetch failed
+    }
+  }
+
+  async _fetchProviders() {
+    try {
+      const data = await this._hass.callApi("GET", "my_music_library/providers");
+      this._maProviders = data?.providers || [];
+      // Validate stored filter: if none of the saved keys match current providers, reset
+      if (this._enabledProviders !== null && this._maProviders.length > 0) {
+        const validKeys = new Set(this._maProviders.map(p => p.instance_id || p.domain));
+        const hasAnyValid = [...this._enabledProviders].some(k => validKeys.has(k));
+        if (!hasAnyValid) {
+          this._enabledProviders = null;
+          this._savePref("mml_providers", "");
+          const card = this.shadowRoot?.querySelector(".card-root");
+          if (card) card.querySelector("#settings-btn")?.classList.remove("active");
+        }
+      }
+    } catch (_) {
+      this._maProviders = [];
     }
   }
 
@@ -1406,6 +1486,7 @@ class MyMusicLibraryCard extends HTMLElement {
         ${this._renderLibraryTab()}
       </div>
       ${this._renderDeviceModal()}
+      ${this._renderSettingsModal()}
     `;
     root.appendChild(card);
 
@@ -1415,6 +1496,7 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   _renderNav() {
+    const filterActive = this._enabledProviders !== null;
     return `
       <nav class="nav">
         <div class="nav-extra nav-extra-left">${this._renderNavButtons(this._config.nav_buttons_left, "left")}</div>
@@ -1429,7 +1511,13 @@ class MyMusicLibraryCard extends HTMLElement {
             ${ICONS.library}<span>${this._t("tabs.library")}</span>
           </button>
         </div>
-        <div class="nav-extra nav-extra-right">${this._renderNavButtons(this._config.nav_buttons_right, "right")}</div>
+        <div class="nav-extra nav-extra-right">
+          ${this._renderNavButtons(this._config.nav_buttons_right, "right")}
+          <button class="nav-btn${filterActive ? " active" : ""}" id="settings-btn" title="${this._t("settings.title")}">
+            ${ICONS.settings}
+            <span class="nav-btn-label">${this._t("settings.title")}</span>
+          </button>
+        </div>
       </nav>`;
   }
 
@@ -1568,6 +1656,19 @@ class MyMusicLibraryCard extends HTMLElement {
       </div>`;
   }
 
+  _renderSettingsModal() {
+    return `
+      <div class="modal-overlay" id="settings-modal">
+        <div class="modal-sheet">
+          <div class="modal-title">
+            <span>${this._t("settings.title")}</span>
+            <button id="settings-close">${ICONS.close}</button>
+          </div>
+          <div id="settings-content"></div>
+        </div>
+      </div>`;
+  }
+
   /* ── Event Listeners ── */
   _attachListeners(card) {
     // Nav tabs
@@ -1679,6 +1780,13 @@ class MyMusicLibraryCard extends HTMLElement {
     card.querySelector("#modal-close").addEventListener("click", () => this._closeDeviceModal(card));
     card.querySelector("#device-modal").addEventListener("click", (e) => {
       if (e.target === card.querySelector("#device-modal")) this._closeDeviceModal(card);
+    });
+
+    // Settings
+    card.querySelector("#settings-btn").addEventListener("click", () => this._openSettings(card));
+    card.querySelector("#settings-close").addEventListener("click", () => this._closeSettings(card));
+    card.querySelector("#settings-modal").addEventListener("click", (e) => {
+      if (e.target === card.querySelector("#settings-modal")) this._closeSettings(card);
     });
 
     // Search
@@ -2162,6 +2270,64 @@ class MyMusicLibraryCard extends HTMLElement {
     this._updateDeviceRow(card);
   }
 
+  /* ── Settings ── */
+  _openSettings(card) {
+    const modal = card.querySelector("#settings-modal");
+    const content = card.querySelector("#settings-content");
+    content.innerHTML = this._buildSettingsContent();
+    this._attachSettingsListeners(content, card);
+    modal.classList.add("open");
+  }
+
+  _closeSettings(card) {
+    card.querySelector("#settings-modal").classList.remove("open");
+  }
+
+  _buildSettingsContent() {
+    if (this._maProviders.length === 0) {
+      return `<p style="color:var(--text2);font-size:13px;padding:8px 0;opacity:.7">${this._t("settings.providers_empty")}</p>`;
+    }
+    const rows = this._maProviders.map(p => {
+      const key = p.instance_id || p.domain;
+      const enabled = this._enabledProviders === null || this._enabledProviders.has(key);
+      return `
+        <div class="provider-item">
+          <span class="provider-name">${this._esc(p.name || p.domain)}</span>
+          <label class="toggle-switch">
+            <input type="checkbox" data-provider="${this._esc(key)}"${enabled ? " checked" : ""}>
+            <span class="toggle-track"></span>
+          </label>
+        </div>`;
+    }).join("");
+    return `
+      <div class="settings-section-title">${this._t("settings.providers_title")}</div>
+      <p class="settings-hint">${this._t("settings.providers_hint")}</p>
+      ${rows}`;
+  }
+
+  _attachSettingsListeners(content, card) {
+    content.querySelectorAll("input[data-provider]").forEach(input => {
+      input.addEventListener("change", () => {
+        const key = input.dataset.provider;
+        if (this._enabledProviders === null) {
+          this._enabledProviders = new Set(this._maProviders.map(p => p.instance_id || p.domain));
+        }
+        if (input.checked) {
+          this._enabledProviders.add(key);
+        } else {
+          this._enabledProviders.delete(key);
+        }
+        if (this._enabledProviders.size >= this._maProviders.length) {
+          this._enabledProviders = null;
+        }
+        this._savePref("mml_providers", this._enabledProviders ? JSON.stringify([...this._enabledProviders]) : "");
+        const btn = card.querySelector("#settings-btn");
+        if (btn) btn.classList.toggle("active", this._enabledProviders !== null);
+        this._reloadLibrary();
+      });
+    });
+  }
+
   _savePlayer(entityId) {
     try { localStorage.setItem("mml_active_player", entityId); } catch (_) {}
   }
@@ -2423,19 +2589,47 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   _filterLibItems(items) {
-    if (this._libSourceFilter === "all") return items;
-    return items.filter(item => {
-      const provs = item.providers || [];
-      if (provs.length === 0) {
-        // Fallback: infer from URI scheme
-        const uri = item.media_content_id || "";
-        const scheme = uri.includes("://") ? uri.split("://")[0] : "";
-        if (this._libSourceFilter === "local") return this._isLocalProvider(scheme);
-        return scheme && !this._isLocalProvider(scheme);
-      }
-      if (this._libSourceFilter === "local") return provs.some(p => this._isLocalProvider(p));
-      return provs.some(p => !this._isLocalProvider(p));
-    });
+    let result = items;
+
+    if (this._libSourceFilter !== "all") {
+      result = result.filter(item => {
+        const provs = item.providers || [];
+        if (provs.length === 0) {
+          const uri = item.media_content_id || "";
+          const scheme = uri.includes("://") ? uri.split("://")[0] : "";
+          if (this._libSourceFilter === "local") return this._isLocalProvider(scheme);
+          return scheme && !this._isLocalProvider(scheme);
+        }
+        if (this._libSourceFilter === "local") return provs.some(p => this._isLocalProvider(p));
+        return provs.some(p => !this._isLocalProvider(p));
+      });
+    }
+
+    // Provider filter is skipped here when server-side filtering is active (single provider),
+    // because MA already returned only that provider's items.
+    if (this._enabledProviders !== null && this._enabledProviders.size > 0 && !this._serverSideProviderFilter) {
+      result = result.filter(item => {
+        const keys = (item.provider_instances?.length ? item.provider_instances : item.providers) || [];
+        if (keys.length === 0) {
+          const scheme = (item.media_content_id || "").split("://")[0];
+          return this._enabledProviders.has(scheme);
+        }
+        return keys.some(k => this._enabledProviders.has(k));
+      });
+    }
+
+    return result;
+  }
+
+  /* Returns "&provider=xxx" when exactly one provider is selected, "" otherwise.
+     Also updates _serverSideProviderFilter so _filterLibItems knows to skip client-side filtering. */
+  _providerParam() {
+    if (this._enabledProviders !== null && this._enabledProviders.size === 1) {
+      this._serverSideProviderFilter = true;
+      return `&provider=${encodeURIComponent([...this._enabledProviders][0])}`;
+    }
+    this._serverSideProviderFilter = false;
+    return "";
   }
 
   _reloadLibrary() {
@@ -2477,6 +2671,7 @@ class MyMusicLibraryCard extends HTMLElement {
     const loadId = this._libLoadId;
     const favorite = this._libFavFilter;
     const sourceFilter = this._libSourceFilter;
+    const providerParam = this._providerParam();
 
     const SECTIONS = [
       { type: "artists",   label: this._t("lib.artists"),   icon: "artist",   favorite },
@@ -2533,7 +2728,7 @@ class MyMusicLibraryCard extends HTMLElement {
         pages++;
         const r = await this._hass.callApi(
           "GET",
-          `my_music_library/library?type=${s.type}&limit=${PAGE}&offset=${offset}&favorite=${s.favorite}`
+          `my_music_library/library?type=${s.type}&limit=${PAGE}&offset=${offset}&favorite=${s.favorite}${providerParam}`
         );
         const raw = r?.items || [];
         offset += raw.length;
@@ -2636,6 +2831,7 @@ class MyMusicLibraryCard extends HTMLElement {
     const PAGE = 25;
     const MAX_PAGES = 8;
     const sourceFilter = this._libSourceFilter;
+    const providerParam = this._providerParam();
 
     const appendItems = (items) => {
       const sentinel = libEl.querySelector(`#lib-sentinel-${type}`);
@@ -2654,7 +2850,7 @@ class MyMusicLibraryCard extends HTMLElement {
       while (pages < MAX_PAGES && !state.exhausted) {
         pages++;
         const data = await this._hass.callApi("GET",
-          `my_music_library/library?type=${type}&limit=${PAGE}&offset=${state.offset}&favorite=${favorite}`);
+          `my_music_library/library?type=${type}&limit=${PAGE}&offset=${state.offset}&favorite=${favorite}${providerParam}`);
         const rawItems = data?.items || [];
 
         if (rawItems.length < PAGE) state.exhausted = true;

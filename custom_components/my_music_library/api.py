@@ -219,12 +219,20 @@ def _normalize_library_item(item: dict) -> dict:
     track_number = item.get("track_number") or item.get("position") or 0
     duration = item.get("duration") or 0
 
-    # Provider domains this item belongs to (e.g. ["filesystem_local", "deezer"])
+    # Provider domains and instance IDs this item belongs to
     provider_mappings = item.get("provider_mappings") or []
     providers = sorted({
         m.get("provider_domain", "")
         for m in provider_mappings if isinstance(m, dict) and m.get("provider_domain")
     })
+    # Unique key per configured provider instance — try all known field names across MA versions
+    provider_instances = sorted({
+        m.get("provider_instance_id_or_domain")
+        or m.get("provider_instance")
+        or m.get("provider_instance_id")
+        or m.get("provider_domain", "")
+        for m in provider_mappings if isinstance(m, dict)
+    } - {""})
     return {
         "title": title,
         "media_content_id": uri,
@@ -235,6 +243,7 @@ def _normalize_library_item(item: dict) -> dict:
         "track_number": int(track_number) if track_number else 0,
         "duration": float(duration) if duration else 0,
         "providers": providers,
+        "provider_instances": provider_instances,
     }
 
 
@@ -252,6 +261,7 @@ async def _get_library_via_ma_client(
     limit: int,
     favorite: bool,
     offset: int = 0,
+    provider_instance: str | None = None,
 ) -> list | None:
     """Use the MA HA integration's Python client to fetch library items."""
     ma_entries = hass.config_entries.async_entries("music_assistant")
@@ -286,17 +296,26 @@ async def _get_library_via_ma_client(
             _LOGGER.warning("No library method found for type=%s on music module %s", media_type, type(music_module).__name__)
             continue
 
-        for kwargs in [
+        # Build kwargs variants: try with provider filter first (several field name attempts),
+        # then fall back to unfiltered so the method always works even on older MA versions.
+        kwargs_variants: list[dict] = []
+        if provider_instance:
+            for pkey in ("provider_instance_id_or_domain", "provider", "provider_instance"):
+                kwargs_variants.append({"favorite": favorite, "limit": limit, "offset": offset, pkey: provider_instance})
+        kwargs_variants += [
             {"favorite": favorite, "limit": limit, "offset": offset},
             {"favorite": favorite, "limit": limit},
             {"limit": limit},
             {},
-        ]:
+        ]
+
+        for kwargs in kwargs_variants:
             try:
                 result = await fn(**kwargs)
                 items = list(result) if not isinstance(result, list) else result
                 _LOGGER.debug("Library %s fetched: %d items (kwargs=%s)", media_type, len(items), kwargs)
-                return [_normalize_library_item(_to_json_safe(i)) for i in items[:limit]]
+                normalized = [_normalize_library_item(_to_json_safe(i)) for i in items[:limit]]
+                return normalized
             except TypeError:
                 continue
             except Exception as err:  # noqa: BLE001
@@ -380,10 +399,11 @@ class MusicAssistantLibraryView(HomeAssistantView):
         limit = min(int(request.query.get("limit", 25)), 100)
         favorite = request.query.get("favorite", "true").lower() != "false"
         offset = max(0, int(request.query.get("offset", 0)))
+        provider_instance = request.query.get("provider", "").strip() or None
 
-        _LOGGER.info("Library request: type=%s limit=%d offset=%d favorite=%s", media_type, limit, offset, favorite)
+        _LOGGER.info("Library request: type=%s limit=%d offset=%d favorite=%s provider=%s", media_type, limit, offset, favorite, provider_instance)
 
-        items = await _get_library_via_ma_client(hass, media_type, limit, favorite, offset)
+        items = await _get_library_via_ma_client(hass, media_type, limit, favorite, offset, provider_instance)
         if items is None:
             _LOGGER.error("Library fetch failed for type=%s", media_type)
             return self.json_message(
@@ -747,6 +767,85 @@ class PlayerGroupView(HomeAssistantView):
             })
 
         return web.json_response({"ok": True})
+
+
+# ── Providers list ───────────────────────────────────────────────────────────
+
+async def _get_providers_via_ma_client(hass: HomeAssistant) -> list | None:
+    """Return available MA providers (domain + name) via the MA Python client."""
+    ma_entries = hass.config_entries.async_entries("music_assistant")
+    if not ma_entries:
+        return None
+
+    for ma_entry in ma_entries:
+        entry_data = getattr(ma_entry, "runtime_data", None)
+        if entry_data is None:
+            entry_data = hass.data.get("music_assistant", {}).get(ma_entry.entry_id)
+
+        mass = getattr(entry_data, "mass", None)
+        if not mass:
+            continue
+
+        try:
+            raw = getattr(mass, "providers", None)
+            if raw is None:
+                continue
+
+            # mass.providers can be a dict keyed by instance_id or a plain list.
+            # When it is a dict the key IS the instance_id — use it as a reliable fallback.
+            if isinstance(raw, dict):
+                pairs = list(raw.items())   # [(instance_id_key, provider_obj), ...]
+            else:
+                pairs = [(None, p) for p in raw]
+
+            seen: set[str] = set()
+            result = []
+            for key_from_dict, p in pairs:
+                p_safe = _to_json_safe(p)
+                if not isinstance(p_safe, dict):
+                    continue
+                # Only keep music providers (exclude metadata, plugin, etc.)
+                provider_type = str(p_safe.get("type") or "").lower()
+                if provider_type and provider_type != "music":
+                    continue
+                domain = p_safe.get("domain") or ""
+                # Prefer the dict key (most reliable), then the instance_id field
+                instance_id = key_from_dict or p_safe.get("instance_id") or domain
+                if not instance_id or instance_id in seen:
+                    continue
+                seen.add(instance_id)
+                _LOGGER.debug("MA provider found: instance_id=%r domain=%r name=%r", instance_id, domain, p_safe.get("name"))
+                result.append({
+                    "domain": domain,
+                    "instance_id": instance_id,
+                    "name": p_safe.get("name") or domain,
+                    "available": bool(p_safe.get("available", True)),
+                })
+            return [r for r in result if r["available"]]
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Failed to get MA providers: %s", err)
+            continue
+
+    return None
+
+
+class MusicAssistantProvidersView(HomeAssistantView):
+    """Return the list of available Music Assistant providers.
+
+    GET /api/my_music_library/providers
+    """
+
+    url = "/api/my_music_library/providers"
+    name = "api:my_music_library:providers"
+    requires_auth = True
+
+    async def get(self, request: web.Request) -> web.Response:
+        """Handle providers request."""
+        hass: HomeAssistant = request.app["hass"]
+        providers = await _get_providers_via_ma_client(hass)
+        if providers is None:
+            providers = []
+        return web.json_response({"providers": providers})
 
 
 class MusicAssistantSubitemsView(HomeAssistantView):
