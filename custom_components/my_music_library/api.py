@@ -848,6 +848,114 @@ class MusicAssistantProvidersView(HomeAssistantView):
         return web.json_response({"providers": providers})
 
 
+# ── Queue jump (play_index) ──────────────────────────────────────────────────
+
+def _resolve_ma_player_id(hass: HomeAssistant, entity_id: str) -> str | None:
+    """Map a HA media_player entity_id to its Music Assistant player_id.
+
+    The MA HA integration sets each entity's unique_id to the MA player_id.
+    """
+    from homeassistant.helpers import entity_registry as er  # noqa: PLC0415
+
+    ent_reg = er.async_get(hass)
+    entry = ent_reg.async_get(entity_id)
+    if entry is None:
+        return None
+    return entry.unique_id or None
+
+
+async def _queue_jump_via_ma_client(
+    hass: HomeAssistant, entity_id: str, index: int,
+) -> bool:
+    """Ask MA to jump to ``index`` within the player's existing queue."""
+    ma_entries = hass.config_entries.async_entries("music_assistant")
+    if not ma_entries:
+        return False
+
+    ma_player_id = _resolve_ma_player_id(hass, entity_id)
+    if not ma_player_id:
+        _LOGGER.warning("queue_jump: cannot resolve MA player_id for %s", entity_id)
+        return False
+
+    for ma_entry in ma_entries:
+        entry_data = getattr(ma_entry, "runtime_data", None)
+        if entry_data is None:
+            entry_data = hass.data.get("music_assistant", {}).get(ma_entry.entry_id)
+        mass = getattr(entry_data, "mass", None)
+        if mass is None:
+            continue
+
+        # Find the queue id for this player. When grouped, queue lives on the group
+        # leader; when standalone, queue_id == player_id.
+        queue_id = ma_player_id
+        players = getattr(mass, "players", None)
+        if players is not None:
+            try:
+                player = players.get(ma_player_id) if hasattr(players, "get") else None
+                if player is not None:
+                    queue_id = (
+                        getattr(player, "active_source", None)
+                        or getattr(player, "active_queue", None)
+                        or getattr(player, "queue_id", None)
+                        or ma_player_id
+                    )
+            except Exception:  # noqa: BLE001
+                pass
+
+        player_queues = getattr(mass, "player_queues", None)
+        play_index_fn = getattr(player_queues, "play_index", None) if player_queues else None
+        if play_index_fn is None:
+            _LOGGER.warning("queue_jump: mass.player_queues.play_index not available")
+            return False
+
+        try:
+            await play_index_fn(queue_id, index)
+            _LOGGER.debug("queue_jump: queue=%s index=%d ok", queue_id, index)
+            return True
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("queue_jump: play_index(%s, %d) failed: %s", queue_id, index, err)
+            return False
+
+    return False
+
+
+class PlayerQueueJumpView(HomeAssistantView):
+    """Jump to a specific index in the player's existing MA queue.
+
+    POST /api/my_music_library/queue_jump
+        body: {"player": "<entity_id>", "index": <int>}
+        → {"ok": true} on success, 502 otherwise
+    """
+
+    url = "/api/my_music_library/queue_jump"
+    name = "api:my_music_library:queue_jump"
+    requires_auth = True
+
+    async def post(self, request: web.Request) -> web.Response:
+        """Handle queue jump request."""
+        hass: HomeAssistant = request.app["hass"]
+        try:
+            body: dict = await request.json()
+        except Exception:  # noqa: BLE001
+            return self.json_message("Invalid JSON body.", HTTPStatus.BAD_REQUEST)
+
+        player = (body.get("player") or "").strip()
+        try:
+            index = int(body.get("index"))
+        except (TypeError, ValueError):
+            return self.json_message("Missing or invalid 'index'.", HTTPStatus.BAD_REQUEST)
+        if not player or index < 0:
+            return self.json_message("Missing 'player' or invalid 'index'.", HTTPStatus.BAD_REQUEST)
+
+        ok = await _queue_jump_via_ma_client(hass, player, index)
+        if not ok:
+            return self.json_message(
+                "Queue jump failed. Check HA logs (filter: my_music_library).",
+                HTTPStatus.BAD_GATEWAY,
+            )
+        return web.json_response({"ok": True})
+
+
 class MusicAssistantSubitemsView(HomeAssistantView):
     """Return sub-items of a MA library item.
 

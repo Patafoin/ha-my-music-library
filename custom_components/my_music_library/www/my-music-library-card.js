@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "2.9.16";
+const CARD_VERSION = "2.9.18";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -3029,9 +3029,40 @@ class MyMusicLibraryCard extends HTMLElement {
         ${t.duration ? `<div class="queue-dur">${fmt(t.duration)}</div>` : ""}
       </div>
     `).join("");
-    list.querySelectorAll("[data-action='play']").forEach(item => {
-      item.addEventListener("click", () => this._playItem(item.dataset.id, item.dataset.type));
+    list.querySelectorAll("[data-action='play']").forEach((item, idx) => {
+      item.addEventListener("click", () => this._jumpToQueueIndex(idx));
     });
+  }
+
+  /* Jump to the track at `index` within MA's existing queue. Does NOT modify
+     the queue contents — just seeks playback. Falls back to play_media with
+     the full remaining queue if MA's queue jump endpoint is unavailable. */
+  async _jumpToQueueIndex(index) {
+    if (!this._hass || !this._activePlayer) return;
+    if (index < 0 || index >= this._queue.length) return;
+
+    try {
+      await this._hass.callApi("POST", "my_music_library/queue_jump", {
+        player: this._activePlayer,
+        index,
+      });
+    } catch (_) {
+      const mediaIds = this._queue.slice(index).map(t => t.media_content_id).filter(Boolean);
+      if (!mediaIds.length) return;
+      try {
+        await this._hass.callService("music_assistant", "play_media", {
+          entity_id: this._activePlayer,
+          media_id: mediaIds,
+          enqueue: "replace",
+        });
+      } catch (_) {
+        await this._hass.callService("media_player", "play_media", {
+          entity_id: this._activePlayer,
+          media_content_id: mediaIds[0],
+          media_content_type: "track",
+        });
+      }
+    }
   }
 
   /* ── Browse mode ── */
