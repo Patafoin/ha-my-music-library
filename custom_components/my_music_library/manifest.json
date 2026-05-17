@@ -1,7 +1,7 @@
 {
   "domain": "my_music_library",
   "name": "My Music Library",
-  "after_dependencies": ["music_assistant", "lovelace"],
+  "after_dependencies": ["lovelace", "music_assistant"],
   "codeowners": [],
   "config_flow": true,
   "dependencies": ["http"],
