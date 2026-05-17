@@ -13,7 +13,7 @@ from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import CONF_MA_URL, DOMAIN
+from .const import CONF_MA_TOKEN, CONF_MA_URL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,6 +59,16 @@ def _get_ma_url(hass: HomeAssistant) -> str | None:
     return url.rstrip("/") if url else None
 
 
+def _get_ma_token(hass: HomeAssistant) -> str | None:
+    """Return the MA auth token from My Music Library config entry (options override data)."""
+    entries = hass.config_entries.async_entries(DOMAIN)
+    if not entries:
+        return None
+    entry = entries[0]
+    token = entry.options.get(CONF_MA_TOKEN) or entry.data.get(CONF_MA_TOKEN) or None
+    return token or None
+
+
 # ── Primary: direct HTTP call to configured MA URL ────────────────────────────
 
 async def _search_via_ma_url(
@@ -73,11 +83,14 @@ async def _search_via_ma_url(
     session = async_get_clientsession(hass)
     timeout = ClientTimeout(total=10)
     params = {"query": query, "limit": str(limit)}
+    headers: dict[str, str] = {}
+    if token := _get_ma_token(hass):
+        headers["Authorization"] = f"Bearer {token}"
 
     for path in ["/api/search", "/api/music/search"]:
         url = f"{ma_url}{path}"
         try:
-            async with session.get(url, params=params, timeout=timeout) as resp:
+            async with session.get(url, params=params, timeout=timeout, headers=headers) as resp:
                 if resp.status == 200:
                     data = await resp.json(content_type=None)
                     _LOGGER.info("MA REST search via %s succeeded", url)

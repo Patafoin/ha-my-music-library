@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-2.9.18-blue)
+![Version](https://img.shields.io/badge/version-2.9.19-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-custom-orange)
 
@@ -53,6 +53,14 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 ## Integration Options
 
 After installation, you can configure additional options via **Settings → Devices & Services → My Music Library → Configure**.
+
+### Music Assistant API token
+
+Leave this field empty in most setups. Fill it in only if your Music Assistant server requires authentication — this is typically the case on **Home Assistant OS (HAOS)** when MA is configured to use HA's authentication layer.
+
+Generate a **Long-Lived Access Token** in HA: go to your profile page (bottom-left avatar), scroll to **Long-lived access tokens**, and create one. Paste the token in the **Music Assistant API token** field during setup or in the integration options.
+
+The token is sent as an `Authorization: Bearer <token>` header on every outbound HTTP request to the MA REST API.
 
 ### Hidden players
 

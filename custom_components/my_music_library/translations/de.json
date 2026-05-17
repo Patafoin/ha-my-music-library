@@ -7,7 +7,11 @@
         "data": {
           "ma_url": "URL des Music Assistant Servers",
           "default_player": "Standard-Player",
-          "default_tab": "Standardreiter beim Öffnen"
+          "default_tab": "Standardreiter beim Öffnen",
+          "ma_token": "Music Assistant API-Token (optional)"
+        },
+        "data_description": {
+          "ma_token": "Langlebiger Zugriffstoken, nur erforderlich wenn Ihr Music Assistant Server Authentifizierung erzwingt (z.B. HAOS mit aktivierter HA-Auth). Leer lassen, wenn keine Authentifizierung benötigt wird."
         }
       }
     },
@@ -27,7 +31,11 @@
         "title": "Player-Einstellungen",
         "description": "Wählen Sie Player aus, die in der Geräteauswahl ausgeblendet werden sollen. Sie können auch ein Wildcard-Muster eingeben (z.B. `media_player.browser_mod_*`) und Enter drücken, um alle passenden Player auszuschließen.",
         "data": {
-          "excluded_players": "Ausgeblendete Player"
+          "excluded_players": "Ausgeblendete Player",
+          "ma_token": "Music Assistant API-Token (optional)"
+        },
+        "data_description": {
+          "ma_token": "Leer lassen, wenn keine Authentifizierung benötigt wird. Dieser Wert überschreibt den bei der Ersteinrichtung eingegebenen Wert."
         }
       }
     }
