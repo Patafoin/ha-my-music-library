@@ -19,6 +19,7 @@ from .const import (
     CONF_DEFAULT_PLAYER,
     CONF_DEFAULT_TAB,
     CONF_EXCLUDED_PLAYERS,
+    CONF_MA_TOKEN,
     CONF_MA_URL,
     DEFAULT_MA_URL,
     DEFAULT_TAB,
@@ -115,6 +116,7 @@ class MyMusicLibraryConfigFlow(ConfigFlow, domain=DOMAIN):
                         "library": "Library",
                     }
                 ),
+                vol.Optional(CONF_MA_TOKEN, default=""): str,
             }
         )
 
@@ -155,6 +157,10 @@ class MyMusicLibraryOptionsFlow(OptionsFlow):
             if "*" in p or p in all_players
         ]
 
+        current_token = self.config_entry.options.get(
+            CONF_MA_TOKEN, self.config_entry.data.get(CONF_MA_TOKEN, "")
+        )
+
         schema = vol.Schema(
             {
                 vol.Optional(CONF_EXCLUDED_PLAYERS, default=current_excluded): SelectSelector(
@@ -167,6 +173,7 @@ class MyMusicLibraryOptionsFlow(OptionsFlow):
                         custom_value=True,
                     )
                 ),
+                vol.Optional(CONF_MA_TOKEN, default=current_token): str,
             }
         )
 

@@ -62,6 +62,7 @@ ha core restart
 3. Dans le formulaire :
    - **Default player device** : laisse vide pour auto-détection, ou sélectionne un player MA
    - **Default tab** : onglet affiché au démarrage (Player / Search / Library)
+   - **Music Assistant API token** : laisser vide si MA n'exige pas d'authentification (cas typique avec deux Docker séparés). Pour HAOS avec l'auth HA activée, coller un **Long-Lived Access Token** généré dans ton profil HA (avatar → Tokens à longue durée de vie).
 4. Valider
 
 > L'intégration va automatiquement enregistrer la carte Lovelace comme ressource.
@@ -114,6 +115,12 @@ Si la carte n'apparaît pas :
 ### Les commandes ne fonctionnent pas
 → Le player MA doit être dans l'état `playing` ou `idle` (pas `unavailable`).
 → Vérifie que Music Assistant server est démarré (add-on HA ou serveur externe).
+
+### Demande de login / mot de passe à l'installation
+
+Si une fenêtre demande un login et un mot de passe lors de l'ajout de l'intégration :
+- **Sous HAOS** : Music Assistant peut exiger un token d'authentification HA. Génère un **Long-Lived Access Token** (profil HA → Tokens à longue durée de vie) et entre-le dans le champ **Music Assistant API token** du formulaire.
+- **Via HACS sur un dépôt privé** : HACS demande un Personal Access Token (PAT) GitHub pour accéder au dépôt. Ce n'est pas lié à l'intégration elle-même.
 
 ### Les logs HA
 Aller dans **Paramètres → Système → Logs** et filtrer sur `my_music_library`.

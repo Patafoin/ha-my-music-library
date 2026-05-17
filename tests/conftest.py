@@ -19,6 +19,7 @@ def _stub_homeassistant() -> None:
     ha = _make_module("homeassistant")
     core = _make_module("homeassistant.core")
     core.HomeAssistant = MagicMock  # type: ignore[attr-defined]
+    core.callback = lambda fn: fn  # type: ignore[attr-defined]
 
     cfg_entries = _make_module("homeassistant.config_entries")
 
@@ -46,7 +47,17 @@ def _stub_homeassistant() -> None:
         def async_create_entry(self, **kw):
             return {"type": "create_entry", **kw}
 
+    class _OptionsFlow:
+        config_entry: MagicMock = MagicMock()
+
+        def async_show_form(self, **kw):
+            return {"type": "form", **kw}
+
+        def async_create_entry(self, **kw):
+            return {"type": "create_entry", **kw}
+
     cfg_entries.ConfigFlow = _ConfigFlow  # type: ignore[attr-defined]
+    cfg_entries.OptionsFlow = _OptionsFlow  # type: ignore[attr-defined]
     cfg_entries.ConfigEntry = MagicMock  # type: ignore[attr-defined]
     cfg_entries.ConfigFlowResult = dict  # type: ignore[attr-defined]
 
@@ -62,6 +73,21 @@ def _stub_homeassistant() -> None:
     helpers_aiohttp = _make_module("homeassistant.helpers.aiohttp_client")
     helpers_aiohttp.async_get_clientsession = MagicMock()  # type: ignore[attr-defined]
     helpers_er.async_get = MagicMock()  # type: ignore[attr-defined]
+    helpers_storage = _make_module("homeassistant.helpers.storage")
+
+    class _StoreStub:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+        async def async_load(self):
+            return None
+        async def async_save(self, data: object) -> None:
+            pass
+
+    helpers_storage.Store = _StoreStub  # type: ignore[attr-defined]
+    helpers_selector = _make_module("homeassistant.helpers.selector")
+    helpers_selector.SelectSelector = MagicMock  # type: ignore[attr-defined]
+    helpers_selector.SelectSelectorConfig = MagicMock  # type: ignore[attr-defined]
+    helpers_selector.SelectSelectorMode = MagicMock  # type: ignore[attr-defined]
 
     components = _make_module("homeassistant.components")
 
