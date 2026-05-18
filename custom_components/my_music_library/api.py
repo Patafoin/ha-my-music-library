@@ -190,6 +190,56 @@ async def _search_via_ma_client(
     return None
 
 
+# ── Primary: direct HTTP call to configured MA URL (library) ─────────────────
+
+async def _get_library_via_ma_url(
+    hass: HomeAssistant,
+    ma_url: str,
+    media_type: str,
+    limit: int,
+    favorite: bool,
+    offset: int = 0,
+    provider_instance: str | None = None,
+) -> list | None:
+    """Call MA's REST library API using the base URL configured at install time."""
+    from aiohttp import ClientTimeout  # noqa: PLC0415
+
+    session = async_get_clientsession(hass)
+    timeout = ClientTimeout(total=15)
+    headers: dict[str, str] = {}
+    if token := _get_ma_token(hass):
+        headers["Authorization"] = f"Bearer {token}"
+
+    params: dict[str, str] = {
+        "favorite": str(favorite).lower(),
+        "limit": str(limit),
+        "offset": str(offset),
+    }
+    if provider_instance:
+        params["provider_instance_id_or_domain"] = provider_instance
+
+    for path in [f"/api/music/{media_type}", f"/api/{media_type}"]:
+        url = f"{ma_url}{path}"
+        try:
+            async with session.get(url, params=params, timeout=timeout, headers=headers) as resp:
+                if resp.status == 200:
+                    data = await resp.json(content_type=None)
+                    if isinstance(data, list):
+                        items = data
+                    elif isinstance(data, dict):
+                        items = data.get("items") or data.get(media_type) or []
+                    else:
+                        items = []
+                    normalized = [_normalize_library_item(_to_json_safe(i)) for i in items[:limit]]
+                    _LOGGER.info("MA REST library/%s via %s succeeded: %d items", media_type, url, len(normalized))
+                    return normalized
+                _LOGGER.debug("MA REST library/%s via %s returned HTTP %s", media_type, url, resp.status)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("MA REST library/%s via %s failed: %s", media_type, url, err)
+
+    return None
+
+
 # ── Library via MA client ─────────────────────────────────────────────────────
 
 def _normalize_library_item(item: dict) -> dict:
@@ -416,6 +466,14 @@ class MusicAssistantLibraryView(HomeAssistantView):
 
         _LOGGER.info("Library request: type=%s limit=%d offset=%d favorite=%s provider=%s", media_type, limit, offset, favorite, provider_instance)
 
+        # 1 — Direct HTTP call to the configured MA URL
+        ma_url = _get_ma_url(hass)
+        if ma_url:
+            items = await _get_library_via_ma_url(hass, ma_url, media_type, limit, favorite, offset, provider_instance)
+            if items is not None:
+                return web.json_response({"type": media_type, "items": items})
+
+        # 2 — Fallback: MA Python client
         items = await _get_library_via_ma_client(hass, media_type, limit, favorite, offset, provider_instance)
         if items is None:
             _LOGGER.error("Library fetch failed for type=%s", media_type)
