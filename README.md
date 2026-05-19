@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-2.9.21-blue)
+![Version](https://img.shields.io/badge/version-3.0.0-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-custom-orange)
 
@@ -262,6 +262,13 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 3.0.0
+- **Refactor** — Music Assistant connectivity rewritten from scratch: integration now discovers the MA client via the `mass` config entry (`entry.runtime_data.mass`) instead of managing its own connection.
+- **Fix** — MA integration domain corrected from `"music_assistant"` to `"mass"` (the actual domain since MA 2.x); also tries the legacy `"music_assistant"` domain as fallback for older installs.
+- **Fix** — `after_dependencies` in `manifest.json` updated to `"mass"` so HA loads this integration after MA.
+- **Improvement** — MA URL now auto-discovered from the `mass` config entry (`entry.data["url"]`); manually configured URL kept as fallback for backward compatibility.
+- **Improvement** — search now tries the MA Python client first (primary), REST API second (fallback), eliminating redundant HTTP calls on setups where the client is available.
 
 ### 2.9.6
 - **Fix** — filesystem browse: MA virtual "back" navigation items are now correctly intercepted and translated to breadcrumb navigation instead of being sent to the API.
