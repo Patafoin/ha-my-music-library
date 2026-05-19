@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "2.9.21";
+const CARD_VERSION = "3.0.0";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -230,10 +230,8 @@ const TRANSLATIONS = {
 const STYLES = `
   :host {
     display: block;
-    /* In masonry mode, height: 100% has no effect — the host needs an explicit height.
-       --mml-height can be overridden via the card config (height option). */
-    height: var(--mml-height, 100%);
-    min-height: 300px;
+    height: 100%;
+    min-height: var(--mml-height, 400px);
     font-family: var(--paper-font-body1_-_font-family, sans-serif);
     --accent: var(--primary-color, #1db954);
     --bg: var(--ha-card-background, var(--card-background-color, #1e1e2e));
@@ -1214,7 +1212,7 @@ class MyMusicLibraryCard extends HTMLElement {
   async _loadQueueFromServer(player) {
     if (!player || !this._hass) { this._queue = []; this._lastQueueSource = null; return; }
     try {
-      const data = await this._hass.callApi("GET", `my_music_library/queue?player=${encodeURIComponent(player)}`);
+      const data = await this._callIntegration("GET", `queue?player=${encodeURIComponent(player)}`);
       this._queue = data?.queue || [];
       this._lastQueueSource = data?.source || null;
     } catch (_) {
@@ -1228,7 +1226,7 @@ class MyMusicLibraryCard extends HTMLElement {
   /** Persist the current queue to the HA backend (fire-and-forget). */
   _saveQueueState() {
     if (!this._activePlayer || !this._hass) return;
-    this._hass.callApi("POST", "my_music_library/queue", {
+    this._callIntegration("POST", "queue", {
       player: this._activePlayer,
       queue: this._queue,
       source: this._lastQueueSource,
@@ -1241,7 +1239,7 @@ class MyMusicLibraryCard extends HTMLElement {
   async _loadGroupFromServer(player) {
     if (!player || !this._hass) { this._groupMembers = []; return; }
     try {
-      const data = await this._hass.callApi("GET", `my_music_library/groups?player=${encodeURIComponent(player)}`);
+      const data = await this._callIntegration("GET", `groups?player=${encodeURIComponent(player)}`);
       const stored = (data?.members || []).filter(id => this._players.find(p => p.entity_id === id));
       // Reconcile with actual HA state: if HA has no group_members, the group was dissolved externally
       const haState = this._hass.states[player];
@@ -1262,19 +1260,34 @@ class MyMusicLibraryCard extends HTMLElement {
   /** Persist group members to the HA backend (fire-and-forget). */
   _saveGroupToServer() {
     if (!this._activePlayer || !this._hass) return;
-    this._hass.callApi("POST", "my_music_library/groups", {
+    this._callIntegration("POST", "groups", {
       player: this._activePlayer,
       members: this._groupMembers,
     }).catch(() => {});
+  }
+
+  async _callIntegration(method, path, body) {
+    const opts = { method };
+    if (body !== undefined) {
+      opts.headers = { "Content-Type": "application/json" };
+      opts.body = JSON.stringify(body);
+    }
+    const resp = await this._hass.fetchWithAuth(`/my_music_library/${path}`, opts);
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      throw new Error(`${resp.status}: ${text}`);
+    }
+    return resp.json();
   }
 
   /* ── Lovelace required ── */
   setConfig(config) {
     this._config = { default_tab: "player", ...config };
     this._tab = this._config.default_tab || "player";
-    // Apply height config option as a CSS custom property on the host element
-    if (config.height) {
-      this.style.setProperty("--mml-height", String(config.height));
+    // config.height sets the minimum height; the card always fills 100% of available space
+    if (config.height != null && config.height !== "") {
+      const h = typeof config.height === "number" ? `${config.height}px` : String(config.height);
+      this.style.setProperty("--mml-height", h);
     }
   }
 
@@ -1283,7 +1296,7 @@ class MyMusicLibraryCard extends HTMLElement {
     const h = this._config?.height;
     if (h && typeof h === "number") return Math.ceil(h / 50);
     if (h && typeof h === "string" && h.endsWith("px")) return Math.ceil(parseInt(h) / 50);
-    return 12; // default ~600px
+    return 8; // default ~400px
   }
 
   static getConfigElement() {
@@ -1291,7 +1304,7 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   static getStubConfig() {
-    return { default_tab: "player", height: 600 };
+    return { default_tab: "player" };
   }
 
   set hass(hass) {
@@ -1379,7 +1392,7 @@ class MyMusicLibraryCard extends HTMLElement {
 
   async _fetchProviders() {
     try {
-      const data = await this._hass.callApi("GET", "my_music_library/providers");
+      const data = await this._callIntegration("GET", "providers");
       this._maProviders = data?.providers || [];
       // Validate stored filter: if none of the saved keys match current providers, reset
       if (this._enabledProviders !== null && this._maProviders.length > 0) {
@@ -2035,9 +2048,9 @@ class MyMusicLibraryCard extends HTMLElement {
 
   async _fetchQueueForUri(uri, action, card) {
     try {
-      const data = await this._hass.callApi(
+      const data = await this._callIntegration(
         "GET",
-        `my_music_library/subitems?action=${action}&uri=${encodeURIComponent(uri)}&limit=100`
+        `subitems?action=${action}&uri=${encodeURIComponent(uri)}&limit=100`
       );
       this._queue = data?.items || [];
       if (action === "album_tracks") {
@@ -2396,14 +2409,14 @@ class MyMusicLibraryCard extends HTMLElement {
     this._renderSearchResults(card, this._searchResults);
   }
 
-  /* Search via HA proxy endpoint /api/my_music_library/search
+  /* Search via HA proxy endpoint /my_music_library/search
      The HA backend calls MA server-side → no CORS, works from HTTPS. */
   async _searchViaHaProxy(query) {
     try {
       const encodedQuery = encodeURIComponent(query);
-      const data = await this._hass.callApi(
+      const data = await this._callIntegration(
         "GET",
-        `my_music_library/search?query=${encodedQuery}&limit=25`
+        `search?query=${encodedQuery}&limit=25`
       );
       if (!data) return null;
       const results = this._parseMaWsSearchResults(data);
@@ -2726,9 +2739,9 @@ class MyMusicLibraryCard extends HTMLElement {
       while (pages < MAX_PAGES && !exhausted) {
         if (loadId !== this._libLoadId) return; // stale load
         pages++;
-        const r = await this._hass.callApi(
+        const r = await this._callIntegration(
           "GET",
-          `my_music_library/library?type=${s.type}&limit=${PAGE}&offset=${offset}&favorite=${s.favorite}${providerParam}`
+          `library?type=${s.type}&limit=${PAGE}&offset=${offset}&favorite=${s.favorite}${providerParam}`
         );
         const raw = r?.items || [];
         offset += raw.length;
@@ -2849,8 +2862,8 @@ class MyMusicLibraryCard extends HTMLElement {
       let pages = 0;
       while (pages < MAX_PAGES && !state.exhausted) {
         pages++;
-        const data = await this._hass.callApi("GET",
-          `my_music_library/library?type=${type}&limit=${PAGE}&offset=${state.offset}&favorite=${favorite}${providerParam}`);
+        const data = await this._callIntegration("GET",
+          `library?type=${type}&limit=${PAGE}&offset=${state.offset}&favorite=${favorite}${providerParam}`);
         const rawItems = data?.items || [];
 
         if (rawItems.length < PAGE) state.exhausted = true;
@@ -2939,7 +2952,7 @@ class MyMusicLibraryCard extends HTMLElement {
       searchMain.style.display = "";
     });
 
-    this._hass.callApi("GET", `my_music_library/subitems?action=artist_albums&uri=${encodeURIComponent(id)}&limit=100`)
+    this._callIntegration("GET", `subitems?action=artist_albums&uri=${encodeURIComponent(id)}&limit=100`)
       .then(r => {
         const items = r?.items || [];
         const groups = {};
@@ -2997,7 +3010,7 @@ class MyMusicLibraryCard extends HTMLElement {
     if (!action) return;
 
     try {
-      const data = await this._hass.callApi("GET", `my_music_library/subitems?action=${action}&uri=${encodeURIComponent(id)}&limit=100`);
+      const data = await this._callIntegration("GET", `subitems?action=${action}&uri=${encodeURIComponent(id)}&limit=100`);
       this._queue = data?.items || [];
       // Sort album tracks by track number to match real album order
       if (action === "album_tracks") {
@@ -3042,7 +3055,7 @@ class MyMusicLibraryCard extends HTMLElement {
     if (index < 0 || index >= this._queue.length) return;
 
     try {
-      await this._hass.callApi("POST", "my_music_library/queue_jump", {
+      await this._callIntegration("POST", "queue_jump", {
         player: this._activePlayer,
         index,
       });
@@ -3103,10 +3116,8 @@ class MyMusicLibraryCard extends HTMLElement {
     this._attachBrowseNav(libEl);
 
     try {
-      const endpoint = uri
-        ? `my_music_library/browse?uri=${encodeURIComponent(uri)}`
-        : "my_music_library/browse";
-      const data = await this._hass.callApi("GET", endpoint);
+      const path = uri ? `browse?uri=${encodeURIComponent(uri)}` : "browse";
+      const data = await this._callIntegration("GET", path);
       const items = data?.items || [];
 
       libEl.innerHTML = `

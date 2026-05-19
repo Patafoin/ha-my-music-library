@@ -7,11 +7,7 @@
         "data": {
           "ma_url": "Music Assistant server URL",
           "default_player": "Default player device",
-          "default_tab": "Default tab on open",
-          "ma_token": "Music Assistant API token (optional)"
-        },
-        "data_description": {
-          "ma_token": "Long-lived access token required only if your Music Assistant server enforces authentication (e.g. HAOS with HA auth enabled). Leave empty if no authentication is needed."
+          "default_tab": "Default tab on open"
         }
       }
     },
@@ -31,11 +27,7 @@
         "title": "Player settings",
         "description": "Select players to hide from the device picker. You can also type a wildcard pattern (e.g. `media_player.browser_mod_*`) and press Enter to exclude all matching players.",
         "data": {
-          "excluded_players": "Hidden players",
-          "ma_token": "Music Assistant API token (optional)"
-        },
-        "data_description": {
-          "ma_token": "Leave empty if no authentication is needed. Setting this here overrides the value entered during initial setup."
+          "excluded_players": "Hidden players"
         }
       }
     }

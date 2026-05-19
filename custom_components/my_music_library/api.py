@@ -13,7 +13,7 @@ from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import CONF_MA_TOKEN, CONF_MA_URL, DOMAIN
+from .const import CONF_MA_URL, DOMAIN, MUSIC_ASSISTANT_DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,52 +45,73 @@ def _serialize_search_results(results: Any) -> dict:
     return {"tracks": [], "artists": [], "albums": [], "playlists": [], "raw": str(safe)}
 
 
-# ── Get configured MA URL ─────────────────────────────────────────────────────
+# ── MA client / URL resolution ────────────────────────────────────────────────
 
-def _get_ma_url(hass: HomeAssistant) -> str | None:
-    """Return the MA base URL from My Music Library config entry."""
-    entries = hass.config_entries.async_entries(DOMAIN)
-    if not entries:
-        _LOGGER.warning("No My Music Library config entry found")
-        return None
-    url = entries[0].data.get(CONF_MA_URL) or None
-    if not url:
-        _LOGGER.warning("MA URL not set in My Music Library config entry (data=%s)", dict(entries[0].data))
-    return url.rstrip("/") if url else None
+_MA_CANDIDATE_DOMAINS = (MUSIC_ASSISTANT_DOMAIN, "music_assistant")
 
 
-def _get_ma_token(hass: HomeAssistant) -> str | None:
-    """Return the MA auth token from My Music Library config entry (options override data)."""
-    entries = hass.config_entries.async_entries(DOMAIN)
-    if not entries:
-        return None
-    entry = entries[0]
-    token = entry.options.get(CONF_MA_TOKEN) or entry.data.get(CONF_MA_TOKEN) or None
-    return token or None
+def _get_mass_client(hass: HomeAssistant) -> Any | None:
+    """Return the MusicAssistantClient from the MA integration's runtime_data.
+
+    Tries domain "mass" first (MA 2.x+), then "music_assistant" (legacy).
+    """
+    for domain in _MA_CANDIDATE_DOMAINS:
+        for entry in hass.config_entries.async_entries(domain):
+            client = getattr(getattr(entry, "runtime_data", None), "mass", None)
+            if client is not None:
+                _LOGGER.debug("MA client found via domain=%r entry=%s", domain, entry.entry_id)
+                return client
+
+    # Nothing found — emit a warning with enough context to diagnose the issue
+    all_entries = {
+        e.domain: e.entry_id
+        for e in hass.config_entries.async_entries()
+        if e.domain in (*_MA_CANDIDATE_DOMAINS, "mass", "music_assistant")
+    }
+    _LOGGER.warning(
+        "No Music Assistant client found. "
+        "Tried domains %s. Loaded MA-related entries: %s. "
+        "Make sure the Music Assistant integration is installed and loaded.",
+        _MA_CANDIDATE_DOMAINS,
+        all_entries or "none",
+    )
+    return None
 
 
-# ── Primary: direct HTTP call to configured MA URL ────────────────────────────
+def _get_mass_url(hass: HomeAssistant) -> str | None:
+    """Return the MA server URL, trying MA config entries first then our own config."""
+    for domain in _MA_CANDIDATE_DOMAINS:
+        for entry in hass.config_entries.async_entries(domain):
+            url = entry.data.get("url")
+            if url:
+                return url.rstrip("/")
+    # Backward compat: URL manually configured in my_music_library config entry
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        url = entry.data.get(CONF_MA_URL)
+        if url:
+            return url.rstrip("/")
+    return None
 
-async def _search_via_ma_url(
+
+# ── REST fallback: direct HTTP call to MA ────────────────────────────────────
+
+async def _search_via_rest(
     hass: HomeAssistant,
     ma_url: str,
     query: str,
     limit: int,
 ) -> dict | None:
-    """Call MA's REST search API using the base URL configured at install time."""
+    """Call MA's REST search API directly over HTTP."""
     from aiohttp import ClientTimeout  # noqa: PLC0415
 
     session = async_get_clientsession(hass)
     timeout = ClientTimeout(total=10)
     params = {"query": query, "limit": str(limit)}
-    headers: dict[str, str] = {}
-    if token := _get_ma_token(hass):
-        headers["Authorization"] = f"Bearer {token}"
 
     for path in ["/api/search", "/api/music/search"]:
         url = f"{ma_url}{path}"
         try:
-            async with session.get(url, params=params, timeout=timeout, headers=headers) as resp:
+            async with session.get(url, params=params, timeout=timeout) as resp:
                 if resp.status == 200:
                     data = await resp.json(content_type=None)
                     _LOGGER.info("MA REST search via %s succeeded", url)
@@ -102,160 +123,49 @@ async def _search_via_ma_url(
     return None
 
 
-# ── Fallback: authenticated MA integration client ─────────────────────────────
+# ── Search ────────────────────────────────────────────────────────────────────
 
 async def _search_via_ma_client(
     hass: HomeAssistant,
     query: str,
     limit: int,
 ) -> dict | None:
-    """Use the MA HA integration's authenticated Python client to search."""
-    ma_entries = hass.config_entries.async_entries("music_assistant")
-    if not ma_entries:
-        _LOGGER.warning("No music_assistant config entries found")
+    """Use the MA Python client to search."""
+    mass = _get_mass_client(hass)
+    if mass is None:
+        _LOGGER.warning("No Music Assistant (mass) client available for search")
         return None
 
-    _LOGGER.info(
-        "Trying MA client search, found %d music_assistant entry(ies): %s",
-        len(ma_entries),
-        [e.entry_id for e in ma_entries],
-    )
+    music = getattr(mass, "music", None)
+    search_fn = getattr(music, "search", None) if music else getattr(mass, "search", None)
+    if search_fn is None:
+        _LOGGER.warning("No search() method on MA client (type=%s)", type(mass).__name__)
+        return None
 
-    for ma_entry in ma_entries:
-        entry_id = ma_entry.entry_id
-
-        # HA 2024.4+: runtime data lives on the entry object itself
-        entry_data = getattr(ma_entry, "runtime_data", None)
-
-        # Older pattern: hass.data["music_assistant"][entry_id]
-        if entry_data is None:
-            ma_data = hass.data.get("music_assistant", {})
-            entry_data = ma_data.get(entry_id)
-            _LOGGER.warning(
-                "runtime_data not found, tried hass.data['music_assistant'] keys=%s",
-                list(ma_data.keys()),
-            )
-
-        if entry_data is None:
-            _LOGGER.warning("No entry_data found for music_assistant entry %s", entry_id)
-            continue
-
-        mass = getattr(entry_data, "mass", None)
-        if mass is None:
-            _LOGGER.warning(
-                "entry_data for %s has no .mass (type=%s, attrs=%s)",
-                entry_id,
-                type(entry_data).__name__,
-                [a for a in dir(entry_data) if not a.startswith("_")],
-            )
-            continue
-
-        # Try mass.music.search() (MA 2.x) then mass.search() (older)
-        music_module = getattr(mass, "music", None)
-        search_fn = (
-            getattr(music_module, "search", None) if music_module else None
-        ) or getattr(mass, "search", None)
-
-        if search_fn is None:
-            _LOGGER.warning(
-                "No search method on MA client (mass type=%s, music=%s)",
-                type(mass).__name__,
-                music_module,
-            )
-            continue
-
-        _LOGGER.info("Calling %s.search() for %r", type(search_fn).__name__, query)
-
-        # Try multiple call signatures in case the MA version differs
-        last_err: Exception | None = None
-        for kwargs in [
-            {"media_types": None, "limit": limit},
-            {"limit": limit},
-            {},
-        ]:
-            try:
-                results = await search_fn(query, **kwargs)
-                _LOGGER.info("MA client search succeeded (kwargs=%s)", kwargs)
-                return _serialize_search_results(results)
-            except TypeError as err:
-                _LOGGER.warning("search_fn(%r, **%s) TypeError: %s", query, kwargs, err)
-                last_err = err
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.warning("MA client search failed: %s", err)
-                last_err = err
-                break
-
-        _LOGGER.warning("All MA client search attempts failed. Last error: %s", last_err)
-
-    return None
-
-
-# ── Primary: direct HTTP call to configured MA URL (library) ─────────────────
-
-async def _get_library_via_ma_url(
-    hass: HomeAssistant,
-    ma_url: str,
-    media_type: str,
-    limit: int,
-    favorite: bool,
-    offset: int = 0,
-    provider_instance: str | None = None,
-) -> list | None:
-    """Call MA's REST library API using the base URL configured at install time."""
-    from aiohttp import ClientTimeout  # noqa: PLC0415
-
-    session = async_get_clientsession(hass)
-    timeout = ClientTimeout(total=15)
-    headers: dict[str, str] = {}
-    if token := _get_ma_token(hass):
-        headers["Authorization"] = f"Bearer {token}"
-
-    params: dict[str, str] = {
-        "favorite": str(favorite).lower(),
-        "limit": str(limit),
-        "offset": str(offset),
-    }
-    if provider_instance:
-        params["provider_instance_id_or_domain"] = provider_instance
-
-    for path in [f"/api/music/{media_type}", f"/api/{media_type}"]:
-        url = f"{ma_url}{path}"
+    for kwargs in [{"media_types": None, "limit": limit}, {"limit": limit}, {}]:
         try:
-            async with session.get(url, params=params, timeout=timeout, headers=headers) as resp:
-                if resp.status == 200:
-                    data = await resp.json(content_type=None)
-                    if isinstance(data, list):
-                        items = data
-                    elif isinstance(data, dict):
-                        items = data.get("items") or data.get(media_type) or []
-                    else:
-                        items = []
-                    normalized = [_normalize_library_item(_to_json_safe(i)) for i in items[:limit]]
-                    _LOGGER.info("MA REST library/%s via %s succeeded: %d items", media_type, url, len(normalized))
-                    return normalized
-                _LOGGER.debug("MA REST library/%s via %s returned HTTP %s", media_type, url, resp.status)
+            results = await search_fn(query, **kwargs)
+            return _serialize_search_results(results)
+        except TypeError:
+            continue
         except Exception as err:  # noqa: BLE001
-            _LOGGER.warning("MA REST library/%s via %s failed: %s", media_type, url, err)
+            _LOGGER.warning("MA client search(%r) failed: %s", query, err)
+            return None
 
     return None
 
 
-# ── Library via MA client ─────────────────────────────────────────────────────
+# ── Library ───────────────────────────────────────────────────────────────────
 
 def _normalize_library_item(item: dict) -> dict:
     """Map MA Python client fields to the browse_media-compatible fields the card expects."""
-    # Title: MA uses 'name', browse_media uses 'title'
     title = item.get("name") or item.get("title") or ""
-
-    # URI / content ID
     uri = item.get("uri") or item.get("media_content_id") or ""
 
-    # Media type (MA enum value or string)
     media_type = item.get("media_type", "")
     if isinstance(media_type, dict):
         media_type = media_type.get("value", "")
 
-    # Thumbnail: look in metadata.images list
     thumbnail = item.get("thumbnail") or ""
     if not thumbnail:
         metadata = item.get("metadata") or {}
@@ -266,29 +176,24 @@ def _normalize_library_item(item: dict) -> dict:
                 thumbnail = path
                 break
 
-    # Artist name (for albums and tracks)
     artist = item.get("media_artist") or ""
     if not artist:
         artists = item.get("artists") or []
         if artists and isinstance(artists[0], dict):
             artist = artists[0].get("name", "")
 
-    # Album type (album, ep, single, compilation) — used for grouping on artist page
     album_type = item.get("album_type", "album")
     if isinstance(album_type, dict):
         album_type = album_type.get("value", "album")
 
-    # Track fields
     track_number = item.get("track_number") or item.get("position") or 0
     duration = item.get("duration") or 0
 
-    # Provider domains and instance IDs this item belongs to
     provider_mappings = item.get("provider_mappings") or []
     providers = sorted({
         m.get("provider_domain", "")
         for m in provider_mappings if isinstance(m, dict) and m.get("provider_domain")
     })
-    # Unique key per configured provider instance — try all known field names across MA versions
     provider_instances = sorted({
         m.get("provider_instance_id_or_domain")
         or m.get("provider_instance")
@@ -326,171 +231,58 @@ async def _get_library_via_ma_client(
     offset: int = 0,
     provider_instance: str | None = None,
 ) -> list | None:
-    """Use the MA HA integration's Python client to fetch library items."""
-    ma_entries = hass.config_entries.async_entries("music_assistant")
-    if not ma_entries:
-        _LOGGER.warning("No music_assistant config entries found")
+    """Fetch library items via the MA Python client."""
+    mass = _get_mass_client(hass)
+    if mass is None:
+        _LOGGER.warning("No Music Assistant (mass) client available for library")
         return None
 
-    for ma_entry in ma_entries:
-        entry_data = getattr(ma_entry, "runtime_data", None)
-        if entry_data is None:
-            ma_data = hass.data.get("music_assistant", {})
-            entry_data = ma_data.get(ma_entry.entry_id)
+    music = getattr(mass, "music", None)
+    if music is None:
+        _LOGGER.warning("mass.music module not available")
+        return None
 
-        if entry_data is None:
-            _LOGGER.warning("No entry_data for MA entry %s", ma_entry.entry_id)
+    fn = None
+    for name in _LIBRARY_METHODS.get(media_type, []):
+        fn = getattr(music, name, None)
+        if fn is not None:
+            _LOGGER.debug("Using MA client method: music.%s()", name)
+            break
+
+    if fn is None:
+        _LOGGER.warning("No library method found for type=%s on %s", media_type, type(music).__name__)
+        return None
+
+    kwargs_variants: list[dict] = []
+    if provider_instance:
+        for pkey in ("provider_instance_id_or_domain", "provider", "provider_instance"):
+            kwargs_variants.append({"favorite": favorite, "limit": limit, "offset": offset, pkey: provider_instance})
+    kwargs_variants += [
+        {"favorite": favorite, "limit": limit, "offset": offset},
+        {"favorite": favorite, "limit": limit},
+        {"limit": limit},
+        {},
+    ]
+
+    for kwargs in kwargs_variants:
+        try:
+            result = await fn(**kwargs)
+            items = list(result) if not isinstance(result, list) else result
+            _LOGGER.debug("Library %s: %d items (kwargs=%s)", media_type, len(items), kwargs)
+            return [_normalize_library_item(_to_json_safe(i)) for i in items[:limit]]
+        except TypeError:
             continue
-
-        mass = getattr(entry_data, "mass", None)
-        music_module = getattr(mass, "music", None) if mass else None
-        if music_module is None:
-            _LOGGER.warning("No mass.music module for MA entry %s", ma_entry.entry_id)
-            continue
-
-        fn = None
-        for name in _LIBRARY_METHODS.get(media_type, []):
-            fn = getattr(music_module, name, None)
-            if fn is not None:
-                _LOGGER.debug("Using MA client method: music.%s()", name)
-                break
-
-        if fn is None:
-            _LOGGER.warning("No library method found for type=%s on music module %s", media_type, type(music_module).__name__)
-            continue
-
-        # Build kwargs variants: try with provider filter first (several field name attempts),
-        # then fall back to unfiltered so the method always works even on older MA versions.
-        kwargs_variants: list[dict] = []
-        if provider_instance:
-            for pkey in ("provider_instance_id_or_domain", "provider", "provider_instance"):
-                kwargs_variants.append({"favorite": favorite, "limit": limit, "offset": offset, pkey: provider_instance})
-        kwargs_variants += [
-            {"favorite": favorite, "limit": limit, "offset": offset},
-            {"favorite": favorite, "limit": limit},
-            {"limit": limit},
-            {},
-        ]
-
-        for kwargs in kwargs_variants:
-            try:
-                result = await fn(**kwargs)
-                items = list(result) if not isinstance(result, list) else result
-                _LOGGER.debug("Library %s fetched: %d items (kwargs=%s)", media_type, len(items), kwargs)
-                normalized = [_normalize_library_item(_to_json_safe(i)) for i in items[:limit]]
-                return normalized
-            except TypeError:
-                continue
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.warning("Library fetch for %s failed: %s", media_type, err)
-                break
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Library fetch for %s failed: %s", media_type, err)
+            break
 
     return None
 
 
-# ── HA View ──────────────────────────────────────────────────────────────────
-
-class MusicAssistantSearchView(HomeAssistantView):
-    """Proxy search requests to Music Assistant.
-
-    GET /api/my_music_library/search?query=<q>&limit=<n>
-
-    Strategy:
-      1. Direct HTTP call to the MA base URL configured during integration setup.
-      2. Fallback: MA HA integration's authenticated Python client.
-    """
-
-    url = "/api/my_music_library/search"
-    name = "api:my_music_library:search"
-    requires_auth = True
-
-    async def get(self, request: web.Request) -> web.Response:
-        """Handle search request."""
-        hass: HomeAssistant = request.app["hass"]
-
-        query = request.query.get("query", "").strip()
-        if not query:
-            return self.json_message("Missing 'query' parameter.", HTTPStatus.BAD_REQUEST)
-
-        limit = min(int(request.query.get("limit", 25)), 100)
-        _LOGGER.info("Search request: query=%r limit=%d", query, limit)
-
-        # 1 — Direct call to the configured MA URL (REST, if the endpoint exists)
-        ma_url = _get_ma_url(hass)
-        if ma_url:
-            _LOGGER.info("Trying MA REST search at %s", ma_url)
-            result = await _search_via_ma_url(hass, ma_url, query, limit)
-            if result is not None:
-                return web.json_response(result)
-            # 404 is expected if MA exposes no REST search endpoint — fall through silently
-
-        # 2 — Fallback: MA integration client (authenticated WS-backed client)
-        result = await _search_via_ma_client(hass, query, limit)
-        if result is None:
-            _LOGGER.error(
-                "Both MA search strategies failed for query=%r. "
-                "Check above warnings for the specific failure reason.",
-                query,
-            )
-            return self.json_message(
-                "Could not search Music Assistant. "
-                "Check HA logs for details (filter: my_music_library).",
-                HTTPStatus.BAD_GATEWAY,
-            )
-
-        return web.json_response(result)
-
-
-class MusicAssistantLibraryView(HomeAssistantView):
-    """Return library items from Music Assistant.
-
-    GET /api/my_music_library/library?type=artists|albums|tracks|playlists&limit=25&favorite=true
-    """
-
-    url = "/api/my_music_library/library"
-    name = "api:my_music_library:library"
-    requires_auth = True
-
-    async def get(self, request: web.Request) -> web.Response:
-        """Handle library request."""
-        hass: HomeAssistant = request.app["hass"]
-
-        media_type = request.query.get("type", "").strip()
-        if media_type not in ("artists", "albums", "tracks", "playlists"):
-            return self.json_message("Invalid 'type' parameter.", HTTPStatus.BAD_REQUEST)
-
-        limit = min(int(request.query.get("limit", 25)), 100)
-        favorite = request.query.get("favorite", "true").lower() != "false"
-        offset = max(0, int(request.query.get("offset", 0)))
-        provider_instance = request.query.get("provider", "").strip() or None
-
-        _LOGGER.info("Library request: type=%s limit=%d offset=%d favorite=%s provider=%s", media_type, limit, offset, favorite, provider_instance)
-
-        # 1 — Direct HTTP call to the configured MA URL
-        ma_url = _get_ma_url(hass)
-        if ma_url:
-            items = await _get_library_via_ma_url(hass, ma_url, media_type, limit, favorite, offset, provider_instance)
-            if items is not None:
-                return web.json_response({"type": media_type, "items": items})
-
-        # 2 — Fallback: MA Python client
-        items = await _get_library_via_ma_client(hass, media_type, limit, favorite, offset, provider_instance)
-        if items is None:
-            _LOGGER.error("Library fetch failed for type=%s", media_type)
-            return self.json_message(
-                "Could not get library from Music Assistant. "
-                "Check HA logs for details (filter: my_music_library).",
-                HTTPStatus.BAD_GATEWAY,
-            )
-
-        return web.json_response({"type": media_type, "items": items})
-
-
-# ── Browse (filesystem directory tree) ───────────────────────────────────────
+# ── Browse ────────────────────────────────────────────────────────────────────
 
 def _normalize_browse_item(item: dict) -> dict:
     """Normalise a MA browse result item (BrowseFolder or MediaItem) for the card."""
-    # Detect folders: BrowseFolder has 'path' and no 'media_type', or media_type == "folder"
     media_type = item.get("media_type", "")
     if isinstance(media_type, dict):
         media_type = media_type.get("value", "")
@@ -554,92 +346,49 @@ async def _browse_via_ma_client(
     uri: str | None,
     limit: int = 200,
 ) -> list | None:
-    """Browse a MA path via the MA Python client.
-
-    Tries, in order:
-      1. mass.music.browse(uri)
-      2. mass.browse(uri)           — top-level, used in some MA versions
-    """
-    ma_entries = hass.config_entries.async_entries("music_assistant")
-    if not ma_entries:
+    """Browse a MA path via the MA Python client."""
+    mass = _get_mass_client(hass)
+    if mass is None:
         return None
 
-    for ma_entry in ma_entries:
-        entry_data = getattr(ma_entry, "runtime_data", None)
-        if entry_data is None:
-            entry_data = hass.data.get("music_assistant", {}).get(ma_entry.entry_id)
+    music = getattr(mass, "music", None)
 
-        mass = getattr(entry_data, "mass", None)
-        if not mass:
-            continue
-
-        music = getattr(mass, "music", None)
-
-        # Collect candidate browse functions: music.browse first, then mass.browse
-        candidates: list[tuple[str, Any]] = []
-        if music:
-            fn = getattr(music, "browse", None)
-            if fn:
-                candidates.append(("mass.music.browse", fn))
-        fn = getattr(mass, "browse", None)
+    candidates: list[tuple[str, Any]] = []
+    if music:
+        fn = getattr(music, "browse", None)
         if fn:
-            candidates.append(("mass.browse", fn))
+            candidates.append(("mass.music.browse", fn))
+    fn = getattr(mass, "browse", None)
+    if fn:
+        candidates.append(("mass.browse", fn))
 
-        if not candidates:
-            _LOGGER.warning("No browse() method found on mass or mass.music")
-            continue
+    if not candidates:
+        _LOGGER.warning("No browse() method found on mass or mass.music")
+        return None
 
-        for fn_name, browse_fn in candidates:
-            attempts: list[tuple[tuple, dict]] = [
-                ((uri,), {}) if uri else ((), {}),
-                ((), {"uri": uri}) if uri else ((), {}),
-                ((), {"path": uri}) if uri else ((), {}),
-            ]
-            for call_args, call_kwargs in attempts:
-                try:
-                    result = await browse_fn(*call_args, **call_kwargs)
-                    items = list(result) if not isinstance(result, list) else result
-                    _LOGGER.debug("%s(%r) → %d items", fn_name, uri, len(items))
-                    normalized = [_normalize_browse_item(_to_json_safe(i)) for i in items]
-                    # Mark back items instead of removing them — client handles the click
-                    for n in normalized:
-                        if _is_ma_back_item(n):
-                            n["is_back"] = True
-                    return normalized[:limit]
-                except TypeError:
-                    continue
-                except Exception as err:  # noqa: BLE001
-                    _LOGGER.warning("%s(%r) failed: %s", fn_name, uri, err)
-                    break  # try next candidate
+    for fn_name, browse_fn in candidates:
+        attempts: list[tuple[tuple, dict]] = [
+            ((uri,), {}) if uri else ((), {}),
+            ((), {"uri": uri}) if uri else ((), {}),
+            ((), {"path": uri}) if uri else ((), {}),
+        ]
+        for call_args, call_kwargs in attempts:
+            try:
+                result = await browse_fn(*call_args, **call_kwargs)
+                items = list(result) if not isinstance(result, list) else result
+                _LOGGER.debug("%s(%r) → %d items", fn_name, uri, len(items))
+                normalized = [_normalize_browse_item(_to_json_safe(i)) for i in items]
+                for n in normalized:
+                    if _is_ma_back_item(n):
+                        n["is_back"] = True
+                return normalized[:limit]
+            except TypeError:
+                continue
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.warning("%s(%r) failed: %s", fn_name, uri, err)
+                break
 
     return None
-
-
-class MusicAssistantBrowseView(HomeAssistantView):
-    """Browse the MA filesystem tree.
-
-    GET /api/my_music_library/browse?uri=<uri>
-        uri is optional — omit for root.
-    """
-
-    url = "/api/my_music_library/browse"
-    name = "api:my_music_library:browse"
-    requires_auth = True
-
-    async def get(self, request: web.Request) -> web.Response:
-        """Handle browse request."""
-        hass: HomeAssistant = request.app["hass"]
-        uri = request.query.get("uri", "").strip() or None
-        limit = min(int(request.query.get("limit", 200)), 500)
-
-        _LOGGER.info("Browse request: uri=%r limit=%d", uri, limit)
-        items = await _browse_via_ma_client(hass, uri, limit)
-        if items is None:
-            return self.json_message(
-                "Could not browse Music Assistant. Check HA logs.",
-                HTTPStatus.BAD_GATEWAY,
-            )
-        return web.json_response({"uri": uri or "", "items": items})
 
 
 # ── Subitems (artist albums, album tracks, playlist tracks) ───────────────────
@@ -663,8 +412,7 @@ def _parse_ma_uri(uri: str) -> tuple[str, str]:
     if "://" not in uri:
         return uri, "library"
     scheme, rest = uri.split("://", 1)
-    parts = [p for p in rest.split("/") if p]  # drop empty segments
-    # item_id is the last non-empty path component; provider is the URI scheme
+    parts = [p for p in rest.split("/") if p]
     item_id = parts[-1] if parts else rest
     return item_id, scheme
 
@@ -676,78 +424,322 @@ async def _get_subitems(
     limit: int = 50,
 ) -> list | None:
     """Fetch sub-items of a MA library item via the MA Python client."""
-    ma_entries = hass.config_entries.async_entries("music_assistant")
-    if not ma_entries:
-        _LOGGER.warning("No music_assistant config entries found")
+    mass = _get_mass_client(hass)
+    if mass is None:
+        _LOGGER.warning("No Music Assistant (mass) client available for subitems")
+        return None
+
+    music = getattr(mass, "music", None)
+    if not music:
         return None
 
     methods = _SUBITEM_METHODS.get(action, [])
     if not methods:
         return None
 
-    for ma_entry in ma_entries:
-        entry_data = getattr(ma_entry, "runtime_data", None)
-        if entry_data is None:
-            entry_data = hass.data.get("music_assistant", {}).get(ma_entry.entry_id)
+    item_id, provider = _parse_ma_uri(uri)
+    _LOGGER.info("Subitems %s: uri=%r → item_id=%r provider=%r", action, uri, item_id, provider)
 
-        mass = getattr(entry_data, "mass", None)
-        music = getattr(mass, "music", None) if mass else None
-        if not music:
+    for method_name in methods:
+        fn = getattr(music, method_name, None)
+        if not fn:
+            _LOGGER.warning("Subitems: method %r not found on music module", method_name)
             continue
 
-        item_id, provider = _parse_ma_uri(uri)
-        _LOGGER.info(
-            "Subitems %s: uri=%r → item_id=%r provider=%r (music methods: %s)",
-            action, uri, item_id, provider,
-            [m for m in dir(music) if "artist" in m or "album" in m or "track" in m or "playlist" in m],
-        )
-
-        for method_name in methods:
-            fn = getattr(music, method_name, None)
-            if not fn:
-                _LOGGER.warning("Subitems: method %r not found on music module %s", method_name, type(music).__name__)
+        attempts = [
+            ((uri,), {}),
+            ((item_id, provider), {}),
+            ((item_id,), {}),
+            ((), {"item_id": item_id, "provider_instance_id_or_domain": provider}),
+            ((), {"item_id": item_id}),
+        ]
+        for call_args, call_kwargs in attempts:
+            try:
+                result = await fn(*call_args, **call_kwargs)
+                items = list(result) if not isinstance(result, list) else result
+                _LOGGER.info("Subitems %s: %d items (args=%s kwargs=%s)", action, len(items), call_args, call_kwargs)
+                return [_normalize_library_item(_to_json_safe(i)) for i in items[:limit]]
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.warning("Subitems %s args=%s kwargs=%s → %s: %s", method_name, call_args, call_kwargs, type(err).__name__, err)
                 continue
 
-            # Try progressively simpler call signatures
-            attempts = [
-                ((uri,), {}),
-                ((item_id, provider), {}),
-                ((item_id,), {}),
-                ((), {"item_id": item_id, "provider_instance_id_or_domain": provider}),
-                ((), {"item_id": item_id}),
-            ]
-            for call_args, call_kwargs in attempts:
-                try:
-                    result = await fn(*call_args, **call_kwargs)
-                    items = list(result) if not isinstance(result, list) else result
-                    _LOGGER.info(
-                        "Subitems %s: %d items (args=%s kwargs=%s)",
-                        action, len(items), call_args, call_kwargs,
-                    )
-                    return [_normalize_library_item(_to_json_safe(i)) for i in items[:limit]]
-                except Exception as err:  # noqa: BLE001
-                    _LOGGER.warning(
-                        "Subitems %s args=%s kwargs=%s → %s: %s",
-                        method_name, call_args, call_kwargs, type(err).__name__, err,
-                    )
-                    continue
-
     return None
+
+
+# ── Providers ─────────────────────────────────────────────────────────────────
+
+async def _get_providers_via_ma_client(hass: HomeAssistant) -> list | None:
+    """Return available MA providers (domain + name) via the MA Python client."""
+    mass = _get_mass_client(hass)
+    if mass is None:
+        return None
+
+    try:
+        raw = getattr(mass, "providers", None)
+        if raw is None:
+            return None
+
+        if isinstance(raw, dict):
+            pairs = list(raw.items())
+        else:
+            pairs = [(None, p) for p in raw]
+
+        seen: set[str] = set()
+        result = []
+        for key_from_dict, p in pairs:
+            p_safe = _to_json_safe(p)
+            if not isinstance(p_safe, dict):
+                continue
+            provider_type = str(p_safe.get("type") or "").lower()
+            if provider_type and provider_type != "music":
+                continue
+            domain = p_safe.get("domain") or ""
+            instance_id = key_from_dict or p_safe.get("instance_id") or domain
+            if not instance_id or instance_id in seen:
+                continue
+            seen.add(instance_id)
+            _LOGGER.debug("MA provider found: instance_id=%r domain=%r name=%r", instance_id, domain, p_safe.get("name"))
+            result.append({
+                "domain": domain,
+                "instance_id": instance_id,
+                "name": p_safe.get("name") or domain,
+                "available": bool(p_safe.get("available", True)),
+            })
+        return [r for r in result if r["available"]]
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Failed to get MA providers: %s", err)
+        return None
+
+
+# ── Queue jump (play_index) ───────────────────────────────────────────────────
+
+def _resolve_ma_player_id(hass: HomeAssistant, entity_id: str) -> str | None:
+    """Map a HA media_player entity_id to its Music Assistant player_id.
+
+    The MA HA integration sets each entity's unique_id to the MA player_id.
+    """
+    from homeassistant.helpers import entity_registry as er  # noqa: PLC0415
+
+    ent_reg = er.async_get(hass)
+    entry = ent_reg.async_get(entity_id)
+    if entry is None:
+        return None
+    return entry.unique_id or None
+
+
+async def _queue_jump_via_ma_client(
+    hass: HomeAssistant, entity_id: str, index: int,
+) -> bool:
+    """Ask MA to jump to ``index`` within the player's existing queue."""
+    mass = _get_mass_client(hass)
+    if mass is None:
+        return False
+
+    ma_player_id = _resolve_ma_player_id(hass, entity_id)
+    if not ma_player_id:
+        _LOGGER.warning("queue_jump: cannot resolve MA player_id for %s", entity_id)
+        return False
+
+    queue_id = ma_player_id
+    players = getattr(mass, "players", None)
+    if players is not None:
+        try:
+            player = players.get(ma_player_id) if hasattr(players, "get") else None
+            if player is not None:
+                queue_id = (
+                    getattr(player, "active_source", None)
+                    or getattr(player, "active_queue", None)
+                    or getattr(player, "queue_id", None)
+                    or ma_player_id
+                )
+        except Exception:  # noqa: BLE001
+            pass
+
+    player_queues = getattr(mass, "player_queues", None)
+    play_index_fn = getattr(player_queues, "play_index", None) if player_queues else None
+    if play_index_fn is None:
+        _LOGGER.warning("queue_jump: mass.player_queues.play_index not available")
+        return False
+
+    try:
+        await play_index_fn(queue_id, index)
+        _LOGGER.debug("queue_jump: queue=%s index=%d ok", queue_id, index)
+        return True
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("queue_jump: play_index(%s, %d) failed: %s", queue_id, index, err)
+        return False
+
+
+# ── HA Views ──────────────────────────────────────────────────────────────────
+
+class MusicAssistantSearchView(HomeAssistantView):
+    """Proxy search requests to Music Assistant.
+
+    GET /my_music_library/search?query=<q>&limit=<n>
+    """
+
+    url = "/my_music_library/search"
+    name = "my_music_library:search"
+    requires_auth = True
+
+    async def get(self, request: web.Request) -> web.Response:
+        """Handle search request."""
+        hass: HomeAssistant = request.app["hass"]
+
+        query = request.query.get("query", "").strip()
+        if not query:
+            return self.json_message("Missing 'query' parameter.", HTTPStatus.BAD_REQUEST)
+
+        limit = min(int(request.query.get("limit", 25)), 100)
+        _LOGGER.info("Search request: query=%r limit=%d", query, limit)
+
+        # 1 — MA integration client (primary: authenticated, typed, no duplicate connection)
+        result = await _search_via_ma_client(hass, query, limit)
+        if result is not None:
+            return web.json_response(result)
+
+        # 2 — Direct REST call to MA (fallback)
+        ma_url = _get_mass_url(hass)
+        if ma_url:
+            _LOGGER.info("MA client unavailable, trying REST at %s", ma_url)
+            result = await _search_via_rest(hass, ma_url, query, limit)
+            if result is not None:
+                return web.json_response(result)
+
+        _LOGGER.error("Both MA search strategies failed for query=%r", query)
+        return self.json_message(
+            "Could not search Music Assistant. Check HA logs (filter: my_music_library).",
+            HTTPStatus.BAD_GATEWAY,
+        )
+
+
+class MusicAssistantLibraryView(HomeAssistantView):
+    """Return library items from Music Assistant.
+
+    GET /my_music_library/library?type=artists|albums|tracks|playlists&limit=25&favorite=true
+    """
+
+    url = "/my_music_library/library"
+    name = "my_music_library:library"
+    requires_auth = True
+
+    async def get(self, request: web.Request) -> web.Response:
+        """Handle library request."""
+        hass: HomeAssistant = request.app["hass"]
+
+        media_type = request.query.get("type", "").strip()
+        if media_type not in ("artists", "albums", "tracks", "playlists"):
+            return self.json_message("Invalid 'type' parameter.", HTTPStatus.BAD_REQUEST)
+
+        limit = min(int(request.query.get("limit", 25)), 100)
+        favorite = request.query.get("favorite", "true").lower() != "false"
+        offset = max(0, int(request.query.get("offset", 0)))
+        provider_instance = request.query.get("provider", "").strip() or None
+
+        _LOGGER.info("Library request: type=%s limit=%d offset=%d favorite=%s provider=%s", media_type, limit, offset, favorite, provider_instance)
+
+        items = await _get_library_via_ma_client(hass, media_type, limit, favorite, offset, provider_instance)
+        if items is None:
+            _LOGGER.error("Library fetch failed for type=%s", media_type)
+            return self.json_message(
+                "Could not get library from Music Assistant. Check HA logs (filter: my_music_library).",
+                HTTPStatus.BAD_GATEWAY,
+            )
+
+        return web.json_response({"type": media_type, "items": items})
+
+
+class MusicAssistantBrowseView(HomeAssistantView):
+    """Browse the MA filesystem tree.
+
+    GET /my_music_library/browse?uri=<uri>
+        uri is optional — omit for root.
+    """
+
+    url = "/my_music_library/browse"
+    name = "my_music_library:browse"
+    requires_auth = True
+
+    async def get(self, request: web.Request) -> web.Response:
+        """Handle browse request."""
+        hass: HomeAssistant = request.app["hass"]
+        uri = request.query.get("uri", "").strip() or None
+        limit = min(int(request.query.get("limit", 200)), 500)
+
+        _LOGGER.info("Browse request: uri=%r limit=%d", uri, limit)
+        items = await _browse_via_ma_client(hass, uri, limit)
+        if items is None:
+            return self.json_message(
+                "Could not browse Music Assistant. Check HA logs.",
+                HTTPStatus.BAD_GATEWAY,
+            )
+        return web.json_response({"uri": uri or "", "items": items})
+
+
+class MusicAssistantSubitemsView(HomeAssistantView):
+    """Return sub-items of a MA library item.
+
+    GET /my_music_library/subitems?action=artist_albums|album_tracks|playlist_tracks&uri=<uri>
+    """
+
+    url = "/my_music_library/subitems"
+    name = "my_music_library:subitems"
+    requires_auth = True
+
+    async def get(self, request: web.Request) -> web.Response:
+        """Handle subitems request."""
+        hass: HomeAssistant = request.app["hass"]
+
+        action = request.query.get("action", "").strip()
+        uri = request.query.get("uri", "").strip()
+        limit = min(int(request.query.get("limit", 50)), 200)
+
+        if action not in ("artist_albums", "album_tracks", "playlist_tracks"):
+            return self.json_message("Invalid 'action' parameter.", HTTPStatus.BAD_REQUEST)
+        if not uri:
+            return self.json_message("Missing 'uri' parameter.", HTTPStatus.BAD_REQUEST)
+
+        _LOGGER.info("Subitems request: action=%s uri=%s limit=%d", action, uri, limit)
+        items = await _get_subitems(hass, action, uri, limit)
+        if items is None:
+            return self.json_message(
+                "Could not get subitems from Music Assistant. Check HA logs.",
+                HTTPStatus.BAD_GATEWAY,
+            )
+
+        return web.json_response({"action": action, "items": items})
+
+
+class MusicAssistantProvidersView(HomeAssistantView):
+    """Return the list of available Music Assistant providers.
+
+    GET /my_music_library/providers
+    """
+
+    url = "/my_music_library/providers"
+    name = "my_music_library:providers"
+    requires_auth = True
+
+    async def get(self, request: web.Request) -> web.Response:
+        """Handle providers request."""
+        hass: HomeAssistant = request.app["hass"]
+        providers = await _get_providers_via_ma_client(hass)
+        return web.json_response({"providers": providers or []})
 
 
 class PlayerQueueView(HomeAssistantView):
     """Per-player queue storage — accessible from any browser/device.
 
-    GET  /api/my_music_library/queue?player=<entity_id>
+    GET  /my_music_library/queue?player=<entity_id>
          → {"queue": [...], "source": "<uri or null>"}
 
-    POST /api/my_music_library/queue
+    POST /my_music_library/queue
          body: {"player": "<entity_id>", "queue": [...], "source": "<uri or null>"}
          → {"ok": true}
     """
 
-    url = "/api/my_music_library/queue"
-    name = "api:my_music_library:queue"
+    url = "/my_music_library/queue"
+    name = "my_music_library:queue"
     requires_auth = True
 
     async def get(self, request: web.Request) -> web.Response:
@@ -792,16 +784,16 @@ class PlayerQueueView(HomeAssistantView):
 class PlayerGroupView(HomeAssistantView):
     """Per-player group membership storage.
 
-    GET  /api/my_music_library/groups?player=<entity_id>
+    GET  /my_music_library/groups?player=<entity_id>
          → {"player": "<entity_id>", "members": [...]}
 
-    POST /api/my_music_library/groups
+    POST /my_music_library/groups
          body: {"player": "<entity_id>", "members": [...]}
          → {"ok": true}
     """
 
-    url = "/api/my_music_library/groups"
-    name = "api:my_music_library:groups"
+    url = "/my_music_library/groups"
+    name = "my_music_library:groups"
     requires_auth = True
 
     async def get(self, request: web.Request) -> web.Response:
@@ -840,166 +832,16 @@ class PlayerGroupView(HomeAssistantView):
         return web.json_response({"ok": True})
 
 
-# ── Providers list ───────────────────────────────────────────────────────────
-
-async def _get_providers_via_ma_client(hass: HomeAssistant) -> list | None:
-    """Return available MA providers (domain + name) via the MA Python client."""
-    ma_entries = hass.config_entries.async_entries("music_assistant")
-    if not ma_entries:
-        return None
-
-    for ma_entry in ma_entries:
-        entry_data = getattr(ma_entry, "runtime_data", None)
-        if entry_data is None:
-            entry_data = hass.data.get("music_assistant", {}).get(ma_entry.entry_id)
-
-        mass = getattr(entry_data, "mass", None)
-        if not mass:
-            continue
-
-        try:
-            raw = getattr(mass, "providers", None)
-            if raw is None:
-                continue
-
-            # mass.providers can be a dict keyed by instance_id or a plain list.
-            # When it is a dict the key IS the instance_id — use it as a reliable fallback.
-            if isinstance(raw, dict):
-                pairs = list(raw.items())   # [(instance_id_key, provider_obj), ...]
-            else:
-                pairs = [(None, p) for p in raw]
-
-            seen: set[str] = set()
-            result = []
-            for key_from_dict, p in pairs:
-                p_safe = _to_json_safe(p)
-                if not isinstance(p_safe, dict):
-                    continue
-                # Only keep music providers (exclude metadata, plugin, etc.)
-                provider_type = str(p_safe.get("type") or "").lower()
-                if provider_type and provider_type != "music":
-                    continue
-                domain = p_safe.get("domain") or ""
-                # Prefer the dict key (most reliable), then the instance_id field
-                instance_id = key_from_dict or p_safe.get("instance_id") or domain
-                if not instance_id or instance_id in seen:
-                    continue
-                seen.add(instance_id)
-                _LOGGER.debug("MA provider found: instance_id=%r domain=%r name=%r", instance_id, domain, p_safe.get("name"))
-                result.append({
-                    "domain": domain,
-                    "instance_id": instance_id,
-                    "name": p_safe.get("name") or domain,
-                    "available": bool(p_safe.get("available", True)),
-                })
-            return [r for r in result if r["available"]]
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.warning("Failed to get MA providers: %s", err)
-            continue
-
-    return None
-
-
-class MusicAssistantProvidersView(HomeAssistantView):
-    """Return the list of available Music Assistant providers.
-
-    GET /api/my_music_library/providers
-    """
-
-    url = "/api/my_music_library/providers"
-    name = "api:my_music_library:providers"
-    requires_auth = True
-
-    async def get(self, request: web.Request) -> web.Response:
-        """Handle providers request."""
-        hass: HomeAssistant = request.app["hass"]
-        providers = await _get_providers_via_ma_client(hass)
-        if providers is None:
-            providers = []
-        return web.json_response({"providers": providers})
-
-
-# ── Queue jump (play_index) ──────────────────────────────────────────────────
-
-def _resolve_ma_player_id(hass: HomeAssistant, entity_id: str) -> str | None:
-    """Map a HA media_player entity_id to its Music Assistant player_id.
-
-    The MA HA integration sets each entity's unique_id to the MA player_id.
-    """
-    from homeassistant.helpers import entity_registry as er  # noqa: PLC0415
-
-    ent_reg = er.async_get(hass)
-    entry = ent_reg.async_get(entity_id)
-    if entry is None:
-        return None
-    return entry.unique_id or None
-
-
-async def _queue_jump_via_ma_client(
-    hass: HomeAssistant, entity_id: str, index: int,
-) -> bool:
-    """Ask MA to jump to ``index`` within the player's existing queue."""
-    ma_entries = hass.config_entries.async_entries("music_assistant")
-    if not ma_entries:
-        return False
-
-    ma_player_id = _resolve_ma_player_id(hass, entity_id)
-    if not ma_player_id:
-        _LOGGER.warning("queue_jump: cannot resolve MA player_id for %s", entity_id)
-        return False
-
-    for ma_entry in ma_entries:
-        entry_data = getattr(ma_entry, "runtime_data", None)
-        if entry_data is None:
-            entry_data = hass.data.get("music_assistant", {}).get(ma_entry.entry_id)
-        mass = getattr(entry_data, "mass", None)
-        if mass is None:
-            continue
-
-        # Find the queue id for this player. When grouped, queue lives on the group
-        # leader; when standalone, queue_id == player_id.
-        queue_id = ma_player_id
-        players = getattr(mass, "players", None)
-        if players is not None:
-            try:
-                player = players.get(ma_player_id) if hasattr(players, "get") else None
-                if player is not None:
-                    queue_id = (
-                        getattr(player, "active_source", None)
-                        or getattr(player, "active_queue", None)
-                        or getattr(player, "queue_id", None)
-                        or ma_player_id
-                    )
-            except Exception:  # noqa: BLE001
-                pass
-
-        player_queues = getattr(mass, "player_queues", None)
-        play_index_fn = getattr(player_queues, "play_index", None) if player_queues else None
-        if play_index_fn is None:
-            _LOGGER.warning("queue_jump: mass.player_queues.play_index not available")
-            return False
-
-        try:
-            await play_index_fn(queue_id, index)
-            _LOGGER.debug("queue_jump: queue=%s index=%d ok", queue_id, index)
-            return True
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.warning("queue_jump: play_index(%s, %d) failed: %s", queue_id, index, err)
-            return False
-
-    return False
-
-
 class PlayerQueueJumpView(HomeAssistantView):
     """Jump to a specific index in the player's existing MA queue.
 
-    POST /api/my_music_library/queue_jump
+    POST /my_music_library/queue_jump
         body: {"player": "<entity_id>", "index": <int>}
         → {"ok": true} on success, 502 otherwise
     """
 
-    url = "/api/my_music_library/queue_jump"
-    name = "api:my_music_library:queue_jump"
+    url = "/my_music_library/queue_jump"
+    name = "my_music_library:queue_jump"
     requires_auth = True
 
     async def post(self, request: web.Request) -> web.Response:
@@ -1025,37 +867,3 @@ class PlayerQueueJumpView(HomeAssistantView):
                 HTTPStatus.BAD_GATEWAY,
             )
         return web.json_response({"ok": True})
-
-
-class MusicAssistantSubitemsView(HomeAssistantView):
-    """Return sub-items of a MA library item.
-
-    GET /api/my_music_library/subitems?action=artist_albums|album_tracks|playlist_tracks&uri=<uri>
-    """
-
-    url = "/api/my_music_library/subitems"
-    name = "api:my_music_library:subitems"
-    requires_auth = True
-
-    async def get(self, request: web.Request) -> web.Response:
-        """Handle subitems request."""
-        hass: HomeAssistant = request.app["hass"]
-
-        action = request.query.get("action", "").strip()
-        uri = request.query.get("uri", "").strip()
-        limit = min(int(request.query.get("limit", 50)), 200)
-
-        if action not in ("artist_albums", "album_tracks", "playlist_tracks"):
-            return self.json_message("Invalid 'action' parameter.", HTTPStatus.BAD_REQUEST)
-        if not uri:
-            return self.json_message("Missing 'uri' parameter.", HTTPStatus.BAD_REQUEST)
-
-        _LOGGER.info("Subitems request: action=%s uri=%s limit=%d", action, uri, limit)
-        items = await _get_subitems(hass, action, uri, limit)
-        if items is None:
-            return self.json_message(
-                "Could not get subitems from Music Assistant. Check HA logs.",
-                HTTPStatus.BAD_GATEWAY,
-            )
-
-        return web.json_response({"action": action, "items": items})

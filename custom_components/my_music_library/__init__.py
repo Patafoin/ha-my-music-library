@@ -19,14 +19,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
 from .api import MusicAssistantBrowseView, MusicAssistantLibraryView, MusicAssistantProvidersView, MusicAssistantSearchView, MusicAssistantSubitemsView, PlayerGroupView, PlayerQueueJumpView, PlayerQueueView
-from .const import CARD_JS_FILENAME, CARD_URL, CONF_EXCLUDED_PLAYERS, CONF_MA_URL, DOMAIN, ICON_URL, WS_CONFIG_COMMAND
+from .const import CARD_JS_FILENAME, CARD_URL, CONF_EXCLUDED_PLAYERS, CONF_MA_URL, DOMAIN, ICON_URL, MUSIC_ASSISTANT_DOMAIN, WS_CONFIG_COMMAND
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[str] = []
 
 WWW_DIR = os.path.join(os.path.dirname(__file__), "www")
-ICON_PATH = os.path.join(os.path.dirname(__file__), "icon.png")
+ICON_PATH = os.path.join(os.path.dirname(__file__), "brand", "icon.png")
 
 _QUEUE_STORE_KEY = f"{DOMAIN}_queues"
 _QUEUE_STORE_VERSION = 1
@@ -121,7 +121,7 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
 
         entry = entries[0]
         # Find the Music Assistant config entry so the card can call MA's WS commands
-        ma_entries = hass.config_entries.async_entries("music_assistant")
+        ma_entries = hass.config_entries.async_entries(MUSIC_ASSISTANT_DOMAIN)
         ma_entry_id = ma_entries[0].entry_id if ma_entries else None
 
         connection.send_result(
