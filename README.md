@@ -37,7 +37,7 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 1. Copy the `custom_components/my_music_library/` folder into `/config/custom_components/` on your Home Assistant instance.
 2. Restart Home Assistant.
 3. Go to **Settings → Devices & Services → Add Integration** and search for **My Music Library**.
-4. Follow the setup flow (select your Music Assistant server URL and default player).
+4. Follow the setup flow (select your default player and default tab). The Music Assistant server is discovered automatically from the `mass` integration.
 
 ### HACS (custom repository)
 
@@ -53,14 +53,6 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 ## Integration Options
 
 After installation, you can configure additional options via **Settings → Devices & Services → My Music Library → Configure**.
-
-### Music Assistant API token
-
-Leave this field empty in most setups. Fill it in only if your Music Assistant server requires authentication — this is typically the case on **Home Assistant OS (HAOS)** when MA is configured to use HA's authentication layer.
-
-Generate a **Long-Lived Access Token** in HA: go to your profile page (bottom-left avatar), scroll to **Long-lived access tokens**, and create one. Paste the token in the **Music Assistant API token** field during setup or in the integration options.
-
-The token is sent as an `Authorization: Bearer <token>` header on every outbound HTTP request to the MA REST API.
 
 ### Hidden players
 
@@ -248,9 +240,13 @@ custom_components/my_music_library/
 ├── manifest.json        # Integration metadata (version, dependencies)
 ├── config_flow.py       # UI configuration flow (setup + options: excluded players)
 ├── const.py             # Domain constants
-├── api.py               # HTTP proxy views (search, library, subitems, queue, groups → Music Assistant)
+├── api.py               # HTTP views (search, library, browse, subitems, queue, groups → MA)
 ├── strings.json         # Config flow translation source
-├── icon.png             # Integration icon
+├── brand/
+│   ├── icon.png         # Integration icon 256×256
+│   ├── icon@2x.png      # Integration icon 512×512
+│   ├── logo.png         # Logo 256×256 (home-assistant/brands)
+│   └── logo@2x.png      # Logo 512×512 (home-assistant/brands)
 ├── translations/
 │   ├── en.json
 │   ├── fr.json
