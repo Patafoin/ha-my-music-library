@@ -15,7 +15,8 @@ from homeassistant.components.websocket_api import (
     websocket_command,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
+from homeassistant.core import HomeAssistant, Event
 from homeassistant.exceptions import ConfigEntryNotReady
 
 from .api import MusicAssistantBrowseView, MusicAssistantLibraryView, MusicAssistantProvidersView, MusicAssistantSearchView, MusicAssistantSubitemsView, PlayerGroupView, PlayerQueueJumpView, PlayerQueueView
@@ -73,8 +74,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if static_registrations:
         await hass.http.async_register_static_paths(static_registrations)
 
-    # Auto-register as a Lovelace resource (type: module)
-    await _async_register_lovelace_resource(hass, CARD_URL)
+    # Auto-register as a Lovelace resource (type: module).
+    # If HA is still booting, hass.data["lovelace"] is not yet populated — defer
+    # to EVENT_HOMEASSISTANT_STARTED so Lovelace is guaranteed to be ready.
+    if hass.is_running:
+        await _async_register_lovelace_resource(hass, CARD_URL)
+    else:
+        async def _on_ha_started(_event: Event) -> None:
+            await _async_register_lovelace_resource(hass, CARD_URL)
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _on_ha_started)
 
     # Register HTTP proxy views (search + library + subitems → MA server)
     hass.http.register_view(MusicAssistantSearchView)
@@ -140,14 +148,18 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
 
 
 async def _async_register_lovelace_resource(hass: HomeAssistant, url: str) -> None:
-    """Add the card JS as a Lovelace resource if not already registered."""
+    """Add the card JS as a Lovelace resource.
+
+    Strategy (in order):
+    1. Storage mode  → async_create_item()   — persisted across restarts
+    2. YAML mode     → data.append()         — session-only (user must also add to ui-lovelace.yaml)
+    3. Last resort   → add_extra_js_url()    — injects into HA's global frontend module list
+    """
     try:
         lovelace = hass.data.get("lovelace")
         if lovelace is None:
-            _LOGGER.warning(
-                "Lovelace not available yet; add resource manually. URL: %s (module)",
-                url,
-            )
+            _LOGGER.warning("Lovelace not in hass.data; falling back to add_extra_js_url: %s", url)
+            _add_extra_js_url_fallback(hass, url)
             return
 
         # HA 2024+: LovelaceData dataclass → access via attribute
@@ -160,27 +172,55 @@ async def _async_register_lovelace_resource(hass: HomeAssistant, url: str) -> No
             resources = None
 
         if resources is None:
-            _LOGGER.warning(
-                "Lovelace resource storage unavailable. Add manually: %s", url
-            )
+            _LOGGER.warning("Lovelace resources unavailable; falling back to add_extra_js_url: %s", url)
+            _add_extra_js_url_fallback(hass, url)
             return
 
         await resources.async_load()
-        existing = [
-            r for r in resources.async_items()
-            if (r.get("url", "") if isinstance(r, dict) else getattr(r, "url", "")).startswith(url)
-        ]
-        if existing:
-            _LOGGER.debug("Lovelace resource already registered: %s", url)
-            return
 
-        await resources.async_create_item({"res_type": "module", "url": url})
-        _LOGGER.info("Registered Lovelace resource: %s", url)
+        for r in resources.async_items():
+            r_url = r.get("url", "") if isinstance(r, dict) else getattr(r, "url", "")
+            if r_url.startswith(url):
+                _LOGGER.debug("Lovelace resource already registered: %s", url)
+                return
+
+        # Storage mode (default): persisted in .storage/lovelace_resources
+        if callable(getattr(resources, "async_create_item", None)):
+            await resources.async_create_item({"res_type": "module", "url": url})
+            _LOGGER.info("Lovelace resource registered (storage mode): %s", url)
+        # YAML mode: mutate the in-memory list — works for this session only
+        elif isinstance(getattr(resources, "data", None), list):
+            resources.data.append({"type": "module", "url": url})
+            _LOGGER.warning(
+                "Lovelace is in YAML mode — resource registered for this session only. "
+                "For a permanent fix add to ui-lovelace.yaml: {url: %s, type: module}",
+                url,
+            )
+        else:
+            _LOGGER.warning("Unknown Lovelace resource type; falling back to add_extra_js_url: %s", url)
+            _add_extra_js_url_fallback(hass, url)
 
     except Exception as err:  # noqa: BLE001
         _LOGGER.warning(
-            "Could not auto-register Lovelace resource (%s). "
-            "Add manually in Settings > Dashboards > Resources. Error: %s",
-            url,
-            err,
+            "Could not register Lovelace resource %s (%s); falling back to add_extra_js_url", url, err
+        )
+        _add_extra_js_url_fallback(hass, url)
+
+
+def _add_extra_js_url_fallback(hass: HomeAssistant, url: str) -> None:
+    """Inject the card JS into HA's global frontend module list as a last resort.
+
+    This bypasses Lovelace resource management entirely: HA adds the script to
+    every frontend page, which causes customElements.define() to run and makes
+    the card available in the Lovelace picker without a resource entry.
+    """
+    try:
+        from homeassistant.components.frontend import add_extra_js_url  # noqa: PLC0415
+        add_extra_js_url(hass, url)
+        _LOGGER.info("Card registered via add_extra_js_url fallback: %s", url)
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.error(
+            "All Lovelace registration methods failed for %s (%s). "
+            "Add manually: Settings → Dashboards → ⋮ → Resources → %s (JavaScript Module)",
+            url, err, url,
         )
