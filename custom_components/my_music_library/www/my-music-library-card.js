@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.0.0";
+const CARD_VERSION = "3.0.1";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {

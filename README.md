@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.0.0-blue)
+![Version](https://img.shields.io/badge/version-3.0.1-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-custom-orange)
 
@@ -258,6 +258,9 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 3.0.1
+- **Fix** — Lovelace resource registration failure is now surfaced as a persistent HA notification with step-by-step instructions, instead of silently failing (common with Lovelace YAML mode).
 
 ### 3.0.0
 - **Refactor** — Music Assistant connectivity rewritten from scratch: integration now discovers the MA client via the `mass` config entry (`entry.runtime_data.mass`) instead of managing its own connection.
