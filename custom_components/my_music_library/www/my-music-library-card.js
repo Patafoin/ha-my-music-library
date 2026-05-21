@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.0.2";
+const CARD_VERSION = "3.0.3";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -1297,10 +1297,6 @@ class MyMusicLibraryCard extends HTMLElement {
     if (h && typeof h === "number") return Math.ceil(h / 50);
     if (h && typeof h === "string" && h.endsWith("px")) return Math.ceil(parseInt(h) / 50);
     return 8; // default ~400px
-  }
-
-  static getConfigElement() {
-    return document.createElement("my-music-library-card-editor");
   }
 
   static getStubConfig() {
