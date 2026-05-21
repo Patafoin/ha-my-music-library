@@ -1,13 +1,13 @@
 {
   "domain": "my_music_library",
   "name": "My Music Library",
-  "after_dependencies": ["lovelace", "mass"],
+  "after_dependencies": ["mass"],
   "codeowners": ["@Patafoin"],
   "config_flow": true,
-  "dependencies": ["http"],
+  "dependencies": ["frontend", "http", "lovelace"],
   "documentation": "https://github.com/Patafoin/ha-my-music-library",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/Patafoin/ha-my-music-library/issues",
   "requirements": [],
-  "version": "3.0.1"
+  "version": "3.0.2"
 }

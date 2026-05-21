@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.0.1-blue)
+![Version](https://img.shields.io/badge/version-3.0.2-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -251,6 +251,9 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 3.0.2
+- **Fix** — Card still invisible after fresh install (v3.0.1 did not fully fix it). Root cause: `frontend` and `lovelace` were `after_dependencies` instead of hard `dependencies` in `manifest.json`, so they were not guaranteed to be loaded when the integration registered the card. Now uses the same pattern as browser_mod and HACS: `add_extra_js_url()` as primary injection (guaranteed by the `frontend` hard dependency) + Lovelace resource entry as secondary for Cast/companion apps.
 
 ### 3.0.1
 - **Fix** — Lovelace card not appearing in the picker after a fresh HACS install. Root cause: registration ran before Lovelace was initialised on first boot. Registration is now deferred to `EVENT_HOMEASSISTANT_STARTED` when HA is still starting up.
