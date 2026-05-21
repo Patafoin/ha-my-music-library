@@ -4,7 +4,7 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 
 ![Version](https://img.shields.io/badge/version-3.0.1-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
-![HACS](https://img.shields.io/badge/HACS-custom-orange)
+![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
 ---
 
@@ -32,21 +32,14 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 
 ## Installation
 
-### Manual
+### Via HACS
 
-1. Copy the `custom_components/my_music_library/` folder into `/config/custom_components/` on your Home Assistant instance.
+1. Open HACS, search for **My Music Library** and install it.
 2. Restart Home Assistant.
 3. Go to **Settings → Devices & Services → Add Integration** and search for **My Music Library**.
 4. Follow the setup flow (select your default player and default tab). The Music Assistant server is discovered automatically from the `mass` integration.
 
-### HACS (custom repository)
-
-1. In HACS, go to **Integrations → ⋮ → Custom repositories**.
-2. Add `https://github.com/Patafoin/ha-my-music-library` with category **Integration**.
-3. Install **My Music Library** from HACS.
-4. Restart Home Assistant and add the integration via the UI.
-
-> The Lovelace card resource (`/my_music_library/my-music-library-card.js`) is registered automatically — no manual resource addition required.
+> The Lovelace card resource is registered automatically — no manual resource addition required.
 
 ---
 
@@ -260,7 +253,9 @@ custom_components/my_music_library/
 ## Changelog
 
 ### 3.0.1
-- **Fix** — Lovelace resource registration failure is now surfaced as a persistent HA notification with step-by-step instructions, instead of silently failing (common with Lovelace YAML mode).
+- **Fix** — Lovelace card not appearing in the picker after a fresh HACS install. Root cause: registration ran before Lovelace was initialised on first boot. Registration is now deferred to `EVENT_HOMEASSISTANT_STARTED` when HA is still starting up.
+- **Fix** — YAML-mode fallback: resource is appended in-memory so the card works for the current session even when Lovelace is in YAML mode.
+- **Fix** — Last-resort fallback via `add_extra_js_url()` if all Lovelace-based registration methods fail.
 
 ### 3.0.0
 - **Refactor** — Music Assistant connectivity rewritten from scratch: integration now discovers the MA client via the `mass` config entry (`entry.runtime_data.mass`) instead of managing its own connection.
