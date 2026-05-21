@@ -36,4 +36,4 @@ def test_conf_keys():
 
 
 def test_music_assistant_domain():
-    assert MUSIC_ASSISTANT_DOMAIN == "music_assistant"
+    assert MUSIC_ASSISTANT_DOMAIN == "mass"

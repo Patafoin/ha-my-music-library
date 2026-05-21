@@ -91,6 +91,9 @@ def _stub_homeassistant() -> None:
 
     components = _make_module("homeassistant.components")
 
+    frontend_mod = _make_module("homeassistant.components.frontend")
+    frontend_mod.add_extra_js_url = MagicMock()  # type: ignore[attr-defined]
+
     # aiohttp stubs (used in api.py)
     aiohttp_mod = _make_module("aiohttp")
     aiohttp_mod.web = MagicMock()  # type: ignore[attr-defined]

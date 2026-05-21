@@ -32,13 +32,13 @@ def _make_hass_with_players(players: dict) -> MagicMock:
     # Entity registry mock
     entity_mock = MagicMock()
     entity_mock.entity_id = list(players.keys())[0] if players else ""
-    entity_mock.platform = "music_assistant"
+    entity_mock.platform = "mass"
     entity_mock.domain = "media_player"
     entity_mock.disabled = False
 
     ent_reg_mock = MagicMock()
     ent_reg_mock.entities.values.return_value = [
-        _make_entity(eid, "music_assistant") for eid in players
+        _make_entity(eid, "mass") for eid in players
     ]
 
     with patch(
@@ -64,8 +64,8 @@ class TestGetMaPlayers:
     def test_returns_ma_players(self):
         hass = MagicMock()
 
-        entity1 = _make_entity("media_player.kitchen", "music_assistant")
-        entity2 = _make_entity("media_player.living_room", "music_assistant")
+        entity1 = _make_entity("media_player.kitchen", "mass")
+        entity2 = _make_entity("media_player.living_room", "mass")
         entity3 = _make_entity("media_player.other", "cast")  # Not MA
 
         ent_reg = MagicMock()
@@ -105,7 +105,7 @@ class TestGetMaPlayers:
 
     def test_excludes_disabled_entities(self):
         hass = MagicMock()
-        entity = _make_entity("media_player.disabled", "music_assistant")
+        entity = _make_entity("media_player.disabled", "mass")
         entity.disabled = True
 
         ent_reg = MagicMock()
