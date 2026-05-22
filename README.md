@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.0.3-blue)
+![Version](https://img.shields.io/badge/version-3.1.3-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -251,6 +251,18 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 3.1.3
+- **Fix** — `customElements.define("my-music-library-card", …)` now guarded with `customElements.get(…)` so a double module load (whatever the cause) never triggers "already been used with this registry".
+- **Fix** — Removed `add_extra_js_url` registration: HA's `scoped-custom-element-registry` polyfill was causing the card module to be evaluated twice when both `add_extra_js_url` and the Lovelace resource loaded it, even with the same URL. The Lovelace resource mechanism alone is the correct approach for custom cards (`lovelace` is a hard dependency so registration is guaranteed).
+
+### 3.1.2
+- **Fix** — Upgrade experience: switching from a fixed (unversioned) Lovelace resource URL (3.1.1) back to a versioned URL (`?v=X.Y.Z`) for reliable browser cache-busting, same principle as HACS's `?hacstag=` parameter. The Lovelace resource manager now uses a **delete-first, add-after** strategy: all existing entries for the card are removed before the new versioned entry is created, so the browser never sees two different module versions in storage simultaneously → no `customElements.define` conflict → no "configuration error" on Ctrl+Shift+R. Also handles migration from 3.1.1's fixed URL.
+
+### 3.1.1
+- **Fix** — Ctrl+Shift+R (hard refresh) after an upgrade no longer shows "configuration error". Root cause: the Lovelace resource URL included a version query param (`?v=X.Y.Z`); after an upgrade the old versioned entry was not always cleaned up, causing the browser to load both old and new JS modules simultaneously → `customElements.define` called twice → error. The resource URL is now fixed (no query param); cache invalidation relies on HTTP ETag / Last-Modified, so a plain F5 is sufficient to pick up a new version.
+- **Fix** — Settings modal: library providers (sources) were never loaded when `ma_entry_id` was absent from the integration config. `_fetchProviders` is now always called on config load; it does not depend on `ma_entry_id`.
+- **Fix** — `_get_providers_via_ma_client`: replaced `_to_json_safe` conversion with direct `getattr` access on `ProviderInstance` objects, avoiding silent failures when the installed `music_assistant_models` version uses a non-dataclass base (attrs, msgspec, etc.).
 
 ### 3.0.2
 - **Fix** — Card still invisible after fresh install (v3.0.1 did not fully fix it). Root cause: `frontend` and `lovelace` were `after_dependencies` instead of hard `dependencies` in `manifest.json`, so they were not guaranteed to be loaded when the integration registered the card. Now uses the same pattern as browser_mod and HACS: `add_extra_js_url()` as primary injection (guaranteed by the `frontend` hard dependency) + Lovelace resource entry as secondary for Cast/companion apps.

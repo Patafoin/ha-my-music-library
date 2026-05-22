@@ -469,7 +469,12 @@ async def _get_subitems(
 # ── Providers ─────────────────────────────────────────────────────────────────
 
 async def _get_providers_via_ma_client(hass: HomeAssistant) -> list | None:
-    """Return available MA providers (domain + name) via the MA Python client."""
+    """Return available MA providers (domain + name) via the MA Python client.
+
+    mass.providers returns list[ProviderInstance] in music_assistant_client.
+    We access attributes directly to avoid _to_json_safe conversion issues
+    (e.g. StrEnum not being a dataclass in certain model versions).
+    """
     mass = _get_mass_client(hass)
     if mass is None:
         return None
@@ -477,34 +482,42 @@ async def _get_providers_via_ma_client(hass: HomeAssistant) -> list | None:
     try:
         raw = getattr(mass, "providers", None)
         if raw is None:
+            _LOGGER.debug("mass.providers is None — MA provider list unavailable")
             return None
 
-        if isinstance(raw, dict):
-            pairs = list(raw.items())
-        else:
-            pairs = [(None, p) for p in raw]
+        # mass.providers is list[ProviderInstance]; guard against dict-like wrappers too
+        items: Any = raw.values() if (isinstance(raw, dict) or hasattr(raw, "items")) else raw
 
         seen: set[str] = set()
         result = []
-        for key_from_dict, p in pairs:
-            p_safe = _to_json_safe(p)
-            if not isinstance(p_safe, dict):
+        for p in items:
+            try:
+                # Access attributes directly — avoids _to_json_safe conversion issues
+                provider_type = str(getattr(p, "type", "") or "").lower()
+                if provider_type and provider_type != "music":
+                    continue
+                domain = str(getattr(p, "domain", "") or "")
+                instance_id = str(getattr(p, "instance_id", "") or domain)
+                name = str(getattr(p, "name", "") or domain)
+                available = bool(getattr(p, "available", True))
+                if not instance_id or instance_id in seen:
+                    continue
+                seen.add(instance_id)
+                _LOGGER.debug("MA provider: instance_id=%r domain=%r name=%r available=%s", instance_id, domain, name, available)
+                result.append({
+                    "domain": domain,
+                    "instance_id": instance_id,
+                    "name": name,
+                    "available": available,
+                })
+            except Exception as item_err:  # noqa: BLE001
+                _LOGGER.debug("Skipping MA provider item: %s", item_err)
                 continue
-            provider_type = str(p_safe.get("type") or "").lower()
-            if provider_type and provider_type != "music":
-                continue
-            domain = p_safe.get("domain") or ""
-            instance_id = key_from_dict or p_safe.get("instance_id") or domain
-            if not instance_id or instance_id in seen:
-                continue
-            seen.add(instance_id)
-            _LOGGER.debug("MA provider found: instance_id=%r domain=%r name=%r", instance_id, domain, p_safe.get("name"))
-            result.append({
-                "domain": domain,
-                "instance_id": instance_id,
-                "name": p_safe.get("name") or domain,
-                "available": bool(p_safe.get("available", True)),
-            })
+
+        _LOGGER.debug(
+            "MA providers: %d total, %d available",
+            len(result), sum(1 for r in result if r["available"]),
+        )
         return [r for r in result if r["available"]]
     except Exception as err:  # noqa: BLE001
         _LOGGER.warning("Failed to get MA providers: %s", err)
