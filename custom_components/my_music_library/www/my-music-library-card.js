@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.0.3";
+const CARD_VERSION = "3.1.3";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -13,7 +13,7 @@ const ICONS = {
   pause: `<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`,
   stop: `<svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>`,
   prev: `<svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>`,
-  next: `<svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm2.5-6 6-4.25v8.5L8.5 12zM16 6h2v12h-2z"/></svg>`,
+  next: `<svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/></svg>`,
   shuffle: `<svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>`,
   repeat: `<svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>`,
   repeatOne: `<svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4zm-4-2V9h-1l-2 1v1h1.5v4H13z"/></svg>`,
@@ -238,7 +238,7 @@ const STYLES = `
     --bg2: color-mix(in srgb, var(--bg) 80%, white 20%);
     --text: var(--primary-text-color, #fff);
     --text2: var(--secondary-text-color, rgba(255,255,255,0.78));
-    --border: rgba(255,255,255,0.12);
+    --border: color-mix(in srgb, var(--text) 12%, transparent);
     --radius: 12px;
     --control-size: 52px;
     color: var(--text);
@@ -280,6 +280,7 @@ const STYLES = `
     -webkit-tap-highlight-color: transparent;
   }
   .nav-tab svg { width: 18px; height: 18px; fill: currentColor; flex-shrink: 0; }
+  .nav-tab { border-right: 2px solid var(--border); }
   .nav-tab.active {
     color: var(--accent);
     background: color-mix(in srgb, var(--accent) 10%, transparent);
@@ -295,7 +296,9 @@ const STYLES = `
 
   /* ── NAV EXTRA BUTTONS ── */
   /* stretch: buttons fill the full nav height so the tap target equals the nav height */
-  .nav-extra { display: flex; align-items: stretch; gap: 2px; padding: 0 4px; flex-shrink: 0; }
+  .nav-extra { display: flex; align-items: stretch; gap: 0; padding: 0; flex-shrink: 0; }
+  .nav-extra-left .nav-btn { border-right: 2px solid var(--border); }
+  .nav-extra-right .nav-btn:not(:last-child) { border-right: 2px solid var(--border); }
   .nav-btn {
     display: flex;
     flex-direction: column;
@@ -308,7 +311,7 @@ const STYLES = `
     box-sizing: border-box;
     cursor: pointer;
     border: none;
-    border-radius: 8px;
+    border-radius: 0;
     background: none;
     color: var(--text2);
     transition: color .2s, background .2s;
@@ -320,9 +323,9 @@ const STYLES = `
   .nav-btn:active { background: rgba(255,255,255,0.12); }
   .nav-btn.active { color: var(--accent); }
   .nav-btn ha-icon { --mdc-icon-size: 20px; display: block; pointer-events: none; }
+  .nav-btn svg { width: 20px; height: 20px; fill: currentColor; flex-shrink: 0; }
   .nav-btn-label { font-size: 10px; font-weight: 500; line-height: 1; pointer-events: none; }
-  #settings-btn { padding: 12px 10px; min-width: 52px; border-radius: 0; gap: 4px; }
-  #settings-btn.active { background: color-mix(in srgb, var(--accent) 10%, transparent); border-bottom: 2px solid var(--accent); }
+  #settings-btn { padding: 12px 10px; gap: 4px; }
 
   /* ── CONTENT AREA ── */
   /* position:relative + inset:0 on children is the most reliable way to
@@ -501,7 +504,7 @@ const STYLES = `
     -webkit-appearance: none;
     height: 6px;
     border-radius: 3px;
-    background: var(--border);
+    background: color-mix(in srgb, var(--text) 30%, transparent);
     outline: none;
     cursor: pointer;
     touch-action: none;
@@ -1369,8 +1372,8 @@ class MyMusicLibraryCard extends HTMLElement {
       const cfg = await this._hass.callWS({ type: "my_music_library/config" });
       if (cfg?.ma_entry_id) {
         this._maEntryId = cfg.ma_entry_id;
-        this._fetchProviders();
       }
+      this._fetchProviders();
       if (cfg?.ma_url) {
         this._maUrl = cfg.ma_url.replace(/\/$/, "");
       }
@@ -1398,7 +1401,6 @@ class MyMusicLibraryCard extends HTMLElement {
           this._enabledProviders = null;
           this._savePref("mml_providers", "");
           const card = this.shadowRoot?.querySelector(".card-root");
-          if (card) card.querySelector("#settings-btn")?.classList.remove("active");
         }
       }
     } catch (_) {
@@ -1505,7 +1507,6 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   _renderNav() {
-    const filterActive = this._enabledProviders !== null;
     return `
       <nav class="nav">
         <div class="nav-extra nav-extra-left">${this._renderNavButtons(this._config.nav_buttons_left, "left")}</div>
@@ -1522,7 +1523,7 @@ class MyMusicLibraryCard extends HTMLElement {
         </div>
         <div class="nav-extra nav-extra-right">
           ${this._renderNavButtons(this._config.nav_buttons_right, "right")}
-          <button class="nav-btn${filterActive ? " active" : ""}" id="settings-btn" title="${this._t("settings.title")}">
+          <button class="nav-btn" id="settings-btn" title="${this._t("settings.title")}">
             ${ICONS.settings}
             <span class="nav-btn-label">${this._t("settings.title")}</span>
           </button>
@@ -2330,8 +2331,6 @@ class MyMusicLibraryCard extends HTMLElement {
           this._enabledProviders = null;
         }
         this._savePref("mml_providers", this._enabledProviders ? JSON.stringify([...this._enabledProviders]) : "");
-        const btn = card.querySelector("#settings-btn");
-        if (btn) btn.classList.toggle("active", this._enabledProviders !== null);
         this._reloadLibrary();
       });
     });
@@ -3262,7 +3261,9 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 }
 
-customElements.define("my-music-library-card", MyMusicLibraryCard);
+if (!customElements.get("my-music-library-card")) {
+  customElements.define("my-music-library-card", MyMusicLibraryCard);
+}
 
 // Self-announce
 window.customCards = window.customCards || [];

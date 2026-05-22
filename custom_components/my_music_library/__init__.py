@@ -17,6 +17,7 @@ from homeassistant.components.websocket_api import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.loader import async_get_integration
 
 from .api import MusicAssistantBrowseView, MusicAssistantLibraryView, MusicAssistantProvidersView, MusicAssistantSearchView, MusicAssistantSubitemsView, PlayerGroupView, PlayerQueueJumpView, PlayerQueueView
 from .const import CARD_JS_FILENAME, CARD_URL, CONF_EXCLUDED_PLAYERS, CONF_MA_URL, DOMAIN, ICON_URL, MUSIC_ASSISTANT_DOMAIN, WS_CONFIG_COMMAND
@@ -73,15 +74,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if static_registrations:
         await hass.http.async_register_static_paths(static_registrations)
 
-    # Primary: inject JS on every page via the frontend module list.
-    # frontend is a hard dependency so this is always safe to call.
-    from homeassistant.components.frontend import add_extra_js_url  # noqa: PLC0415
-    add_extra_js_url(hass, CARD_URL)
-    _LOGGER.debug("Card registered via add_extra_js_url: %s", CARD_URL)
+    # Build a versioned URL for reliable browser cache-busting, same principle as
+    # HACS's ?hacstag= parameter.
+    #
+    # We deliberately do NOT use add_extra_js_url: that mechanism loads the module
+    # independently of the Lovelace resource, and HA's scoped-custom-element-registry
+    # polyfill causes customElements.define to be called twice even when both paths
+    # use the same URL — triggering "already been used with this registry" errors.
+    # The Lovelace resource mechanism is the standard approach for custom cards and
+    # is sufficient (lovelace is a hard dependency so registration is guaranteed).
+    integration = await async_get_integration(hass, DOMAIN)
+    version = integration.manifest.get("version", "0")
+    versioned_card_url = f"{CARD_URL}?v={version}"
+    _LOGGER.debug("Setting up My Music Library v%s", version)
 
-    # Secondary: also register as a Lovelace resource for Cast / companion apps.
-    # lovelace is a hard dependency so hass.data["lovelace"] is guaranteed here.
-    await _async_register_lovelace_resource(hass, CARD_URL)
+    await _async_register_lovelace_resource(hass, versioned_card_url, CARD_URL)
 
     # Register HTTP proxy views (search + library + subitems → MA server)
     hass.http.register_view(MusicAssistantSearchView)
@@ -146,12 +153,24 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
     _LOGGER.debug("Registered WebSocket command: %s", WS_CONFIG_COMMAND)
 
 
-async def _async_register_lovelace_resource(hass: HomeAssistant, url: str) -> None:
+async def _async_register_lovelace_resource(
+    hass: HomeAssistant, url: str, base_url: str
+) -> None:
     """Add the card JS as a Lovelace resource (for Cast / companion app support).
 
-    The primary injection is done via add_extra_js_url() in async_setup_entry.
-    This function adds a persisted Lovelace resource entry so the card also
-    works in Cast and companion app contexts.
+    ``url``      — the versioned URL to register (e.g. /my_music_library/card.js?v=3.1.2)
+    ``base_url`` — the fixed base path without query params (e.g. /my_music_library/card.js)
+
+    Strategy — delete-then-add, never add-then-delete:
+      1. Collect every existing Lovelace resource whose URL starts with ``base_url``
+         (this matches the exact current URL, any previous versioned URL, and the
+         plain unversioned URL used by 3.1.1).
+      2. If the only existing entry is already the target ``url``, do nothing.
+      3. Otherwise delete ALL collected entries first, then add the new ``url``.
+
+    Deleting before adding ensures the browser never sees two different module
+    versions in Lovelace storage at the same time, which would cause
+    customElements.define to be called twice → "configuration error".
     """
     try:
         lovelace = hass.data.get("lovelace")
@@ -170,17 +189,60 @@ async def _async_register_lovelace_resource(hass: HomeAssistant, url: str) -> No
 
         await resources.async_load()
 
+        # Collect all existing entries that belong to this card.
+        existing: list[tuple[str, str]] = []  # (item_id, r_url)
         for r in resources.async_items():
             r_url = r.get("url", "") if isinstance(r, dict) else getattr(r, "url", "")
-            if r_url.startswith(url):
-                _LOGGER.debug("Lovelace resource already registered: %s", url)
+            if r_url == base_url or r_url.startswith(base_url + "?"):
+                item_id = r.get("id") if isinstance(r, dict) else getattr(r, "id", None)
+                if item_id:
+                    existing.append((item_id, r_url))
+
+        # Already perfectly registered — nothing to do.
+        if len(existing) == 1 and existing[0][1] == url:
+            _LOGGER.debug("Lovelace resource already registered: %s", url)
+            return
+
+        delete_fn = getattr(resources, "async_delete_item", None)
+        create_fn = getattr(resources, "async_create_item", None)
+
+        # If we have stale entries but cannot delete them, bail out entirely.
+        # Adding the new URL alongside a stale one would make the browser load
+        # two different module versions → customElements.define conflict → error.
+        if existing and not callable(delete_fn):
+            _LOGGER.debug(
+                "Cannot clean up stale Lovelace resource(s) — skipping registration"
+            )
+            return
+
+        # Delete ALL stale entries first.
+        for item_id, old_url in existing:
+            try:
+                await delete_fn(item_id)
+                _LOGGER.info("Removed old Lovelace resource %s (id=%s)", old_url, item_id)
+            except Exception:  # noqa: BLE001
+                # A deletion failed: abort to avoid a stale + new entry coexisting.
+                _LOGGER.warning(
+                    "Failed to remove Lovelace resource id=%s — aborting registration",
+                    item_id,
+                )
                 return
 
-        if callable(getattr(resources, "async_create_item", None)):
-            await resources.async_create_item({"res_type": "module", "url": url})
-            _LOGGER.info("Lovelace resource registered (storage mode): %s", url)
-        elif isinstance(getattr(resources, "data", None), list):
-            resources.data.append({"type": "module", "url": url})
+        # Add the new versioned entry.
+        if callable(create_fn):
+            await create_fn({"res_type": "module", "url": url})
+            _LOGGER.info("Lovelace resource registered: %s", url)
+        else:
+            # Fallback for very old HA builds without async_create_item.
+            # Only reached when existing is empty (otherwise we returned above),
+            # so there is no stale entry to collide with.
+            data = getattr(resources, "data", None)
+            if isinstance(data, list):
+                if not any(
+                    (r.get("url") if isinstance(r, dict) else getattr(r, "url", "")) == url
+                    for r in data
+                ):
+                    data.append({"type": "module", "url": url})
 
     except Exception:  # noqa: BLE001
         _LOGGER.debug("Lovelace resource registration skipped for %s (non-critical)", url)
