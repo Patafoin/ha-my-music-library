@@ -1,13 +1,14 @@
 name: Sync to public repo
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "custom_components/**"
-      - "_public_repo/**"
-      - "README.md"
+  workflow_dispatch: 
+#  push:
+#    branches:
+#      - main
+#    paths:
+#      - "custom_components/**"
+#      - "_public_repo/**"
+#      - "README.md"
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
