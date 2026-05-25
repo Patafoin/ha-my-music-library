@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.1.3";
+const CARD_VERSION = "3.1.4";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -1960,7 +1960,31 @@ class MyMusicLibraryCard extends HTMLElement {
     const artWrapper = card.querySelector("#art-wrapper");
     if (artWrapper) {
       if (attr.entity_picture) {
-        artWrapper.innerHTML = `<img class="art" src="${this._hass.hassUrl(attr.entity_picture)}" alt="Album art">`;
+        const ep = attr.entity_picture;
+        const isAbsolute = ep.startsWith("http");
+        const hasHassUrl = typeof this._hass.hassUrl === "function";
+        const src = isAbsolute ? ep : (hasHassUrl ? this._hass.hassUrl(ep) : ep);
+        console.debug("[MML] Cover art: entity_picture=%s isAbsolute=%s hassUrl=%s → src=%s", ep, isAbsolute, hasHassUrl, src);
+        const existing = artWrapper.querySelector("img.art");
+        if (!existing || existing.src !== src) {
+          artWrapper.innerHTML = "";
+          const img = document.createElement("img");
+          img.className = "art";
+          img.alt = "Album art";
+          img.src = src;
+          img.onload = () => console.debug("[MML] Cover art loaded OK: %s", src);
+          img.onerror = () => {
+            console.warn("[MML] Cover art FAILED: %s", src);
+            if (!isAbsolute && img.src !== ep) {
+              console.debug("[MML] Cover art fallback to raw: %s", ep);
+              img.src = ep;
+            } else {
+              console.warn("[MML] Cover art all attempts failed, showing placeholder");
+              artWrapper.innerHTML = `<div class="art-placeholder">${ICONS.music}</div>`;
+            }
+          };
+          artWrapper.appendChild(img);
+        }
       } else {
         artWrapper.innerHTML = `<div class="art-placeholder">${ICONS.music}</div>`;
       }
