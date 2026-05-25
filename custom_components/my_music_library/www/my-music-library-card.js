@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.1.5";
+const CARD_VERSION = "3.2.0";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -37,12 +37,13 @@ const ICONS = {
   folder: `<svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
   folderOpen: `<svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>`,
   home: `<svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`,
+  radio: `<svg viewBox="0 0 24 24"><path d="M20 6H8.3L20.1 3.2 19.6 1.3 2 5.5V20c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/></svg>`,
 };
 
 /* ─── i18n ────────────────────────────────────────────────── */
 const TRANSLATIONS = {
   en: {
-    tabs: { player: "Player", search: "Search", library: "Library" },
+    tabs: { player: "Player", search: "Search", library: "Library", settings: "Settings" },
     player: {
       nothing_playing: "Nothing playing",
       select_player: "Select a player",
@@ -60,7 +61,7 @@ const TRANSLATIONS = {
       no_results: "No results for",
       player_label: "Player",
       console_hint: "Check browser console (F12) for details.",
-      artists: "Artists", albums: "Albums", tracks: "Tracks", playlists: "Playlists",
+      artists: "Artists", albums: "Albums", tracks: "Tracks", playlists: "Playlists", radios: "Radios",
     },
     lib: {
       loading: "Loading library…",
@@ -69,6 +70,7 @@ const TRANSLATIONS = {
       albums: "Albums",
       playlists: "Playlists",
       tracks: "Tracks",
+      radios: "Radios",
       filter_all: "All",
       filter_local: "Local",
       filter_streaming: "Streaming",
@@ -103,7 +105,7 @@ const TRANSLATIONS = {
     },
   },
   fr: {
-    tabs: { player: "Lecteur", search: "Recherche", library: "Bibliothèque" },
+    tabs: { player: "Lecteur", search: "Recherche", library: "Bibliothèque", settings: "Paramètres" },
     player: {
       nothing_playing: "Rien en cours de lecture",
       select_player: "Sélectionnez un lecteur",
@@ -121,7 +123,7 @@ const TRANSLATIONS = {
       no_results: "Aucun résultat pour",
       player_label: "Lecteur",
       console_hint: "Consultez la console du navigateur (F12) pour plus de détails.",
-      artists: "Artistes", albums: "Albums", tracks: "Titres", playlists: "Playlists",
+      artists: "Artistes", albums: "Albums", tracks: "Titres", playlists: "Playlists", radios: "Radios",
     },
     lib: {
       loading: "Chargement de la bibliothèque…",
@@ -130,6 +132,7 @@ const TRANSLATIONS = {
       albums: "Albums",
       playlists: "Playlists",
       tracks: "Titres",
+      radios: "Radios",
       filter_all: "Tout",
       filter_local: "Local",
       filter_streaming: "Streaming",
@@ -164,7 +167,7 @@ const TRANSLATIONS = {
     },
   },
   de: {
-    tabs: { player: "Wiedergabe", search: "Suche", library: "Bibliothek" },
+    tabs: { player: "Wiedergabe", search: "Suche", library: "Bibliothek", settings: "Einstellungen" },
     player: {
       nothing_playing: "Nichts wird abgespielt",
       select_player: "Player auswählen",
@@ -182,7 +185,7 @@ const TRANSLATIONS = {
       no_results: "Keine Ergebnisse für",
       player_label: "Player",
       console_hint: "Browser-Konsole (F12) für Details prüfen.",
-      artists: "Künstler", albums: "Alben", tracks: "Titel", playlists: "Playlists",
+      artists: "Künstler", albums: "Alben", tracks: "Titel", playlists: "Playlists", radios: "Radios",
     },
     lib: {
       loading: "Bibliothek wird geladen…",
@@ -191,6 +194,7 @@ const TRANSLATIONS = {
       albums: "Alben",
       playlists: "Playlists",
       tracks: "Titel",
+      radios: "Radios",
       filter_all: "Alle",
       filter_local: "Lokal",
       filter_streaming: "Streaming",
@@ -313,6 +317,7 @@ const STYLES = `
     -webkit-tap-highlight-color: transparent;
   }
   .nav-tab svg { width: 18px; height: 18px; fill: currentColor; flex-shrink: 0; }
+  .nav-tab ha-icon { --mdc-icon-size: 18px; display: block; pointer-events: none; flex-shrink: 0; }
   .nav-tab { border-right: 2px solid var(--border); }
   .nav-tab.active {
     color: var(--accent);
@@ -325,10 +330,7 @@ const STYLES = `
   .nav-tabs { display: flex; flex: 1 0 auto; align-items: stretch; }
   .nav-tab { align-self: stretch; }
 
-  /* ── NAV EXTRA BUTTONS ── */
-  .nav-extra { display: flex; align-items: stretch; gap: 0; padding: 0; flex-shrink: 0; }
-  .nav-extra-left .nav-btn { border-right: 2px solid var(--border); }
-  .nav-extra-right .nav-btn:not(:last-child) { border-right: 2px solid var(--border); }
+  /* ── NAV ACTION BUTTONS ── */
   .nav-btn {
     display: flex;
     flex-direction: column;
@@ -358,8 +360,6 @@ const STYLES = `
   .nav-btn ha-icon { --mdc-icon-size: 20px; display: block; pointer-events: none; }
   .nav-btn svg { width: 20px; height: 20px; fill: currentColor; flex-shrink: 0; }
   .nav-btn-label { font-size: 10px; font-weight: 500; line-height: 1; pointer-events: none; }
-  #settings-btn { padding: 12px 10px; gap: 4px; }
-
   /* ── CONTENT AREA ── */
   /* position:relative + inset:0 on children is the most reliable way to
      give tab panels a definite pixel height without relying on flex cross-axis
@@ -1319,12 +1319,65 @@ class MyMusicLibraryCard extends HTMLElement {
   /* ── Lovelace required ── */
   setConfig(config) {
     this._config = { default_tab: "player", ...config };
-    this._tab = this._config.default_tab || "player";
-    // config.height sets the minimum height; the card always fills 100% of available space
+    this._resolvedTabs = this._buildResolvedTabs(config);
+    const firstPanel = this._resolvedTabs.find(t => t.type !== "button");
+    const defaultTab = this._config.default_tab || (firstPanel ? firstPanel.id : "player");
+    this._tab = defaultTab;
     if (config.height != null && config.height !== "") {
       const h = typeof config.height === "number" ? `${config.height}px` : String(config.height);
       this.style.setProperty("--mml-height", h);
     }
+  }
+
+  _buildResolvedTabs(config) {
+    const DEFAULT_SECTIONS = ["artists", "albums", "playlists", "tracks"];
+    const VALID_SECTIONS = ["artists", "albums", "playlists", "tracks", "radios"];
+    const TAB_ICONS = { player: "player", search: "search", library: "library", settings: "settings" };
+
+    if (config.tabs && Array.isArray(config.tabs)) {
+      let idx = 0;
+      return config.tabs.map(t => {
+        const type = t.type || "button";
+        if (type === "button") {
+          return { type: "button", id: `btn-${idx++}`, icon: t.icon, name: t.name || "", entity: t.entity,
+            tap_action: t.tap_action, hold_action: t.hold_action, double_tap_action: t.double_tap_action,
+            width: t.width, height: t.height };
+        }
+        const id = type === "settings" ? "settings" : type;
+        const tab = { type, id, label: t.label || null, iconOverride: t.icon || null,
+          defaultIcon: TAB_ICONS[type] || null };
+        if (type === "library") {
+          const sections = Array.isArray(t.sections) ? t.sections.filter(s => VALID_SECTIONS.includes(s)) : null;
+          tab.sections = sections && sections.length ? sections : DEFAULT_SECTIONS;
+        }
+        return tab;
+      });
+    }
+
+    // Backward compatibility: build from legacy config
+    const tabs = [];
+    if (config.nav_buttons_left) {
+      let idx = 0;
+      for (const b of config.nav_buttons_left) {
+        tabs.push({ type: "button", id: `btn-${idx++}`, icon: b.icon, name: b.name || "", entity: b.entity,
+          tap_action: b.tap_action, hold_action: b.hold_action, double_tap_action: b.double_tap_action,
+          width: b.width, height: b.height });
+      }
+    }
+    tabs.push({ type: "player", id: "player", label: null, iconOverride: null, defaultIcon: "player" });
+    tabs.push({ type: "search", id: "search", label: null, iconOverride: null, defaultIcon: "search" });
+    tabs.push({ type: "library", id: "library", label: null, iconOverride: null, defaultIcon: "library",
+      sections: DEFAULT_SECTIONS });
+    if (config.nav_buttons_right) {
+      let idx = (config.nav_buttons_left?.length || 0);
+      for (const b of config.nav_buttons_right) {
+        tabs.push({ type: "button", id: `btn-${idx++}`, icon: b.icon, name: b.name || "", entity: b.entity,
+          tap_action: b.tap_action, hold_action: b.hold_action, double_tap_action: b.double_tap_action,
+          width: b.width, height: b.height });
+      }
+    }
+    tabs.push({ type: "settings", id: "settings", label: null, iconOverride: null, defaultIcon: "settings" });
+    return tabs;
   }
 
   // Tell Lovelace masonry how many rows to reserve (1 row ≈ 50px)
@@ -1522,12 +1575,18 @@ class MyMusicLibraryCard extends HTMLElement {
 
     const card = document.createElement("div");
     card.className = "card-root";
+
+    const panels = this._resolvedTabs.filter(t => t.type !== "button");
+    const panelRenderers = {
+      player: () => this._renderPlayerTab(),
+      search: () => this._renderSearchTab(),
+      library: () => this._renderLibraryTab(),
+    };
+
     card.innerHTML = `
       ${this._renderNav()}
       <div class="content">
-        ${this._renderPlayerTab()}
-        ${this._renderSearchTab()}
-        ${this._renderLibraryTab()}
+        ${panels.map(t => panelRenderers[t.type] ? panelRenderers[t.type]() : "").join("")}
       </div>
       ${this._renderDeviceModal()}
       ${this._renderSettingsModal()}
@@ -1540,56 +1599,57 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   _renderNav() {
+    const items = this._resolvedTabs.map(t => {
+      if (t.type === "button") {
+        return this._renderNavButton(t);
+      }
+      if (t.type === "settings") {
+        const label = t.label || this._t("tabs.settings");
+        const icon = t.iconOverride
+          ? `<ha-icon icon="${this._esc(t.iconOverride)}"></ha-icon>`
+          : ICONS.settings;
+        return `<button class="nav-tab" data-tab="settings" title="${this._esc(label)}">
+          ${icon}<span>${this._esc(label)}</span>
+        </button>`;
+      }
+      const label = t.label || this._t(`tabs.${t.type}`);
+      const icon = t.iconOverride
+        ? `<ha-icon icon="${this._esc(t.iconOverride)}"></ha-icon>`
+        : (ICONS[t.defaultIcon] || ICONS.player);
+      return `<button class="nav-tab ${this._tab === t.id ? "active" : ""}" data-tab="${t.id}">
+        ${icon}<span>${this._esc(label)}</span>
+      </button>`;
+    }).join("");
+
     return `
       <div class="nav-wrapper">
         <div class="nav-fade-left"></div>
         <div class="nav-fade-right"></div>
         <nav class="nav">
-          <div class="nav-extra nav-extra-left">${this._renderNavButtons(this._config.nav_buttons_left, "left")}</div>
-          <div class="nav-tabs">
-            <button class="nav-tab ${this._tab === "player" ? "active" : ""}" data-tab="player">
-              ${ICONS.player}<span>${this._t("tabs.player")}</span>
-            </button>
-            <button class="nav-tab ${this._tab === "search" ? "active" : ""}" data-tab="search">
-              ${ICONS.search}<span>${this._t("tabs.search")}</span>
-            </button>
-            <button class="nav-tab ${this._tab === "library" ? "active" : ""}" data-tab="library">
-              ${ICONS.library}<span>${this._t("tabs.library")}</span>
-            </button>
-          </div>
-          <div class="nav-extra nav-extra-right">
-            ${this._renderNavButtons(this._config.nav_buttons_right, "right")}
-            <button class="nav-btn" id="settings-btn" title="${this._t("settings.title")}">
-              ${ICONS.settings}
-              <span class="nav-btn-label">${this._t("settings.title")}</span>
-            </button>
-          </div>
+          <div class="nav-tabs">${items}</div>
         </nav>
       </div>`;
   }
 
-  _renderNavButtons(buttons, side) {
-    if (!buttons?.length) return "";
-    return buttons.map((btn, i) => {
-      const entity = btn.entity ? this._hass?.states[btn.entity] : null;
-      const isActive = entity
-        ? ["on", "playing", "active", "home"].includes(entity.state)
-        : false;
-      const icon = btn.icon || entity?.attributes?.icon || "mdi:gesture-tap";
-      const label = btn.name || "";
-      const title = label || entity?.attributes?.friendly_name || "";
-      const sizeParts = [];
-      if (btn.width)  sizeParts.push(`width:${typeof btn.width  === "number" ? btn.width  + "px" : btn.width}`);
-      if (btn.height) sizeParts.push(`height:${typeof btn.height === "number" ? btn.height + "px" : btn.height}`);
-      const sizeStyle = sizeParts.length ? ` style="${sizeParts.join(";")}"` : "";
-      return `
-        <button class="nav-btn${isActive ? " active" : ""}"
-                data-nav-side="${side}" data-nav-idx="${i}"
-                title="${this._esc(title)}"${sizeStyle}>
-          <ha-icon icon="${this._esc(icon)}"></ha-icon>
-          ${label ? `<span class="nav-btn-label">${this._esc(label)}</span>` : ""}
-        </button>`;
-    }).join("");
+  _renderNavButton(btn) {
+    const entity = btn.entity ? this._hass?.states[btn.entity] : null;
+    const isActive = entity
+      ? ["on", "playing", "active", "home"].includes(entity.state)
+      : false;
+    const icon = btn.icon || entity?.attributes?.icon || "mdi:gesture-tap";
+    const label = btn.name || "";
+    const title = label || entity?.attributes?.friendly_name || "";
+    const sizeParts = [];
+    if (btn.width)  sizeParts.push(`width:${typeof btn.width  === "number" ? btn.width  + "px" : btn.width}`);
+    if (btn.height) sizeParts.push(`height:${typeof btn.height === "number" ? btn.height + "px" : btn.height}`);
+    const sizeStyle = sizeParts.length ? ` style="${sizeParts.join(";")}"` : "";
+    return `
+      <button class="nav-btn${isActive ? " active" : ""}"
+              data-tab-btn="${btn.id}"
+              title="${this._esc(title)}"${sizeStyle}>
+        <ha-icon icon="${this._esc(icon)}"></ha-icon>
+        ${label ? `<span class="nav-btn-label">${this._esc(label)}</span>` : ""}
+      </button>`;
   }
 
   _renderPlayerTab() {
@@ -1718,10 +1778,14 @@ class MyMusicLibraryCard extends HTMLElement {
 
   /* ── Event Listeners ── */
   _attachListeners(card) {
-    // Nav tabs
+    // Nav tabs (panel tabs + settings)
     card.querySelectorAll(".nav-tab").forEach(btn => {
       btn.addEventListener("click", () => {
         const tab = btn.dataset.tab;
+        if (tab === "settings") {
+          this._openSettings(card);
+          return;
+        }
         this._setActiveTab(tab, card);
         if (tab === "library" && !this._libLoaded) this._loadLibrary();
       });
@@ -1773,86 +1837,89 @@ class MyMusicLibraryCard extends HTMLElement {
       this._reloadLibrary();
     });
 
-    // Player controls
-    card.querySelector("#btn-playpause").addEventListener("click", () => this._togglePlayPause());
-    card.querySelector("#btn-prev").addEventListener("click", () => this._callService("media_previous_track"));
-    card.querySelector("#btn-next").addEventListener("click", () => this._callService("media_next_track"));
-    card.querySelector("#btn-shuffle").addEventListener("click", () => this._toggleShuffle());
-    card.querySelector("#btn-repeat").addEventListener("click", () => this._cycleRepeat());
-    card.querySelector("#btn-mute").addEventListener("click", () => this._toggleMute());
+    const hasPanel = (type) => this._resolvedTabs.some(t => t.type === type);
 
-    // Volume — send command only on release (pointerup), not during drag
-    const volSlider = card.querySelector("#volume-slider");
-    volSlider.addEventListener("pointerdown", () => { this._volumeDragging = true; });
-    const endVolDrag = (e) => {
-      if (!this._volumeDragging) return;
-      this._volumeDragging = false;
-      this._callService("volume_set", { volume_level: parseInt(e.target.value) / 100 });
-    };
-    volSlider.addEventListener("pointerup", endVolDrag);
-    volSlider.addEventListener("pointercancel", () => { this._volumeDragging = false; });
+    // Player controls (only if player tab is present)
+    if (hasPanel("player")) {
+      card.querySelector("#btn-playpause").addEventListener("click", () => this._togglePlayPause());
+      card.querySelector("#btn-prev").addEventListener("click", () => this._callService("media_previous_track"));
+      card.querySelector("#btn-next").addEventListener("click", () => this._callService("media_next_track"));
+      card.querySelector("#btn-shuffle").addEventListener("click", () => this._toggleShuffle());
+      card.querySelector("#btn-repeat").addEventListener("click", () => this._cycleRepeat());
+      card.querySelector("#btn-mute").addEventListener("click", () => this._toggleMute());
 
-    // Progress bar — seek on release only (covers both tap and drag)
-    const progressBar = card.querySelector("#progress-bar");
-    const progressFill = card.querySelector("#progress-fill");
-    const posTimeEl = card.querySelector("#pos-time");
-    const getSeekPct = (e) => {
-      const rect = progressBar.getBoundingClientRect();
-      return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    };
-    progressBar.addEventListener("pointerdown", (e) => {
-      const state = this._getActiveState();
-      if (!state?.attributes?.media_duration) return;
-      this._seekDragging = true;
-      progressBar.setPointerCapture(e.pointerId);
-      progressFill.style.transition = "none";
-      const pct = getSeekPct(e);
-      progressFill.style.width = `${(pct * 100).toFixed(1)}%`;
-      if (posTimeEl) posTimeEl.textContent = fmt(pct * state.attributes.media_duration);
-    });
-    progressBar.addEventListener("pointermove", (e) => {
-      if (!this._seekDragging) return;
-      const state = this._getActiveState();
-      if (!state?.attributes?.media_duration) return;
-      const pct = getSeekPct(e);
-      progressFill.style.width = `${(pct * 100).toFixed(1)}%`;
-      if (posTimeEl) posTimeEl.textContent = fmt(pct * state.attributes.media_duration);
-    });
-    const endSeekDrag = (e) => {
-      if (!this._seekDragging) return;
-      this._seekDragging = false;
-      progressFill.style.transition = "";
-      const state = this._getActiveState();
-      if (!state?.attributes?.media_duration) return;
-      const pct = getSeekPct(e);
-      const pos = pct * state.attributes.media_duration;
-      this._callService("media_seek", { seek_position: Math.round(pos) });
-      this._localPosition = pos;
-      this._localPositionTime = Date.now() / 1000;
-    };
-    progressBar.addEventListener("pointerup", endSeekDrag);
-    progressBar.addEventListener("pointercancel", () => {
-      this._seekDragging = false;
-      progressFill.style.transition = "";
-    });
+      // Volume — send command only on release (pointerup), not during drag
+      const volSlider = card.querySelector("#volume-slider");
+      volSlider.addEventListener("pointerdown", () => { this._volumeDragging = true; });
+      const endVolDrag = (e) => {
+        if (!this._volumeDragging) return;
+        this._volumeDragging = false;
+        this._callService("volume_set", { volume_level: parseInt(e.target.value) / 100 });
+      };
+      volSlider.addEventListener("pointerup", endVolDrag);
+      volSlider.addEventListener("pointercancel", () => { this._volumeDragging = false; });
 
-    // Device row
-    card.querySelector("#device-row").addEventListener("click", () => this._openDeviceModal(card));
-    card.querySelector("#modal-close").addEventListener("click", () => this._closeDeviceModal(card));
-    card.querySelector("#device-modal").addEventListener("click", (e) => {
-      if (e.target === card.querySelector("#device-modal")) this._closeDeviceModal(card);
-    });
+      // Progress bar — seek on release only (covers both tap and drag)
+      const progressBar = card.querySelector("#progress-bar");
+      const progressFill = card.querySelector("#progress-fill");
+      const posTimeEl = card.querySelector("#pos-time");
+      const getSeekPct = (e) => {
+        const rect = progressBar.getBoundingClientRect();
+        return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      };
+      progressBar.addEventListener("pointerdown", (e) => {
+        const state = this._getActiveState();
+        if (!state?.attributes?.media_duration) return;
+        this._seekDragging = true;
+        progressBar.setPointerCapture(e.pointerId);
+        progressFill.style.transition = "none";
+        const pct = getSeekPct(e);
+        progressFill.style.width = `${(pct * 100).toFixed(1)}%`;
+        if (posTimeEl) posTimeEl.textContent = fmt(pct * state.attributes.media_duration);
+      });
+      progressBar.addEventListener("pointermove", (e) => {
+        if (!this._seekDragging) return;
+        const state = this._getActiveState();
+        if (!state?.attributes?.media_duration) return;
+        const pct = getSeekPct(e);
+        progressFill.style.width = `${(pct * 100).toFixed(1)}%`;
+        if (posTimeEl) posTimeEl.textContent = fmt(pct * state.attributes.media_duration);
+      });
+      const endSeekDrag = (e) => {
+        if (!this._seekDragging) return;
+        this._seekDragging = false;
+        progressFill.style.transition = "";
+        const state = this._getActiveState();
+        if (!state?.attributes?.media_duration) return;
+        const pct = getSeekPct(e);
+        const pos = pct * state.attributes.media_duration;
+        this._callService("media_seek", { seek_position: Math.round(pos) });
+        this._localPosition = pos;
+        this._localPositionTime = Date.now() / 1000;
+      };
+      progressBar.addEventListener("pointerup", endSeekDrag);
+      progressBar.addEventListener("pointercancel", () => {
+        this._seekDragging = false;
+        progressFill.style.transition = "";
+      });
 
-    // Settings
-    card.querySelector("#settings-btn").addEventListener("click", () => this._openSettings(card));
+      // Device row
+      card.querySelector("#device-row").addEventListener("click", () => this._openDeviceModal(card));
+      card.querySelector("#modal-close").addEventListener("click", () => this._closeDeviceModal(card));
+      card.querySelector("#device-modal").addEventListener("click", (e) => {
+        if (e.target === card.querySelector("#device-modal")) this._closeDeviceModal(card);
+      });
+    }
+
+    // Settings modal close
     card.querySelector("#settings-close").addEventListener("click", () => this._closeSettings(card));
     card.querySelector("#settings-modal").addEventListener("click", (e) => {
       if (e.target === card.querySelector("#settings-modal")) this._closeSettings(card);
     });
 
-    // Search
+    // Search (only if search tab is present)
     const searchInput = card.querySelector("#search-input");
-    searchInput.addEventListener("input", (e) => {
+    searchInput?.addEventListener("input", (e) => {
       clearTimeout(this._searchTimeout);
       this._searchQuery = e.target.value;
       if (this._searchQuery.trim().length < 2) {
@@ -1862,16 +1929,14 @@ class MyMusicLibraryCard extends HTMLElement {
       this._searchTimeout = setTimeout(() => this._doSearch(card), 700);
     });
 
-    // Nav extra buttons (tap / hold / double-tap → HA actions)
-    card.querySelectorAll(".nav-btn").forEach(btn => {
+    // Nav action buttons (tap / hold / double-tap → HA actions)
+    card.querySelectorAll("[data-tab-btn]").forEach(btn => {
       let holdTimer = null;
       let didHold = false;
 
       const getBtnCfg = () => {
-        const side = btn.dataset.navSide;
-        const idx = parseInt(btn.dataset.navIdx, 10);
-        const list = side === "left" ? this._config.nav_buttons_left : this._config.nav_buttons_right;
-        return list?.[idx];
+        const id = btn.dataset.tabBtn;
+        return this._resolvedTabs.find(t => t.id === id);
       };
 
       btn.addEventListener("pointerdown", () => {
@@ -1987,18 +2052,12 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   _updateNavButtons(card) {
-    const sides = [
-      { side: "left",  buttons: this._config.nav_buttons_left  || [] },
-      { side: "right", buttons: this._config.nav_buttons_right || [] },
-    ];
-    for (const { side, buttons } of sides) {
-      buttons.forEach((btn, i) => {
-        if (!btn.entity) return;
-        const st = this._hass?.states[btn.entity];
-        const isActive = st ? ["on", "playing", "active", "home"].includes(st.state) : false;
-        const el = card.querySelector(`.nav-btn[data-nav-side="${side}"][data-nav-idx="${i}"]`);
-        if (el) el.classList.toggle("active", isActive);
-      });
+    for (const tab of this._resolvedTabs) {
+      if (tab.type !== "button" || !tab.entity) continue;
+      const st = this._hass?.states[tab.entity];
+      const isActive = st ? ["on", "playing", "active", "home"].includes(st.state) : false;
+      const el = card.querySelector(`[data-tab-btn="${tab.id}"]`);
+      if (el) el.classList.toggle("active", isActive);
     }
   }
 
@@ -2756,12 +2815,21 @@ class MyMusicLibraryCard extends HTMLElement {
     const sourceFilter = this._libSourceFilter;
     const providerParam = this._providerParam();
 
-    const SECTIONS = [
-      { type: "artists",   label: this._t("lib.artists"),   icon: "artist",   favorite },
-      { type: "albums",    label: this._t("lib.albums"),    icon: "album",    favorite },
-      { type: "playlists", label: this._t("lib.playlists"), icon: "playlist", favorite },
-      { type: "tracks",    label: this._t("lib.tracks"),    icon: "music",    favorite },
-    ];
+    const SECTION_META = {
+      artists:   { icon: "artist" },
+      albums:    { icon: "album" },
+      playlists: { icon: "playlist" },
+      tracks:    { icon: "music" },
+      radios:    { icon: "radio" },
+    };
+    const libTab = this._resolvedTabs.find(t => t.type === "library");
+    const sectionKeys = libTab?.sections || ["artists", "albums", "playlists", "tracks"];
+    const SECTIONS = sectionKeys.map(key => ({
+      type: key,
+      label: this._t(`lib.${key}`),
+      icon: SECTION_META[key]?.icon || "music",
+      favorite,
+    }));
     const PAGE = 25;
     const MAX_PAGES = 8;
 

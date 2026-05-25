@@ -7,7 +7,7 @@ connected to [Music Assistant](https://music-assistant.io/).
 
 - **Domain:** `my_music_library`
 - **GitHub:** https://github.com/Patafoin/ha-my-music-library
-- **Current version:** `3.1.4` (both `CARD_VERSION` in JS and `manifest.json`)
+- **Current version:** `3.2.0` (both `CARD_VERSION` in JS and `manifest.json`)
 - **Target HA:** 2025.x / 2026.x, HACS compatible
 
 ---
@@ -99,6 +99,8 @@ type: custom:my-music-library-card
 default_tab: player          # player | search | library
 height: 600                  # px, number, or CSS value — omit to fill container
 entity: media_player.xxx     # pre-select a player
+
+# Option 1: Legacy nav buttons (still supported)
 nav_buttons_left:            # custom buttons left of tab bar
   - icon: mdi:home
     tap_action: { action: navigate, navigation_path: / }
@@ -107,7 +109,33 @@ nav_buttons_right:           # custom buttons right of tab bar
     entity: light.living_room
     tap_action: { action: toggle }
     hold_action: { action: more-info }
+
+# Option 2: Fully configurable tabs (v3.2.0+, overrides nav_buttons_*)
+tabs:
+  - type: player
+    label: "My Player"       # optional custom label (overrides i18n)
+    icon: "mdi:play-circle"  # optional custom icon (mdi icon)
+  - type: search
+  - type: library
+    sections:                # optional: which sections, in which order
+      - artists
+      - albums
+      - playlists
+      - tracks
+      - radios               # new in v3.2.0
+  - type: button             # action button in the tab bar
+    icon: mdi:home
+    name: "Home"
+    tap_action: { action: navigate, navigation_path: / }
+  - type: settings           # settings tab (positionable)
 ```
+
+### Tab types
+- `player`, `search`, `library`, `settings`: built-in panel tabs
+- `button`: action button (supports tap/hold/double-tap actions)
+
+### Library sections
+When `tabs[].type == "library"`, the optional `sections` array controls which media types appear and in what order. Valid values: `artists`, `albums`, `playlists`, `tracks`, `radios`. Defaults to `[artists, albums, playlists, tracks]`.
 
 ### Nav button actions
 `tap_action`, `hold_action`, `double_tap_action` support:

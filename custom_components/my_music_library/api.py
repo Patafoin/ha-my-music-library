@@ -220,6 +220,7 @@ _LIBRARY_METHODS: dict[str, list[str]] = {
     "albums":    ["get_library_albums",  "get_albums"],
     "tracks":    ["get_library_tracks",  "get_tracks"],
     "playlists": ["get_library_playlists", "get_playlists"],
+    "radios":    ["get_library_radios",  "get_radios"],
 }
 
 
@@ -641,7 +642,7 @@ class MusicAssistantLibraryView(HomeAssistantView):
         hass: HomeAssistant = request.app["hass"]
 
         media_type = request.query.get("type", "").strip()
-        if media_type not in ("artists", "albums", "tracks", "playlists"):
+        if media_type not in ("artists", "albums", "tracks", "playlists", "radios"):
             return self.json_message("Invalid 'type' parameter.", HTTPStatus.BAD_REQUEST)
 
         limit = min(int(request.query.get("limit", 25)), 100)
