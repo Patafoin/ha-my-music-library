@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.1.4";
+const CARD_VERSION = "3.1.5";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -257,14 +257,45 @@ const STYLES = `
   }
 
   /* ── NAV TABS ── */
+  .nav-wrapper {
+    position: relative;
+    flex-shrink: 0;
+  }
   .nav {
     display: flex;
     background: var(--bg2);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    scroll-snap-type: x mandatory;
   }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-fade-left,
+  .nav-fade-right {
+    position: absolute;
+    top: 0;
+    bottom: 1px;
+    width: 24px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .2s;
+    z-index: 2;
+  }
+  .nav-fade-left {
+    left: 0;
+    background: linear-gradient(to right, var(--bg2), transparent);
+  }
+  .nav-fade-right {
+    right: 0;
+    background: linear-gradient(to left, var(--bg2), transparent);
+  }
+  .nav-fade-left.visible,
+  .nav-fade-right.visible { opacity: 1; }
   .nav-tab {
-    flex: 1;
+    flex: 1 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -276,6 +307,8 @@ const STYLES = `
     color: var(--text2);
     font-size: 13px;
     font-weight: 500;
+    white-space: nowrap;
+    scroll-snap-align: start;
     transition: color .2s, background .2s;
     -webkit-tap-highlight-color: transparent;
   }
@@ -289,13 +322,10 @@ const STYLES = `
   .nav-tab:not(.active):hover { color: var(--text); background: rgba(255,255,255,0.04); }
 
   /* ── NAV TABS WRAPPER (allows extra buttons on sides) ── */
-  /* align-items: stretch ensures tab buttons fill the full nav height
-     even when nav-extra buttons are taller than the default tab padding */
-  .nav-tabs { display: flex; flex: 1; overflow: hidden; align-items: stretch; }
+  .nav-tabs { display: flex; flex: 1 0 auto; align-items: stretch; }
   .nav-tab { align-self: stretch; }
 
   /* ── NAV EXTRA BUTTONS ── */
-  /* stretch: buttons fill the full nav height so the tap target equals the nav height */
   .nav-extra { display: flex; align-items: stretch; gap: 0; padding: 0; flex-shrink: 0; }
   .nav-extra-left .nav-btn { border-right: 2px solid var(--border); }
   .nav-extra-right .nav-btn:not(:last-child) { border-right: 2px solid var(--border); }
@@ -307,16 +337,19 @@ const STYLES = `
     gap: 2px;
     padding: 6px 8px;
     min-width: 36px;
-    min-height: 44px; /* comfortable minimum tap target */
+    min-height: 44px;
     box-sizing: border-box;
     cursor: pointer;
     border: none;
     border-radius: 0;
     background: none;
     color: var(--text2);
+    white-space: nowrap;
+    flex-shrink: 0;
+    scroll-snap-align: start;
     transition: color .2s, background .2s;
     -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation; /* eliminates 300 ms tap delay on mobile/tablet */
+    touch-action: manipulation;
     user-select: none;
   }
   .nav-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
@@ -1508,27 +1541,31 @@ class MyMusicLibraryCard extends HTMLElement {
 
   _renderNav() {
     return `
-      <nav class="nav">
-        <div class="nav-extra nav-extra-left">${this._renderNavButtons(this._config.nav_buttons_left, "left")}</div>
-        <div class="nav-tabs">
-          <button class="nav-tab ${this._tab === "player" ? "active" : ""}" data-tab="player">
-            ${ICONS.player}<span>${this._t("tabs.player")}</span>
-          </button>
-          <button class="nav-tab ${this._tab === "search" ? "active" : ""}" data-tab="search">
-            ${ICONS.search}<span>${this._t("tabs.search")}</span>
-          </button>
-          <button class="nav-tab ${this._tab === "library" ? "active" : ""}" data-tab="library">
-            ${ICONS.library}<span>${this._t("tabs.library")}</span>
-          </button>
-        </div>
-        <div class="nav-extra nav-extra-right">
-          ${this._renderNavButtons(this._config.nav_buttons_right, "right")}
-          <button class="nav-btn" id="settings-btn" title="${this._t("settings.title")}">
-            ${ICONS.settings}
-            <span class="nav-btn-label">${this._t("settings.title")}</span>
-          </button>
-        </div>
-      </nav>`;
+      <div class="nav-wrapper">
+        <div class="nav-fade-left"></div>
+        <div class="nav-fade-right"></div>
+        <nav class="nav">
+          <div class="nav-extra nav-extra-left">${this._renderNavButtons(this._config.nav_buttons_left, "left")}</div>
+          <div class="nav-tabs">
+            <button class="nav-tab ${this._tab === "player" ? "active" : ""}" data-tab="player">
+              ${ICONS.player}<span>${this._t("tabs.player")}</span>
+            </button>
+            <button class="nav-tab ${this._tab === "search" ? "active" : ""}" data-tab="search">
+              ${ICONS.search}<span>${this._t("tabs.search")}</span>
+            </button>
+            <button class="nav-tab ${this._tab === "library" ? "active" : ""}" data-tab="library">
+              ${ICONS.library}<span>${this._t("tabs.library")}</span>
+            </button>
+          </div>
+          <div class="nav-extra nav-extra-right">
+            ${this._renderNavButtons(this._config.nav_buttons_right, "right")}
+            <button class="nav-btn" id="settings-btn" title="${this._t("settings.title")}">
+              ${ICONS.settings}
+              <span class="nav-btn-label">${this._t("settings.title")}</span>
+            </button>
+          </div>
+        </nav>
+      </div>`;
   }
 
   _renderNavButtons(buttons, side) {
@@ -1689,6 +1726,20 @@ class MyMusicLibraryCard extends HTMLElement {
         if (tab === "library" && !this._libLoaded) this._loadLibrary();
       });
     });
+
+    // Nav scroll fade indicators
+    const navEl = card.querySelector(".nav");
+    if (navEl) {
+      const fadeL = card.querySelector(".nav-fade-left");
+      const fadeR = card.querySelector(".nav-fade-right");
+      const updateFades = () => {
+        const { scrollLeft, scrollWidth, clientWidth } = navEl;
+        fadeL?.classList.toggle("visible", scrollLeft > 2);
+        fadeR?.classList.toggle("visible", scrollLeft + clientWidth < scrollWidth - 2);
+      };
+      navEl.addEventListener("scroll", updateFades, { passive: true });
+      requestAnimationFrame(updateFades);
+    }
 
     // Library source filter (All / Local / Streaming)
     card.querySelector("#lib-source-filter")?.addEventListener("click", (e) => {

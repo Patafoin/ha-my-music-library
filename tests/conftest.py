@@ -89,6 +89,9 @@ def _stub_homeassistant() -> None:
     helpers_selector.SelectSelectorConfig = MagicMock  # type: ignore[attr-defined]
     helpers_selector.SelectSelectorMode = MagicMock  # type: ignore[attr-defined]
 
+    loader_mod = _make_module("homeassistant.loader")
+    loader_mod.async_get_integration = AsyncMock()  # type: ignore[attr-defined]
+
     components = _make_module("homeassistant.components")
 
     frontend_mod = _make_module("homeassistant.components.frontend")
