@@ -7,6 +7,7 @@ NAME = "My Music Library"
 CONF_DEFAULT_PLAYER = "default_player"
 CONF_DEFAULT_TAB = "default_tab"
 CONF_MA_URL = "ma_url"
+CONF_DEBUG_MODE = "debug_mode"
 CONF_EXCLUDED_PLAYERS = "excluded_players"
 
 DEFAULT_TAB = "player"

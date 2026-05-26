@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.3.0";
+const CARD_VERSION = "3.4.0";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -102,6 +102,8 @@ const TRANSLATIONS = {
       providers_title: "Library providers",
       providers_hint: "Choose which providers appear in your library",
       providers_empty: "No providers found — check Music Assistant connection",
+      debug_active: "Debug mode is active",
+      debug_hint: "Detailed logs are visible in the browser console (F12) and in HA logs (filter: my_music_library). Disable in integration options when done.",
     },
     editor: {
       default_tab: "Default tab",
@@ -199,6 +201,8 @@ const TRANSLATIONS = {
       providers_title: "Sources de la bibliothèque",
       providers_hint: "Choisissez quelles sources apparaissent dans votre bibliothèque",
       providers_empty: "Aucune source trouvée — vérifiez la connexion à Music Assistant",
+      debug_active: "Mode débogage actif",
+      debug_hint: "Les logs détaillés sont visibles dans la console du navigateur (F12) et dans les journaux HA (filtre : my_music_library). Désactivez dans les options de l'intégration une fois terminé.",
     },
     editor: {
       default_tab: "Onglet par défaut",
@@ -296,6 +300,8 @@ const TRANSLATIONS = {
       providers_title: "Bibliotheksquellen",
       providers_hint: "Wählen Sie, welche Quellen in Ihrer Bibliothek angezeigt werden",
       providers_empty: "Keine Quellen gefunden — Music Assistant-Verbindung prüfen",
+      debug_active: "Debug-Modus ist aktiv",
+      debug_hint: "Detaillierte Protokolle sind in der Browser-Konsole (F12) und in den HA-Logs (Filter: my_music_library) sichtbar. Nach dem Debugging in den Integrationsoptionen deaktivieren.",
     },
     editor: {
       default_tab: "Standard-Tab",
@@ -1257,6 +1263,17 @@ const STYLES = `
   }
   .toggle-switch input:checked + .toggle-track { background: var(--accent); }
   .toggle-switch input:checked + .toggle-track::after { transform: translateX(18px); }
+  .settings-debug-banner {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: rgba(255, 152, 0, .12); border: 1px solid rgba(255, 152, 0, .35);
+    border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;
+  }
+  .settings-debug-dot {
+    width: 10px; height: 10px; min-width: 10px; border-radius: 50%;
+    background: #ff9800; margin-top: 3px;
+    animation: mml-debug-pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes mml-debug-pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
 `;
 
 /* ─── Helpers ─────────────────────────────────────────────── */
@@ -1335,6 +1352,11 @@ class MyMusicLibraryCard extends HTMLElement {
     this._maUrl = null;       // stored but only used as a last-resort hint
     this._maEntryId = null;   // MA config entry ID — used for music_assistant/search WS calls
     this._maConfigLoaded = false;
+    this._debugMode = false;
+  }
+
+  _debugLog(...args) {
+    if (this._debugMode) console.debug("[MML]", ...args);
   }
 
   /* ── i18n helper ── */
@@ -1356,6 +1378,7 @@ class MyMusicLibraryCard extends HTMLElement {
       const data = await this._callIntegration("GET", `queue?player=${encodeURIComponent(player)}`);
       this._queue = data?.queue || [];
       this._lastQueueSource = data?.source || null;
+      this._debugLog("Queue loaded for", player, "→", this._queue.length, "items, source:", this._lastQueueSource);
     } catch (_) {
       this._queue = [];
       this._lastQueueSource = null;
@@ -1408,6 +1431,7 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   async _callIntegration(method, path, body) {
+    this._debugLog(`API ${method} /my_music_library/${path}`, body !== undefined ? body : "");
     const opts = { method };
     if (body !== undefined) {
       opts.headers = { "Content-Type": "application/json" };
@@ -1416,9 +1440,12 @@ class MyMusicLibraryCard extends HTMLElement {
     const resp = await this._hass.fetchWithAuth(`/my_music_library/${path}`, opts);
     if (!resp.ok) {
       const text = await resp.text().catch(() => "");
+      this._debugLog(`API ${method} /my_music_library/${path} → ${resp.status}:`, text);
       throw new Error(`${resp.status}: ${text}`);
     }
-    return resp.json();
+    const data = await resp.json();
+    this._debugLog(`API ${method} /my_music_library/${path} → OK`, data);
+    return data;
   }
 
   /* ── Lovelace required ── */
@@ -1516,12 +1543,12 @@ class MyMusicLibraryCard extends HTMLElement {
       this._activePlayer = null;
     } else {
       if (!this._activePlayer || !this._players.find(p => p.entity_id === this._activePlayer)) {
-        // Priority: 1) localStorage  2) card config entity  3) currently playing  4) first player
         const saved = this._loadSavedPlayer();
         const prevActive = this._activePlayer;
         this._activePlayer = (saved && this._players.find(p => p.entity_id === saved) ? saved : null)
           || this._config.entity
           || (this._players.find(p => p.state === "playing") || this._players[0])?.entity_id;
+        this._debugLog("Player selected:", this._activePlayer, "prev:", prevActive, "saved:", saved, "players:", this._players.map(p => p.entity_id));
         if (this._activePlayer && this._activePlayer !== prevActive) {
           this._loadQueueFromServer(this._activePlayer);
           this._loadGroupFromServer(this._activePlayer);
@@ -1565,6 +1592,8 @@ class MyMusicLibraryCard extends HTMLElement {
   async _fetchMaConfig() {
     try {
       const cfg = await this._hass.callWS({ type: "my_music_library/config" });
+      this._debugMode = !!cfg?.debug_mode;
+      this._debugLog("Config loaded:", JSON.stringify(cfg));
       if (cfg?.ma_entry_id) {
         this._maEntryId = cfg.ma_entry_id;
       }
@@ -1574,13 +1603,12 @@ class MyMusicLibraryCard extends HTMLElement {
       }
       if (Array.isArray(cfg?.excluded_players)) {
         this._excludedPlayers = cfg.excluded_players;
-        // Refresh player list now that exclusions are known
         this._players = this._getMaPlayers();
         const card = this.shadowRoot?.querySelector(".card-root");
         if (card) this._updatePlayerContent(card);
       }
     } catch (e) {
-      // Integration config fetch failed
+      this._debugLog("Config fetch failed:", e);
     }
   }
 
@@ -2537,8 +2565,17 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   _buildSettingsContent() {
+    const debugBanner = this._debugMode ? `
+      <div class="settings-debug-banner">
+        <span class="settings-debug-dot"></span>
+        <div>
+          <strong>${this._t("settings.debug_active")}</strong>
+          <p class="settings-hint" style="margin:4px 0 0">${this._t("settings.debug_hint")}</p>
+        </div>
+      </div>` : "";
+
     if (this._maProviders.length === 0) {
-      return `<p style="color:var(--text2);font-size:13px;padding:8px 0;opacity:.7">${this._t("settings.providers_empty")}</p>`;
+      return `${debugBanner}<p style="color:var(--text2);font-size:13px;padding:8px 0;opacity:.7">${this._t("settings.providers_empty")}</p>`;
     }
     const rows = this._maProviders.map(p => {
       const key = p.instance_id || p.domain;
@@ -2553,6 +2590,7 @@ class MyMusicLibraryCard extends HTMLElement {
         </div>`;
     }).join("");
     return `
+      ${debugBanner}
       <div class="settings-section-title">${this._t("settings.providers_title")}</div>
       <p class="settings-hint">${this._t("settings.providers_hint")}</p>
       ${rows}`;
@@ -2603,9 +2641,9 @@ class MyMusicLibraryCard extends HTMLElement {
   async _doSearch(card) {
     if (!this._hass) return;
 
-    // Cancellation token: ignore results from superseded requests
     const id = ++this._searchId;
     const query = this._searchQuery;
+    this._debugLog("Search start:", query, "id:", id);
 
     this._searchLoading = true;
     const resultsEl = card.querySelector("#search-results");
@@ -2613,35 +2651,38 @@ class MyMusicLibraryCard extends HTMLElement {
 
     let results = null;
 
-    // Strategies 1+2 in parallel — use first non-null result
     {
+      const strategies = ["HA proxy"];
       const candidates = [this._searchViaHaProxy(query)];
-      if (this._maEntryId) candidates.push(this._searchViaMaWs(query));
+      if (this._maEntryId) { candidates.push(this._searchViaMaWs(query)); strategies.push("MA WS"); }
+      this._debugLog("Search strategies:", strategies.join(", "));
       const settled = await Promise.allSettled(candidates);
-      for (const r of settled) {
+      for (let i = 0; i < settled.length; i++) {
+        const r = settled[i];
+        this._debugLog(`Search strategy ${strategies[i]}:`, r.status, r.status === "fulfilled" ? (r.value ? "has results" : "null") : r.reason);
         if (r.status === "fulfilled" && r.value) { results = r.value; break; }
       }
     }
 
-    // Strategy 3 — browse_media on a confirmed MA entity (last resort)
     if (!results) {
       const browseEntity = this._getBrowseEntity();
       if (browseEntity) {
+        this._debugLog("Search fallback: browse_media on", browseEntity);
         results = await this._searchViaBrowseMedia(browseEntity, query);
       }
     }
 
-    // Nothing worked
     if (!results) {
+      this._debugLog("Search: all strategies failed");
       results = {
         tracks: [], artists: [], albums: [], playlists: [],
         error: this._t("search.unavailable"),
       };
     }
 
-    // Discard results if a newer search has been fired in the meantime
     if (id !== this._searchId) return;
 
+    this._debugLog("Search results:", { tracks: results.tracks?.length, artists: results.artists?.length, albums: results.albums?.length, playlists: results.playlists?.length });
     this._searchResults = results;
     this._searchLoading = false;
     this._renderSearchResults(card, this._searchResults);
@@ -2913,6 +2954,7 @@ class MyMusicLibraryCard extends HTMLElement {
     if (!libEl) return;
 
     this._libLoaded = true;
+    this._debugLog("Library load start, browseMode:", this._libBrowseMode, "sourceFilter:", this._libSourceFilter, "favFilter:", this._libFavFilter);
 
     if (this._libBrowseMode) {
       const currentUri = this._browseStack.length ? this._browseStack[this._browseStack.length - 1].uri : null;
@@ -3494,7 +3536,7 @@ class MyMusicLibraryCard extends HTMLElement {
   /* ── Play an item ── */
   _playItem(contentId, contentType) {
     if (!this._hass || !this._activePlayer) return;
-    // Try music_assistant.play_media first, fallback to media_player.play_media
+    this._debugLog("Play:", contentId, "type:", contentType, "on:", this._activePlayer);
     this._hass.callService("media_player", "play_media", {
       entity_id: this._activePlayer,
       media_content_id: contentId,
