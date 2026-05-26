@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.2.0";
+const CARD_VERSION = "3.3.0";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -103,6 +103,41 @@ const TRANSLATIONS = {
       providers_hint: "Choose which providers appear in your library",
       providers_empty: "No providers found — check Music Assistant connection",
     },
+    editor: {
+      default_tab: "Default tab",
+      entity: "Entity (media_player)",
+      entity_hint: "e.g. media_player.living_room",
+      height: "Height",
+      height_hint: "Auto (fill container)",
+      tabs_title: "Tabs",
+      add_tab: "Add tab",
+      tab_label: "Label",
+      tab_label_hint: "Custom label (empty = default)",
+      tab_icon: "Icon",
+      tab_icon_hint: "e.g. mdi:play-circle",
+      sections_title: "Library sections",
+      btn_icon: "Icon",
+      btn_name: "Name",
+      btn_entity: "Entity",
+      btn_action: "Tap action",
+      btn_action_type: "Action type",
+      btn_nav_path: "Navigation path",
+      btn_url: "URL",
+      btn_service: "Service",
+      action_none: "None",
+      action_toggle: "Toggle",
+      action_more_info: "More info",
+      action_navigate: "Navigate",
+      action_url: "Open URL",
+      action_call_service: "Call service",
+      action_assist: "Assist",
+      type_player: "Player",
+      type_search: "Search",
+      type_library: "Library",
+      type_settings: "Settings",
+      type_button: "Button",
+      confirm_delete: "Remove this tab?",
+    },
   },
   fr: {
     tabs: { player: "Lecteur", search: "Recherche", library: "Bibliothèque", settings: "Paramètres" },
@@ -165,6 +200,41 @@ const TRANSLATIONS = {
       providers_hint: "Choisissez quelles sources apparaissent dans votre bibliothèque",
       providers_empty: "Aucune source trouvée — vérifiez la connexion à Music Assistant",
     },
+    editor: {
+      default_tab: "Onglet par défaut",
+      entity: "Entité (media_player)",
+      entity_hint: "ex. media_player.salon",
+      height: "Hauteur",
+      height_hint: "Auto (remplit le conteneur)",
+      tabs_title: "Onglets",
+      add_tab: "Ajouter un onglet",
+      tab_label: "Libellé",
+      tab_label_hint: "Libellé personnalisé (vide = défaut)",
+      tab_icon: "Icône",
+      tab_icon_hint: "ex. mdi:play-circle",
+      sections_title: "Sections de la bibliothèque",
+      btn_icon: "Icône",
+      btn_name: "Nom",
+      btn_entity: "Entité",
+      btn_action: "Action au toucher",
+      btn_action_type: "Type d'action",
+      btn_nav_path: "Chemin de navigation",
+      btn_url: "URL",
+      btn_service: "Service",
+      action_none: "Aucune",
+      action_toggle: "Basculer",
+      action_more_info: "Plus d'infos",
+      action_navigate: "Naviguer",
+      action_url: "Ouvrir URL",
+      action_call_service: "Appeler un service",
+      action_assist: "Assistant",
+      type_player: "Lecteur",
+      type_search: "Recherche",
+      type_library: "Bibliothèque",
+      type_settings: "Paramètres",
+      type_button: "Bouton",
+      confirm_delete: "Supprimer cet onglet ?",
+    },
   },
   de: {
     tabs: { player: "Wiedergabe", search: "Suche", library: "Bibliothek", settings: "Einstellungen" },
@@ -226,6 +296,41 @@ const TRANSLATIONS = {
       providers_title: "Bibliotheksquellen",
       providers_hint: "Wählen Sie, welche Quellen in Ihrer Bibliothek angezeigt werden",
       providers_empty: "Keine Quellen gefunden — Music Assistant-Verbindung prüfen",
+    },
+    editor: {
+      default_tab: "Standard-Tab",
+      entity: "Entität (media_player)",
+      entity_hint: "z.B. media_player.wohnzimmer",
+      height: "Höhe",
+      height_hint: "Auto (Container füllen)",
+      tabs_title: "Tabs",
+      add_tab: "Tab hinzufügen",
+      tab_label: "Bezeichnung",
+      tab_label_hint: "Eigene Bezeichnung (leer = Standard)",
+      tab_icon: "Symbol",
+      tab_icon_hint: "z.B. mdi:play-circle",
+      sections_title: "Bibliotheksbereiche",
+      btn_icon: "Symbol",
+      btn_name: "Name",
+      btn_entity: "Entität",
+      btn_action: "Tipp-Aktion",
+      btn_action_type: "Aktionstyp",
+      btn_nav_path: "Navigationspfad",
+      btn_url: "URL",
+      btn_service: "Dienst",
+      action_none: "Keine",
+      action_toggle: "Umschalten",
+      action_more_info: "Mehr Infos",
+      action_navigate: "Navigieren",
+      action_url: "URL öffnen",
+      action_call_service: "Dienst aufrufen",
+      action_assist: "Assistent",
+      type_player: "Wiedergabe",
+      type_search: "Suche",
+      type_library: "Bibliothek",
+      type_settings: "Einstellungen",
+      type_button: "Schaltfläche",
+      confirm_delete: "Diesen Tab entfernen?",
     },
   },
 };
@@ -1386,6 +1491,10 @@ class MyMusicLibraryCard extends HTMLElement {
     if (h && typeof h === "number") return Math.ceil(h / 50);
     if (h && typeof h === "string" && h.endsWith("px")) return Math.ceil(parseInt(h) / 50);
     return 8; // default ~400px
+  }
+
+  static getConfigElement() {
+    return document.createElement("my-music-library-card-editor");
   }
 
   static getStubConfig() {
@@ -3402,6 +3511,490 @@ class MyMusicLibraryCard extends HTMLElement {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
   }
+}
+
+/* ─── Card Editor (WYSIWYG) ──────────────────────────────── */
+
+const EDITOR_STYLES = `
+  :host { display: block; font-family: var(--paper-font-body1_-_font-family, Roboto, sans-serif); }
+  .editor { padding: 16px; }
+  .editor-section { margin-bottom: 20px; }
+  .editor-section-title {
+    font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--secondary-text-color, #727272); margin-bottom: 8px;
+  }
+  .editor-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .editor-row label { min-width: 120px; font-size: 14px; color: var(--primary-text-color, #212121); flex-shrink: 0; }
+  .editor-row input, .editor-row select {
+    flex: 1; padding: 8px; border: 1px solid var(--divider-color, #e0e0e0);
+    border-radius: 4px; font-size: 14px; background: var(--card-background-color, #fff);
+    color: var(--primary-text-color, #212121); min-width: 0;
+  }
+  .editor-row input:focus, .editor-row select:focus {
+    outline: none; border-color: var(--primary-color, #03a9f4);
+  }
+  .tab-list { border: 1px solid var(--divider-color, #e0e0e0); border-radius: 8px; overflow: hidden; }
+  .tab-item {
+    border-bottom: 1px solid var(--divider-color, #e0e0e0);
+    background: var(--card-background-color, #fff);
+  }
+  .tab-item:last-child { border-bottom: none; }
+  .tab-item-header {
+    display: flex; align-items: center; gap: 6px; padding: 8px 12px; cursor: pointer;
+    user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  .tab-item-header:hover { background: var(--secondary-background-color, #f5f5f5); }
+  .tab-item-type {
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 2px 6px; border-radius: 3px;
+    background: var(--primary-color, #03a9f4); color: #fff;
+  }
+  .tab-item-type.button { background: var(--accent-color, #ff9800); }
+  .tab-item-label { flex: 1; font-size: 14px; font-weight: 500; color: var(--primary-text-color, #212121); }
+  .tab-item-actions { display: flex; gap: 2px; }
+  .tab-item-actions button {
+    background: none; border: none; cursor: pointer; padding: 4px;
+    color: var(--secondary-text-color, #727272); border-radius: 4px;
+    font-size: 16px; line-height: 1; min-width: 28px; min-height: 28px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tab-item-actions button:hover { background: var(--secondary-background-color, #f5f5f5); color: var(--primary-text-color, #212121); }
+  .tab-item-actions button.delete:hover { color: var(--error-color, #db4437); }
+  .tab-item-actions button:disabled { opacity: 0.3; pointer-events: none; }
+  .tab-item-body { padding: 8px 12px 12px; border-top: 1px solid var(--divider-color, #e0e0e0); }
+  .tab-item-body .editor-row { margin-bottom: 6px; }
+  .tab-item-body .editor-row label { min-width: 100px; font-size: 13px; }
+  .tab-item-body .editor-row input, .tab-item-body .editor-row select { font-size: 13px; padding: 6px; }
+  .section-list { margin-top: 4px; }
+  .section-item {
+    display: flex; align-items: center; gap: 6px; padding: 4px 0;
+  }
+  .section-item label { flex: 1; font-size: 13px; cursor: pointer; user-select: none; }
+  .section-item input[type="checkbox"] { margin: 0; cursor: pointer; accent-color: var(--primary-color, #03a9f4); }
+  .section-item button {
+    background: none; border: none; cursor: pointer; padding: 2px;
+    color: var(--secondary-text-color, #727272); font-size: 14px; line-height: 1;
+    min-width: 24px; min-height: 24px; display: flex; align-items: center; justify-content: center;
+    border-radius: 4px;
+  }
+  .section-item button:hover { background: var(--secondary-background-color, #f5f5f5); }
+  .section-item button:disabled { opacity: 0.3; pointer-events: none; }
+  .add-tab-row { padding: 8px 12px; }
+  .add-tab-btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; padding: 8px; border: 2px dashed var(--divider-color, #e0e0e0);
+    border-radius: 6px; background: none; cursor: pointer;
+    color: var(--primary-color, #03a9f4); font-size: 14px; font-weight: 500;
+  }
+  .add-tab-btn:hover { border-color: var(--primary-color, #03a9f4); background: rgba(3,169,244,0.04); }
+  .add-tab-menu {
+    display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 12px;
+    border-top: 1px solid var(--divider-color, #e0e0e0);
+  }
+  .add-tab-menu button {
+    padding: 6px 12px; border: 1px solid var(--divider-color, #e0e0e0);
+    border-radius: 4px; background: var(--card-background-color, #fff); cursor: pointer;
+    font-size: 13px; color: var(--primary-text-color, #212121);
+  }
+  .add-tab-menu button:hover { border-color: var(--primary-color, #03a9f4); background: rgba(3,169,244,0.04); }
+  .expand-chevron { transition: transform 0.2s; font-size: 12px; }
+  .expand-chevron.open { transform: rotate(90deg); }
+`;
+
+class MyMusicLibraryCardEditor extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this._config = {};
+    this._hass = null;
+    this._expandedTab = -1;
+    this._showAddMenu = false;
+  }
+
+  _t(key) {
+    const raw = this._hass?.locale?.language || this._hass?.language || "en";
+    const lang = raw.toLowerCase().split("-")[0];
+    const dict = TRANSLATIONS[lang] || TRANSLATIONS.en;
+    const val = key.split(".").reduce((o, k) => o?.[k], dict);
+    if (val !== undefined) return val;
+    return key.split(".").reduce((o, k) => o?.[k], TRANSLATIONS.en) ?? key;
+  }
+
+  setConfig(config) {
+    this._config = { ...config };
+    if (this.shadowRoot) this._render();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    if (this.shadowRoot && !this.shadowRoot.querySelector(".editor")) this._render();
+  }
+
+  _fireChanged() {
+    const config = { ...this._config };
+    this.dispatchEvent(new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }));
+  }
+
+  _getResolvedTabs() {
+    if (this._config.tabs && Array.isArray(this._config.tabs)) return [...this._config.tabs];
+    const tabs = [];
+    if (this._config.nav_buttons_left) {
+      for (const b of this._config.nav_buttons_left) tabs.push({ type: "button", ...b });
+    }
+    tabs.push({ type: "player" });
+    tabs.push({ type: "search" });
+    tabs.push({ type: "library" });
+    if (this._config.nav_buttons_right) {
+      for (const b of this._config.nav_buttons_right) tabs.push({ type: "button", ...b });
+    }
+    tabs.push({ type: "settings" });
+    return tabs;
+  }
+
+  _updateTabs(tabs) {
+    this._config = { ...this._config, tabs };
+    delete this._config.nav_buttons_left;
+    delete this._config.nav_buttons_right;
+    this._fireChanged();
+    this._render();
+  }
+
+  _tabTypeLabel(type) {
+    return this._t(`editor.type_${type}`) || type;
+  }
+
+  _tabDisplayLabel(tab) {
+    if (tab.label) return tab.label;
+    if (tab.name) return tab.name;
+    if (tab.type === "button") return tab.icon || "Button";
+    return this._t(`tabs.${tab.type}`) || tab.type;
+  }
+
+  _render() {
+    const root = this.shadowRoot;
+    root.innerHTML = "";
+    const style = document.createElement("style");
+    style.textContent = EDITOR_STYLES;
+    root.appendChild(style);
+
+    const wrap = document.createElement("div");
+    wrap.className = "editor";
+
+    const tabs = this._getResolvedTabs();
+    const panelTypes = tabs.filter(t => t.type !== "button").map(t => t.type);
+    const defaultTabOptions = panelTypes.length ? panelTypes : ["player", "search", "library"];
+
+    wrap.innerHTML = `
+      ${this._renderBasicFields(defaultTabOptions)}
+      <div class="editor-section">
+        <div class="editor-section-title">${this._t("editor.tabs_title")}</div>
+        <div class="tab-list">
+          ${tabs.map((tab, i) => this._renderTabItem(tab, i, tabs.length)).join("")}
+        </div>
+        ${this._showAddMenu ? `
+          <div class="add-tab-menu">
+            ${["player","search","library","settings","button"].map(type => `
+              <button data-add-type="${type}">${this._tabTypeLabel(type)}</button>
+            `).join("")}
+          </div>` : `
+          <div class="add-tab-row">
+            <button class="add-tab-btn" id="add-tab-btn">+ ${this._t("editor.add_tab")}</button>
+          </div>`}
+      </div>
+    `;
+    root.appendChild(wrap);
+    this._attachEditorListeners(wrap, tabs);
+  }
+
+  _renderBasicFields(defaultTabOptions) {
+    const cfg = this._config;
+    return `
+      <div class="editor-section">
+        <div class="editor-row">
+          <label>${this._t("editor.default_tab")}</label>
+          <select id="ed-default-tab">
+            ${defaultTabOptions.map(t => `<option value="${t}" ${cfg.default_tab === t ? "selected" : ""}>${this._t(`tabs.${t}`) || t}</option>`).join("")}
+          </select>
+        </div>
+        <div class="editor-row">
+          <label>${this._t("editor.entity")}</label>
+          <input id="ed-entity" type="text" value="${cfg.entity || ""}" placeholder="${this._t("editor.entity_hint")}">
+        </div>
+        <div class="editor-row">
+          <label>${this._t("editor.height")}</label>
+          <input id="ed-height" type="text" value="${cfg.height || ""}" placeholder="${this._t("editor.height_hint")}">
+        </div>
+      </div>`;
+  }
+
+  _renderTabItem(tab, index, total) {
+    const isExpanded = this._expandedTab === index;
+    const typeClass = tab.type === "button" ? " button" : "";
+    return `
+      <div class="tab-item" data-tab-idx="${index}">
+        <div class="tab-item-header" data-toggle-idx="${index}">
+          <span class="expand-chevron ${isExpanded ? "open" : ""}">▶</span>
+          <span class="tab-item-type${typeClass}">${this._tabTypeLabel(tab.type)}</span>
+          <span class="tab-item-label">${this._esc(this._tabDisplayLabel(tab))}</span>
+          <div class="tab-item-actions">
+            <button data-move="up" data-idx="${index}" ${index === 0 ? "disabled" : ""} title="Move up">▲</button>
+            <button data-move="down" data-idx="${index}" ${index === total - 1 ? "disabled" : ""} title="Move down">▼</button>
+            <button class="delete" data-delete="${index}" title="Delete">✕</button>
+          </div>
+        </div>
+        ${isExpanded ? this._renderTabBody(tab, index) : ""}
+      </div>`;
+  }
+
+  _renderTabBody(tab, index) {
+    if (tab.type === "button") return this._renderButtonBody(tab, index);
+    let body = `
+      <div class="tab-item-body">
+        <div class="editor-row">
+          <label>${this._t("editor.tab_label")}</label>
+          <input data-field="label" data-idx="${index}" type="text" value="${this._esc(tab.label || "")}" placeholder="${this._t("editor.tab_label_hint")}">
+        </div>
+        <div class="editor-row">
+          <label>${this._t("editor.tab_icon")}</label>
+          <input data-field="icon" data-idx="${index}" type="text" value="${this._esc(tab.icon || "")}" placeholder="${this._t("editor.tab_icon_hint")}">
+        </div>`;
+    if (tab.type === "library") body += this._renderSectionsEditor(tab, index);
+    body += `</div>`;
+    return body;
+  }
+
+  _renderSectionsEditor(tab, index) {
+    const ALL_SECTIONS = ["artists", "albums", "playlists", "tracks", "radios"];
+    const current = tab.sections || ["artists", "albums", "playlists", "tracks"];
+    const ordered = [...current, ...ALL_SECTIONS.filter(s => !current.includes(s))];
+
+    return `
+      <div style="margin-top:8px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px">${this._t("editor.sections_title")}</div>
+        <div class="section-list">
+          ${ordered.map((sec, si) => {
+            const enabled = current.includes(sec);
+            const posInCurrent = current.indexOf(sec);
+            return `
+              <div class="section-item">
+                <input type="checkbox" data-sec-toggle="${sec}" data-tab-idx="${index}" ${enabled ? "checked" : ""}>
+                <label data-sec-toggle="${sec}" data-tab-idx="${index}">${this._t(`lib.${sec}`) || sec}</label>
+                <button data-sec-move="up" data-sec="${sec}" data-tab-idx="${index}" ${!enabled || posInCurrent === 0 ? "disabled" : ""}>▲</button>
+                <button data-sec-move="down" data-sec="${sec}" data-tab-idx="${index}" ${!enabled || posInCurrent >= current.length - 1 ? "disabled" : ""}>▼</button>
+              </div>`;
+          }).join("")}
+        </div>
+      </div>`;
+  }
+
+  _renderButtonBody(tab, index) {
+    const actionType = tab.tap_action?.action || "none";
+    let actionFields = "";
+    if (actionType === "navigate") {
+      actionFields = `
+        <div class="editor-row">
+          <label>${this._t("editor.btn_nav_path")}</label>
+          <input data-btn-field="navigation_path" data-idx="${index}" type="text" value="${this._esc(tab.tap_action?.navigation_path || "")}">
+        </div>`;
+    } else if (actionType === "url") {
+      actionFields = `
+        <div class="editor-row">
+          <label>${this._t("editor.btn_url")}</label>
+          <input data-btn-field="url_path" data-idx="${index}" type="text" value="${this._esc(tab.tap_action?.url_path || "")}">
+        </div>`;
+    } else if (actionType === "call-service" || actionType === "perform-action") {
+      actionFields = `
+        <div class="editor-row">
+          <label>${this._t("editor.btn_service")}</label>
+          <input data-btn-field="perform_action" data-idx="${index}" type="text" value="${this._esc(tab.tap_action?.perform_action || tab.tap_action?.service || "")}">
+        </div>`;
+    }
+    return `
+      <div class="tab-item-body">
+        <div class="editor-row">
+          <label>${this._t("editor.btn_icon")}</label>
+          <input data-field="icon" data-idx="${index}" type="text" value="${this._esc(tab.icon || "")}" placeholder="mdi:home">
+        </div>
+        <div class="editor-row">
+          <label>${this._t("editor.btn_name")}</label>
+          <input data-field="name" data-idx="${index}" type="text" value="${this._esc(tab.name || "")}">
+        </div>
+        <div class="editor-row">
+          <label>${this._t("editor.btn_entity")}</label>
+          <input data-field="entity" data-idx="${index}" type="text" value="${this._esc(tab.entity || "")}" placeholder="light.living_room">
+        </div>
+        <div class="editor-row">
+          <label>${this._t("editor.btn_action_type")}</label>
+          <select data-btn-action-type data-idx="${index}">
+            ${["none","toggle","more-info","navigate","url","call-service","assist"].map(a =>
+              `<option value="${a}" ${actionType === a ? "selected" : ""}>${this._t(`editor.action_${a.replace("-","_").replace("-","_")}`) || a}</option>`
+            ).join("")}
+          </select>
+        </div>
+        ${actionFields}
+      </div>`;
+  }
+
+  _attachEditorListeners(wrap, tabs) {
+    // Basic fields
+    wrap.querySelector("#ed-default-tab")?.addEventListener("change", (e) => {
+      this._config = { ...this._config, default_tab: e.target.value };
+      this._fireChanged();
+    });
+    wrap.querySelector("#ed-entity")?.addEventListener("change", (e) => {
+      const val = e.target.value.trim();
+      this._config = { ...this._config };
+      if (val) this._config.entity = val; else delete this._config.entity;
+      this._fireChanged();
+    });
+    wrap.querySelector("#ed-height")?.addEventListener("change", (e) => {
+      const val = e.target.value.trim();
+      this._config = { ...this._config };
+      if (val) {
+        this._config.height = /^\d+$/.test(val) ? parseInt(val) : val;
+      } else {
+        delete this._config.height;
+      }
+      this._fireChanged();
+    });
+
+    // Toggle expand
+    wrap.querySelectorAll("[data-toggle-idx]").forEach(el => {
+      el.addEventListener("click", (e) => {
+        if (e.target.closest("[data-move]") || e.target.closest("[data-delete]")) return;
+        const idx = parseInt(el.dataset.toggleIdx);
+        this._expandedTab = this._expandedTab === idx ? -1 : idx;
+        this._render();
+      });
+    });
+
+    // Move up/down
+    wrap.querySelectorAll("[data-move]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.idx);
+        const dir = btn.dataset.move === "up" ? -1 : 1;
+        const t = [...tabs];
+        [t[idx], t[idx + dir]] = [t[idx + dir], t[idx]];
+        this._expandedTab = idx + dir;
+        this._updateTabs(t);
+      });
+    });
+
+    // Delete
+    wrap.querySelectorAll("[data-delete]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.delete);
+        const t = [...tabs];
+        t.splice(idx, 1);
+        this._expandedTab = -1;
+        this._updateTabs(t);
+      });
+    });
+
+    // Add tab
+    wrap.querySelector("#add-tab-btn")?.addEventListener("click", () => {
+      this._showAddMenu = true;
+      this._render();
+    });
+    wrap.querySelectorAll("[data-add-type]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const type = btn.dataset.addType;
+        const t = [...tabs];
+        const newTab = { type };
+        if (type === "library") newTab.sections = ["artists", "albums", "playlists", "tracks"];
+        if (type === "button") { newTab.icon = "mdi:gesture-tap"; newTab.tap_action = { action: "none" }; }
+        t.push(newTab);
+        this._showAddMenu = false;
+        this._expandedTab = t.length - 1;
+        this._updateTabs(t);
+      });
+    });
+
+    // Tab field edits (label, icon, name, entity)
+    wrap.querySelectorAll("[data-field]").forEach(input => {
+      input.addEventListener("change", () => {
+        const idx = parseInt(input.dataset.idx);
+        const field = input.dataset.field;
+        const val = input.value.trim();
+        const t = [...tabs];
+        t[idx] = { ...t[idx] };
+        if (val) t[idx][field] = val; else delete t[idx][field];
+        this._updateTabs(t);
+      });
+    });
+
+    // Button action type change
+    wrap.querySelectorAll("[data-btn-action-type]").forEach(select => {
+      select.addEventListener("change", () => {
+        const idx = parseInt(select.dataset.idx);
+        const action = select.value;
+        const t = [...tabs];
+        t[idx] = { ...t[idx], tap_action: { action } };
+        this._updateTabs(t);
+      });
+    });
+
+    // Button action field edits (navigation_path, url_path, perform_action)
+    wrap.querySelectorAll("[data-btn-field]").forEach(input => {
+      input.addEventListener("change", () => {
+        const idx = parseInt(input.dataset.idx);
+        const field = input.dataset.btnField;
+        const val = input.value.trim();
+        const t = [...tabs];
+        t[idx] = { ...t[idx], tap_action: { ...t[idx].tap_action, [field]: val } };
+        this._updateTabs(t);
+      });
+    });
+
+    // Section toggles
+    wrap.querySelectorAll("[data-sec-toggle]").forEach(el => {
+      const handler = () => {
+        const sec = el.dataset.secToggle;
+        const tabIdx = parseInt(el.dataset.tabIdx);
+        const t = [...tabs];
+        t[tabIdx] = { ...t[tabIdx] };
+        const current = [...(t[tabIdx].sections || ["artists","albums","playlists","tracks"])];
+        const pos = current.indexOf(sec);
+        if (pos >= 0) {
+          current.splice(pos, 1);
+        } else {
+          current.push(sec);
+        }
+        t[tabIdx].sections = current;
+        this._updateTabs(t);
+      };
+      if (el.tagName === "INPUT") el.addEventListener("change", handler);
+      else el.addEventListener("click", handler);
+    });
+
+    // Section reorder
+    wrap.querySelectorAll("[data-sec-move]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const sec = btn.dataset.sec;
+        const tabIdx = parseInt(btn.dataset.tabIdx);
+        const dir = btn.dataset.secMove === "up" ? -1 : 1;
+        const t = [...tabs];
+        t[tabIdx] = { ...t[tabIdx] };
+        const current = [...(t[tabIdx].sections || ["artists","albums","playlists","tracks"])];
+        const pos = current.indexOf(sec);
+        if (pos < 0) return;
+        [current[pos], current[pos + dir]] = [current[pos + dir], current[pos]];
+        t[tabIdx].sections = current;
+        this._updateTabs(t);
+      });
+    });
+  }
+
+  _esc(str) {
+    if (!str) return "";
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+}
+
+if (!customElements.get("my-music-library-card-editor")) {
+  customElements.define("my-music-library-card-editor", MyMusicLibraryCardEditor);
 }
 
 if (!customElements.get("my-music-library-card")) {
