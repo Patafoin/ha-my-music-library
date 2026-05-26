@@ -4,7 +4,19 @@
       "WebFetch(domain:www.hacs.xyz)",
       "WebSearch",
       "WebFetch(domain:www.music-assistant.io)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(gh api *)",
+      "Bash(gh auth *)",
+      "WebFetch(domain:community.home-assistant.io)",
+      "WebFetch(domain:developers.home-assistant.io)",
+      "Bash(git *)",
+      "Bash(python3 *)",
+      "Bash(gh release *)",
+      "Bash(node *)",
+      "Bash(grep -n \"^const STYLES\\\\|^\\\\`;\" /Users/ledreausteeve/Documents/Personnel/ha-my-music-library-private/custom_components/my_music_library/www/my-music-library-card.js)",
+      "WebFetch(domain:www.home-assistant.io)",
+      "Bash(gh repo *)"
     ]
   }
 }

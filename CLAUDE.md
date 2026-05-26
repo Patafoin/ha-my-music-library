@@ -7,7 +7,7 @@ connected to [Music Assistant](https://music-assistant.io/).
 
 - **Domain:** `my_music_library`
 - **GitHub:** https://github.com/Patafoin/ha-my-music-library
-- **Current version:** `3.4.0` (both `CARD_VERSION` in JS and `manifest.json`)
+- **Current version:** `3.6.0` (both `CARD_VERSION` in JS and `manifest.json`)
 - **Target HA:** 2025.x / 2026.x, HACS compatible
 
 ---
@@ -117,6 +117,7 @@ tabs:
     icon: "mdi:play-circle"  # optional custom icon (mdi icon)
   - type: search
   - type: library
+    layout: lanes            # lanes | grid | columns | auto (v3.5.0+)
     sections:                # optional: which sections, in which order
       - artists
       - albums
@@ -136,6 +137,15 @@ tabs:
 
 ### Library sections
 When `tabs[].type == "library"`, the optional `sections` array controls which media types appear and in what order. Valid values: `artists`, `albums`, `playlists`, `tracks`, `radios`. Defaults to `[artists, albums, playlists, tracks]`.
+
+### Library layout (v3.5.0+)
+The `layout` option on the library tab controls how sections are displayed:
+- `lanes` (default): horizontal scroll lanes per section — scrollbar visible on desktop, arrows on hover
+- `grid`: responsive CSS grid that wraps items to fill all available space
+- `columns`: sections displayed side-by-side in columns (falls back to stacked on mobile < 640px)
+- `auto`: adaptive — 1 section → grid, 2 sections → columns on desktop / grid on mobile, 3+ → lanes
+
+Users can also switch layout at runtime via the Settings panel (persisted in localStorage).
 
 ### Nav button actions
 `tap_action`, `hold_action`, `double_tap_action` support:
