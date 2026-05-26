@@ -42,6 +42,13 @@ jobs:
             private/_public_repo/ \
             public/
 
+      - name: Sync issue templates
+        run: |
+          mkdir -p public/.github/ISSUE_TEMPLATE
+          rsync -av --delete \
+            private/.github/ISSUE_TEMPLATE/ \
+            public/.github/ISSUE_TEMPLATE/
+
       - name: Sync README and update version badge
         run: |
           VERSION=$(grep -oP '(?<="version": ")[^"]+' private/custom_components/my_music_library/manifest.json || echo "unknown")
