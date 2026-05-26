@@ -298,6 +298,18 @@ custom_components/my_music_library/
 
 ## Changelog
 
+### 3.6.0
+- **Feature** — **MA native queue integration**: new `MAQueueView` endpoint reads and controls the Music Assistant queue directly, keeping the card in sync with MA's actual playback queue.
+- **Feature** — **queue actions**: play next, add to end, remove from queue, jump to track.
+- **Feature** — **queue UI**: toggle queue visibility, empty state display.
+- **Feature** — **search layout toggle**: switch between rows and columns view for search results.
+
+### 3.5.0
+- **Feature** — **library layout modes**: `lanes` (horizontal scroll with arrows on hover), `grid` (responsive CSS grid), `columns` (side-by-side sections), `auto` (adaptive).
+- **Feature** — **layout selector** in Settings panel (persisted in localStorage).
+- **Feature** — **lane navigation arrows** on desktop hover.
+- **Feature** — YAML `layout` option on the library tab configuration.
+
 ### 3.4.0
 - **Feature** — toggleable **debug logging** via integration options. When enabled, Python logs switch to DEBUG level (visible in HA logs with filter `my_music_library`) and the JS card outputs detailed `[MML]` traces in the browser console for config, API calls, search strategies, library loading, player selection, queue, and playback.
 - **Feature** — pulsing orange debug indicator banner in the Settings modal when debug mode is active.
