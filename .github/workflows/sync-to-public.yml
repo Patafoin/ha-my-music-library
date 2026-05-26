@@ -73,19 +73,32 @@ jobs:
           fi
 
       - name: Generate release notes
+        id: release_notes
         if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.commit.outputs.version }}
         run: |
-          # Find the commit just before the current version bump in manifest.json
-          PREV=$(git -C private log --pretty=format:"%H" -- custom_components/my_music_library/manifest.json | sed -n '2p')
-          {
-            echo "## What's changed"
-            echo ""
-            if [ -n "$PREV" ]; then
-              git -C private log --pretty="- %s" "${PREV}..HEAD"
-            else
-              git -C private log --pretty="- %s" -20
-            fi
-          } > /tmp/release_notes.md
+          TAG="v${VERSION}"
+          # Try to copy release notes from the private repo release
+          BODY=$(gh release view "${TAG}" --repo Patafoin/ha-my-music-library-private --json body -q .body 2>/dev/null || true)
+          if [ -n "$BODY" ]; then
+            echo "$BODY" > /tmp/release_notes.md
+            echo "title=$(gh release view "${TAG}" --repo Patafoin/ha-my-music-library-private --json name -q .name 2>/dev/null || echo "${TAG}")" >> "$GITHUB_OUTPUT"
+          else
+            # Fallback: generate from commit log
+            PREV=$(git -C private log --pretty=format:"%H" -- custom_components/my_music_library/manifest.json | sed -n '2p')
+            {
+              echo "## What's changed"
+              echo ""
+              if [ -n "$PREV" ]; then
+                git -C private log --pretty="- %s" "${PREV}..HEAD"
+              else
+                git -C private log --pretty="- %s" -20
+              fi
+            } > /tmp/release_notes.md
+            echo "title=${TAG}" >> "$GITHUB_OUTPUT"
+          fi
           cat /tmp/release_notes.md
 
       - name: Create GitHub release on public repo
@@ -95,12 +108,14 @@ jobs:
           VERSION: ${{ steps.commit.outputs.version }}
         run: |
           TAG="v${VERSION}"
+          TITLE="${{ steps.release_notes.outputs.title }}"
+          if [ -z "$TITLE" ]; then TITLE="${TAG}"; fi
           if git -C public ls-remote --tags origin | grep -q "refs/tags/${TAG}$"; then
             echo "Tag ${TAG} already exists, skipping release."
           else
             gh release create "${TAG}" \
               --repo Patafoin/ha-my-music-library \
-              --title "${TAG}" \
+              --title "${TITLE}" \
               --notes-file /tmp/release_notes.md \
               --latest
           fi
