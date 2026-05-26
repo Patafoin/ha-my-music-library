@@ -16,6 +16,7 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import (
+    CONF_DEBUG_MODE,
     CONF_DEFAULT_PLAYER,
     CONF_DEFAULT_TAB,
     CONF_EXCLUDED_PLAYERS,
@@ -155,6 +156,10 @@ class MyMusicLibraryOptionsFlow(OptionsFlow):
             if "*" in p or p in all_players
         ]
 
+        current_debug: bool = bool(
+            self.config_entry.options.get(CONF_DEBUG_MODE, False)
+        )
+
         schema = vol.Schema(
             {
                 vol.Optional(CONF_EXCLUDED_PLAYERS, default=current_excluded): SelectSelector(
@@ -162,11 +167,10 @@ class MyMusicLibraryOptionsFlow(OptionsFlow):
                         options=[{"value": k, "label": v} for k, v in all_players.items()],
                         multiple=True,
                         mode=SelectSelectorMode.LIST,
-                        # Allows typing wildcard patterns (e.g. media_player.browser_mod_*)
-                        # directly in the selector input field.
                         custom_value=True,
                     )
                 ),
+                vol.Optional(CONF_DEBUG_MODE, default=current_debug): bool,
             }
         )
 

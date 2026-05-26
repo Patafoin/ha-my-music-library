@@ -19,8 +19,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.loader import async_get_integration
 
-from .api import MusicAssistantBrowseView, MusicAssistantLibraryView, MusicAssistantProvidersView, MusicAssistantSearchView, MusicAssistantSubitemsView, PlayerGroupView, PlayerQueueJumpView, PlayerQueueView
-from .const import CARD_JS_FILENAME, CARD_URL, CONF_EXCLUDED_PLAYERS, CONF_MA_URL, DOMAIN, ICON_URL, MUSIC_ASSISTANT_DOMAIN, WS_CONFIG_COMMAND
+from .api import MAQueueView, MusicAssistantBrowseView, MusicAssistantLibraryView, MusicAssistantProvidersView, MusicAssistantSearchView, MusicAssistantSubitemsView, PlayerGroupView, PlayerQueueJumpView, PlayerQueueView
+from .const import CARD_JS_FILENAME, CARD_URL, CONF_DEBUG_MODE, CONF_EXCLUDED_PLAYERS, CONF_MA_URL, DOMAIN, ICON_URL, MUSIC_ASSISTANT_DOMAIN, WS_CONFIG_COMMAND
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,6 +31,14 @@ ICON_PATH = os.path.join(os.path.dirname(__file__), "brand", "icon.png")
 
 _QUEUE_STORE_KEY = f"{DOMAIN}_queues"
 _QUEUE_STORE_VERSION = 1
+
+_INTEGRATION_LOGGER = logging.getLogger("custom_components.my_music_library")
+
+
+def _apply_debug_mode(debug: bool) -> None:
+    """Set the integration logger level based on the debug_mode option."""
+    _INTEGRATION_LOGGER.setLevel(logging.DEBUG if debug else logging.WARNING)
+    _INTEGRATION_LOGGER.debug("Debug mode %s", "enabled" if debug else "disabled")
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -96,6 +104,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.http.register_view(MusicAssistantSubitemsView)
     hass.http.register_view(PlayerQueueView)
     hass.http.register_view(PlayerQueueJumpView)
+    hass.http.register_view(MAQueueView)
     hass.http.register_view(PlayerGroupView)
     hass.http.register_view(MusicAssistantBrowseView)
     hass.http.register_view(MusicAssistantProvidersView)
@@ -105,9 +114,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data[DOMAIN][entry.entry_id] = {"entry": entry}
 
+    _apply_debug_mode(entry.options.get(CONF_DEBUG_MODE, False))
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
+
+
+async def _async_options_updated(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> None:
+    """React to options changes (debug toggle, excluded players, etc.)."""
+    _apply_debug_mode(entry.options.get(CONF_DEBUG_MODE, False))
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -146,6 +165,7 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
                 "default_player": entry.data.get("default_player") or None,
                 "default_tab": entry.data.get("default_tab", "player"),
                 "excluded_players": list(entry.options.get(CONF_EXCLUDED_PLAYERS, [])),
+                "debug_mode": bool(entry.options.get(CONF_DEBUG_MODE, False)),
             },
         )
 

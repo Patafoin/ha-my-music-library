@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.1.3-blue)
+![Version](https://img.shields.io/badge/version-3.6.0-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -14,11 +14,13 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 - **Playback controls** — play/pause, previous, next, shuffle, repeat (off / all / one)
 - **Queue** — live queue display alongside the player, persisted server-side per player across page reloads and devices
 - **Search** — full-text search across artists, albums, tracks and playlists via Music Assistant
-- **Library** — browse artists, albums, playlists and tracks with source filter (All / Local / Streaming) and favorites toggle; **Browse mode** to navigate the filesystem directory tree and play folders
+- **Library** — browse artists, albums, playlists, tracks and radios with source filter (All / Local / Streaming) and favorites toggle; **Browse mode** to navigate the filesystem directory tree and play folders
 - **Multi-player** — device picker to select and switch between any media player; supports grouping (attach / detach players)
 - **Player exclusion** — hide specific players from the device picker via integration options; supports wildcard patterns (`media_player.browser_mod_*`)
-- **Custom tab-bar buttons** — add your own icon buttons on the left or right of the tab bar, with tap / hold / double-tap actions
-- **Responsive layout** — stacked on mobile, side-by-side on tablet/desktop
+- **Fully configurable tabs** — reorder, rename, re-icon any tab; add action buttons in the tab bar; control which library sections appear and in what order
+- **Visual card editor** — WYSIWYG editor in the Lovelace UI: drag-and-drop tab reorder, live preview, no YAML needed
+- **Debug logging** — toggleable from integration options; detailed logs in HA and browser console for troubleshooting
+- **Responsive layout** — stacked on mobile, side-by-side on tablet/desktop; horizontal scroll nav bar for small screens
 - **Multilingual** — English, French, German (auto-detected from HA language setting)
 
 ---
@@ -36,7 +38,7 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 
 1. Open HACS, search for **My Music Library** and install it.
 2. Restart Home Assistant.
-3. Go to **Settings → Devices & Services → Add Integration** and search for **My Music Library**.
+3. Go to **Settings > Devices & Services > Add Integration** and search for **My Music Library**.
 4. Follow the setup flow (select your default player and default tab). The Music Assistant server is discovered automatically from the `mass` integration.
 
 > The Lovelace card resource is registered automatically — no manual resource addition required.
@@ -45,7 +47,7 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 
 ## Integration Options
 
-After installation, you can configure additional options via **Settings → Devices & Services → My Music Library → Configure**.
+After installation, you can configure additional options via **Settings > Devices & Services > My Music Library > Configure**.
 
 ### Hidden players
 
@@ -53,13 +55,24 @@ Select one or more media player entities to hide from the device picker inside t
 
 You can also type a **wildcard pattern** (e.g. `media_player.browser_mod_*`) and press **Enter** to exclude all matching players at once.
 
-The card re-fetches this list every time it is reloaded or the user navigates back to the dashboard, so changes take effect without a full page refresh.
+### Debug logging
+
+Enable the **"Enable debug logging"** toggle to activate detailed logging:
+
+- **HA logs** — go to **Settings > System > Logs**, filter by `my_music_library` to see all backend activity (API calls, MA client, queue operations, etc.)
+- **Browser console** — press **F12**, go to the Console tab, filter by `[MML]` to see frontend activity (config loading, search strategies, player selection, library loading, playback, etc.)
+
+A pulsing orange **"Debug mode is active"** banner appears in the card's Settings panel as a reminder to disable it when you're done.
+
+> Changes take effect immediately — no restart or refresh needed for the backend logs. Do a hard refresh (Ctrl+Shift+R) to pick up the frontend debug flag.
 
 ---
 
 ## Adding the Card to a Dashboard
 
-In your dashboard, add a **Custom: My Music Library Card** card, or use the YAML editor:
+In your dashboard, click **Add Card > Custom: My Music Library Card**. The visual editor lets you configure everything with no YAML needed.
+
+Or use the YAML editor:
 
 ```yaml
 type: custom:my-music-library-card
@@ -71,45 +84,97 @@ type: custom:my-music-library-card
 
 All options are optional.
 
+### Configurable tabs (recommended)
+
+The `tabs` array gives you full control over which tabs appear, their order, labels, icons, and lets you insert action buttons anywhere in the tab bar.
+
 ```yaml
 type: custom:my-music-library-card
-
-# Default tab shown when the card loads.
-# Options: player | search | library
 default_tab: player
-
-# Fixed card height. Accepts pixels (number or "600px") or any valid CSS value.
-# When omitted the card fills 100 % of the space allocated by the dashboard layout.
 height: 600
-
-# Pre-select a specific media_player entity as the default player.
-# The user can still change it at runtime; their choice is saved in localStorage.
 entity: media_player.my_speaker
 
-# Custom buttons on the LEFT side of the tab bar
-nav_buttons_left:
-  - icon: mdi:home
-    name: Home          # tooltip / label (optional)
+tabs:
+  - type: player
+    label: "My Player"          # optional custom label (overrides i18n)
+    icon: "mdi:play-circle"     # optional custom icon
+
+  - type: search
+
+  - type: library
+    sections:                   # optional: which sections, in which order
+      - artists
+      - albums
+      - playlists
+      - tracks
+      - radios
+
+  - type: button                # action button in the tab bar
+    icon: mdi:home
+    name: "Home"
     tap_action:
       action: navigate
       navigation_path: /
 
-# Custom buttons on the RIGHT side of the tab bar
+  - type: settings              # settings tab (positionable)
+```
+
+#### Tab types
+
+| Type | Description |
+|---|---|
+| `player` | Now playing, controls, queue |
+| `search` | Full-text search |
+| `library` | Browse library with source/favorites filters |
+| `settings` | Integration settings (providers, debug indicator) |
+| `button` | Action button (supports tap/hold/double-tap actions) |
+
+#### Library sections
+
+When `type: library`, the optional `sections` array controls which media types appear and in what order.
+
+Valid values: `artists`, `albums`, `playlists`, `tracks`, `radios`.
+
+Defaults to `[artists, albums, playlists, tracks]` when omitted.
+
+### Legacy nav buttons (still supported)
+
+For backward compatibility, `nav_buttons_left` and `nav_buttons_right` are still supported. If `tabs` is provided, these are ignored.
+
+```yaml
+type: custom:my-music-library-card
+default_tab: player
+height: 600
+entity: media_player.my_speaker
+
+nav_buttons_left:
+  - icon: mdi:home
+    tap_action:
+      action: navigate
+      navigation_path: /
+
 nav_buttons_right:
-  - icon: mdi:television-play
-    name: TV
-    entity: media_player.tv   # optional — button highlights when entity state is "on/playing/active"
+  - icon: mdi:lightbulb
+    entity: light.living_room
     tap_action:
       action: toggle
     hold_action:
       action: more-info
 ```
 
+### General options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `default_tab` | `string` | `player` | Tab shown on load: `player`, `search`, or `library` |
+| `height` | `number` or `string` | auto | Fixed card height (e.g. `600`, `"600px"`, `"80vh"`). Omit to fill the container. |
+| `entity` | `string` | — | Pre-select a media_player entity. User's runtime choice is saved in localStorage. |
+
 ---
 
-## Custom Tab-Bar Buttons (`nav_buttons_left` / `nav_buttons_right`)
+## Button Actions
 
-Each entry in `nav_buttons_left` or `nav_buttons_right` is a button object.
+Button tabs and legacy nav buttons support `tap_action`, `hold_action`, and `double_tap_action`.
 
 ### Button properties
 
@@ -117,19 +182,14 @@ Each entry in `nav_buttons_left` or `nav_buttons_right` is a button object.
 |---|---|---|
 | `icon` | `string` | MDI icon name (e.g. `mdi:home`). Falls back to the entity's icon if `entity` is set. |
 | `name` | `string` | Tooltip label shown on hover. |
-| `entity` | `string` | HA entity ID. When provided the button highlights (active state) when the entity is `on`, `playing`, `active` or `home`. |
-| `width` | `number \| string` | Button width override (px or CSS value, e.g. `48` or `"3rem"`). |
+| `entity` | `string` | HA entity ID. When provided the button highlights when the entity is `on`, `playing`, `active` or `home`. |
+| `width` | `number \| string` | Button width override (px or CSS value). |
 | `height` | `number \| string` | Button height override. |
 | `tap_action` | `Action` | Action fired on a single click. |
-| `hold_action` | `Action` | Action fired after holding the button for 500 ms. |
+| `hold_action` | `Action` | Action fired after holding for 500 ms. |
 | `double_tap_action` | `Action` | Action fired on a double-click. |
 
 ### Action object
-
-```yaml
-action: <action_type>
-# ... action-specific fields
-```
 
 | `action` | Description | Extra fields |
 |---|---|---|
@@ -141,56 +201,6 @@ action: <action_type>
 | `call-service` / `perform-action` | Call a HA service. | `perform_action: domain.service`, `data: {}`, `target: {}` |
 | `assist` | Open the Assist dialog. | — |
 
-### Examples
-
-#### Toggle a light on tap, open more-info on hold
-
-```yaml
-nav_buttons_right:
-  - icon: mdi:lightbulb
-    name: Living Room Light
-    entity: light.living_room
-    tap_action:
-      action: toggle
-    hold_action:
-      action: more-info
-      entity_id: light.living_room
-```
-
-#### Call a script on tap
-
-```yaml
-nav_buttons_right:
-  - icon: mdi:sleep
-    name: Good Night
-    tap_action:
-      action: perform-action
-      perform_action: script.good_night
-```
-
-#### Navigate to another dashboard view
-
-```yaml
-nav_buttons_left:
-  - icon: mdi:view-dashboard
-    name: Overview
-    tap_action:
-      action: navigate
-      navigation_path: /lovelace/overview
-```
-
-#### Open an external URL
-
-```yaml
-nav_buttons_right:
-  - icon: mdi:music-box-multiple
-    name: Music Assistant
-    tap_action:
-      action: url
-      url_path: http://homeassistant.local:8095
-      new_tab: true
-```
-
 ---
 
 ## Full Configuration Example
@@ -200,26 +210,61 @@ type: custom:my-music-library-card
 default_tab: player
 height: 650
 entity: media_player.kitchen_speaker
-nav_buttons_left:
-  - icon: mdi:home
+tabs:
+  - type: button
+    icon: mdi:home
     name: Home
     tap_action:
       action: navigate
       navigation_path: /lovelace/home
-nav_buttons_right:
-  - icon: mdi:lightbulb
+
+  - type: player
+
+  - type: search
+
+  - type: library
+    sections:
+      - artists
+      - albums
+      - playlists
+      - tracks
+      - radios
+
+  - type: button
+    icon: mdi:lightbulb
     name: Lights
     entity: light.living_room
     tap_action:
       action: toggle
     hold_action:
       action: more-info
-  - icon: mdi:sleep
-    name: Good Night
-    tap_action:
-      action: perform-action
-      perform_action: script.good_night
+
+  - type: settings
 ```
+
+---
+
+## Troubleshooting
+
+If something isn't working as expected:
+
+1. **Enable debug logging** — go to **Settings > Devices & Services > My Music Library > Configure** and turn on **"Enable debug logging"**
+2. **Reproduce the issue**
+3. **Collect logs:**
+   - **Backend (HA logs):** Settings > System > Logs, filter by `my_music_library`
+   - **Frontend (browser console):** press F12, Console tab, filter by `[MML]`
+4. **Open an issue** on [GitHub](https://github.com/Patafoin/ha-my-music-library/issues) — the issue template will guide you through what to include
+5. **Disable debug logging** when done
+
+### Common issues
+
+| Problem | Solution |
+|---|---|
+| Card shows "configuration error" after update | Hard refresh: Ctrl+Shift+R |
+| Search returns "unavailable" | Check that Music Assistant integration is installed and running |
+| Library is empty | Check MA connection; try toggling the source filter (All / Local / Streaming) |
+| No players found | Make sure at least one MA media player entity is enabled and not in `unavailable` state |
+| Players missing from picker | Check that they're not in the hidden players list (integration options) |
 
 ---
 
@@ -229,17 +274,18 @@ nav_buttons_right:
 custom_components/my_music_library/
 ├── __init__.py          # Integration setup, static paths, Lovelace resource registration,
 │                        # WebSocket command (my_music_library/config),
-│                        # per-player queue and group storage (Store)
+│                        # per-player queue and group storage (Store),
+│                        # debug mode toggle
 ├── manifest.json        # Integration metadata (version, dependencies)
-├── config_flow.py       # UI configuration flow (setup + options: excluded players)
+├── config_flow.py       # UI configuration flow (setup + options: excluded players, debug mode)
 ├── const.py             # Domain constants
 ├── api.py               # HTTP views (search, library, browse, subitems, queue, groups → MA)
 ├── strings.json         # Config flow translation source
 ├── brand/
-│   ├── icon.png         # Integration icon 256×256
-│   ├── icon@2x.png      # Integration icon 512×512
-│   ├── logo.png         # Logo 256×256 (home-assistant/brands)
-│   └── logo@2x.png      # Logo 512×512 (home-assistant/brands)
+│   ├── icon.png         # Integration icon 256x256
+│   ├── icon@2x.png      # Integration icon 512x512
+│   ├── logo.png         # Logo 256x256 (home-assistant/brands)
+│   └── logo@2x.png      # Logo 512x512 (home-assistant/brands)
 ├── translations/
 │   ├── en.json
 │   ├── fr.json
@@ -252,111 +298,115 @@ custom_components/my_music_library/
 
 ## Changelog
 
+### 3.4.0
+- **Feature** — toggleable **debug logging** via integration options. When enabled, Python logs switch to DEBUG level (visible in HA logs with filter `my_music_library`) and the JS card outputs detailed `[MML]` traces in the browser console for config, API calls, search strategies, library loading, player selection, queue, and playback.
+- **Feature** — pulsing orange debug indicator banner in the Settings modal when debug mode is active.
+- **Feature** — GitHub issue template with step-by-step debug log collection instructions.
+
+### 3.3.0
+- **Feature** — visual **WYSIWYG card editor** for Lovelace UI: drag-and-drop tab reorder, inline configuration of labels, icons, library sections, and button actions — no YAML needed.
+
+### 3.2.0
+- **Feature** — **fully configurable tabs** via YAML `tabs` array: reorder, rename, re-icon any tab; insert action buttons anywhere in the tab bar; control which library sections appear and their order.
+- **Feature** — **radios** support in the library (new section type).
+- **Feature** — `settings` tab type, positionable in the tab bar.
+- **Backward compatible** — `nav_buttons_left` / `nav_buttons_right` still work if `tabs` is not provided.
+
+### 3.1.5
+- **Feature** — horizontal scroll **nav bar** for mobile accessibility; fade indicators on scroll edges.
+
+### 3.1.4
+- **Fix** — robust cover art loading with fallback chain and debug logs.
+
 ### 3.1.3
-- **Fix** — `customElements.define("my-music-library-card", …)` now guarded with `customElements.get(…)` so a double module load (whatever the cause) never triggers "already been used with this registry".
-- **Fix** — Removed `add_extra_js_url` registration: HA's `scoped-custom-element-registry` polyfill was causing the card module to be evaluated twice when both `add_extra_js_url` and the Lovelace resource loaded it, even with the same URL. The Lovelace resource mechanism alone is the correct approach for custom cards (`lovelace` is a hard dependency so registration is guaranteed).
+- **Fix** — `customElements.define` guarded with `customElements.get` so a double module load never triggers "already been used with this registry".
+- **Fix** — removed `add_extra_js_url` registration: HA's `scoped-custom-element-registry` polyfill was causing the card module to be evaluated twice. The Lovelace resource mechanism alone is the correct approach for custom cards.
 
 ### 3.1.2
-- **Fix** — Upgrade experience: switching from a fixed (unversioned) Lovelace resource URL (3.1.1) back to a versioned URL (`?v=X.Y.Z`) for reliable browser cache-busting, same principle as HACS's `?hacstag=` parameter. The Lovelace resource manager now uses a **delete-first, add-after** strategy: all existing entries for the card are removed before the new versioned entry is created, so the browser never sees two different module versions in storage simultaneously → no `customElements.define` conflict → no "configuration error" on Ctrl+Shift+R. Also handles migration from 3.1.1's fixed URL.
+- **Fix** — reliable browser cache-busting with versioned Lovelace resource URL (`?v=X.Y.Z`). Delete-first, add-after strategy prevents `customElements.define` conflicts on upgrade.
 
 ### 3.1.1
-- **Fix** — Ctrl+Shift+R (hard refresh) after an upgrade no longer shows "configuration error". Root cause: the Lovelace resource URL included a version query param (`?v=X.Y.Z`); after an upgrade the old versioned entry was not always cleaned up, causing the browser to load both old and new JS modules simultaneously → `customElements.define` called twice → error. The resource URL is now fixed (no query param); cache invalidation relies on HTTP ETag / Last-Modified, so a plain F5 is sufficient to pick up a new version.
-- **Fix** — Settings modal: library providers (sources) were never loaded when `ma_entry_id` was absent from the integration config. `_fetchProviders` is now always called on config load; it does not depend on `ma_entry_id`.
-- **Fix** — `_get_providers_via_ma_client`: replaced `_to_json_safe` conversion with direct `getattr` access on `ProviderInstance` objects, avoiding silent failures when the installed `music_assistant_models` version uses a non-dataclass base (attrs, msgspec, etc.).
+- **Fix** — Ctrl+Shift+R after upgrade no longer shows "configuration error".
+- **Fix** — Settings modal: library providers always loaded regardless of `ma_entry_id`.
+- **Fix** — `_get_providers_via_ma_client`: direct `getattr` access on `ProviderInstance` objects for compatibility with all MA model versions.
 
 ### 3.0.2
-- **Fix** — Card still invisible after fresh install (v3.0.1 did not fully fix it). Root cause: `frontend` and `lovelace` were `after_dependencies` instead of hard `dependencies` in `manifest.json`, so they were not guaranteed to be loaded when the integration registered the card. Now uses the same pattern as browser_mod and HACS: `add_extra_js_url()` as primary injection (guaranteed by the `frontend` hard dependency) + Lovelace resource entry as secondary for Cast/companion apps.
+- **Fix** — card invisible after fresh install: `frontend` and `lovelace` made hard dependencies in `manifest.json`.
 
 ### 3.0.1
-- **Fix** — Lovelace card not appearing in the picker after a fresh HACS install. Root cause: registration ran before Lovelace was initialised on first boot. Registration is now deferred to `EVENT_HOMEASSISTANT_STARTED` when HA is still starting up.
-- **Fix** — YAML-mode fallback: resource is appended in-memory so the card works for the current session even when Lovelace is in YAML mode.
-- **Fix** — Last-resort fallback via `add_extra_js_url()` if all Lovelace-based registration methods fail.
+- **Fix** — Lovelace card not appearing in picker after fresh HACS install. Registration deferred to `EVENT_HOMEASSISTANT_STARTED`.
+- **Fix** — YAML-mode fallback and `add_extra_js_url()` last-resort fallback.
 
 ### 3.0.0
-- **Refactor** — Music Assistant connectivity rewritten from scratch: integration now discovers the MA client via the `mass` config entry (`entry.runtime_data.mass`) instead of managing its own connection.
-- **Fix** — MA integration domain corrected from `"music_assistant"` to `"mass"` (the actual domain since MA 2.x); also tries the legacy `"music_assistant"` domain as fallback for older installs.
-- **Fix** — `after_dependencies` in `manifest.json` updated to `"mass"` so HA loads this integration after MA.
-- **Improvement** — MA URL now auto-discovered from the `mass` config entry (`entry.data["url"]`); manually configured URL kept as fallback for backward compatibility.
-- **Improvement** — search now tries the MA Python client first (primary), REST API second (fallback), eliminating redundant HTTP calls on setups where the client is available.
+- **Refactor** — MA connectivity rewritten: integration discovers the MA client via the `mass` config entry instead of managing its own connection.
+- **Fix** — MA domain corrected to `"mass"` with `"music_assistant"` as legacy fallback.
+- **Improvement** — MA URL auto-discovered from the `mass` config entry.
 
 ### 2.9.6
-- **Fix** — filesystem browse: MA virtual "back" navigation items are now correctly intercepted and translated to breadcrumb navigation instead of being sent to the API.
+- **Fix** — browse: MA virtual "back" items intercepted and translated to breadcrumb navigation.
 
 ### 2.9.5
-- **Fix** — filesystem browse: root level was erroneously filtered; only `back`/`..` virtual items are excluded.
+- **Fix** — browse: root level no longer erroneously filtered.
 
 ### 2.9.4
-- **Fix** — filesystem browse: MA virtual `back` items filtered server-side to prevent erroneous API calls.
+- **Fix** — browse: MA virtual `back` items filtered server-side.
 
 ### 2.9.3
-- **Fix** — browse mode: breadcrumb navigation now displayed in all states (loading, empty, error) so the user can always navigate back.
-- **Fix** — browse mode: MA URI prefix `folder/` stripped server-side so navigation into subdirectories works correctly.
+- **Fix** — browse: breadcrumb navigation displayed in all states (loading, empty, error).
+- **Fix** — browse: MA URI prefix `folder/` stripped server-side.
 
 ### 2.9.2
-- **Fix** — browse mode: `mass.browse()` now tried at top-level (in addition to `mass.music.browse()`) for compatibility with all MA versions.
-- **Fix** — library mode toggle: switching between Catalogue and Browse no longer requires a tab change to take effect.
+- **Fix** — browse: `mass.browse()` tried at top-level for compatibility with all MA versions.
+- **Fix** — library mode toggle: switching between Catalogue and Browse takes effect immediately.
 
 ### 2.9.1
-- **Feature** — Library **Browse mode**: navigate the local filesystem directory tree, play individual files or entire folders.
+- **Feature** — Library **Browse mode**: navigate the local filesystem directory tree, play files or folders.
 - **Backend** — new endpoint `GET /api/my_music_library/browse?uri=<uri>`.
 
 ### 2.9.0
-- **Fix** — volume slider and progress bar: HA commands now sent only on pointer release, not during drag. Visual feedback (fill + time display) updates live while dragging.
+- **Fix** — volume slider and progress bar: commands sent only on pointer release, not during drag.
 
 ### 2.8.9
-- **Fix** — library source filter (Local / Streaming) now works correctly; provider mappings (`set` type) are properly serialized from Music Assistant.
-- **Improvement** — library sections render progressively as each section loads, instead of waiting for all sections to complete.
-- **Improvement** — library auto-paginates when source filter hides all results on a page, fetching up to 200 items per section to find matching providers.
-- **Improvement** — search strategies (HA proxy + MA WebSocket) run in parallel for faster results.
-- **Improvement** — search debounce increased to 700 ms to avoid firing searches while still typing.
-- **Improvement** — search results render progressively per section (artists, albums, tracks, playlists).
-- **Cleanup** — removed all console logging from the card (except version banner).
+- **Fix** — library source filter works correctly; provider mappings properly serialized.
+- **Improvement** — progressive rendering, auto-pagination, parallel search strategies, 700 ms debounce.
 
 ### 2.8.5
 - **Feature** — library source filter (All / Local / Streaming) and favorites toggle.
-- **Improvement** — slider UX improvements.
 
 ### 2.8.2
-- **Fix** — device picker dropdown not reflecting updated exclusion list after integration options were changed. The card now re-fetches its configuration from the backend every time it reconnects to the DOM (e.g. when navigating back to the dashboard), ensuring the hidden-players list is always in sync with what is set in **Settings → Devices & Services → Configure**.
+- **Fix** — device picker reflects updated exclusion list without full page refresh.
 
 ### 2.8.1
-- **Fix** — stale group members no longer persist across player switches when the group was dissolved externally in HA.
-- **Fix** — excluded players list pruned of deleted entity IDs on each options save.
+- **Fix** — stale group members no longer persist across player switches.
 
 ### 2.8.0
-- **Feature** — player grouping: attach and detach players directly from the device picker inside the card.
-- **Feature** — group state is persisted server-side per player and reconciled with HA's actual `group_members` attribute on load.
+- **Feature** — player grouping: attach and detach players from the device picker.
 
 ### 2.7.0
-- **Feature** — player exclusion: hide specific players from the device picker via integration options. Supports exact entity IDs and wildcard patterns (e.g. `media_player.browser_mod_*`).
-- **Feature** — wildcard glob patterns for player exclusion (e.g. `media_player.prefix_*`).
+- **Feature** — player exclusion via integration options with wildcard pattern support.
 
 ### 2.6.0
-- **Feature** — queue persisted server-side per player via `POST /api/my_music_library/queue`; shared across browsers and devices.
-- **Feature** — auto-detection of externally triggered album/playlist changes; stale queue cleared automatically.
-- **Improvement** — search falls back through three strategies (HA proxy → Music Assistant WebSocket → browse_media) for maximum compatibility.
+- **Feature** — server-side queue persistence per player, shared across browsers/devices.
+- **Feature** — auto-detection of externally triggered album/playlist changes.
 
 ### 2.5.0
-- **Feature** — custom tab-bar buttons (`nav_buttons_left` / `nav_buttons_right`) with tap, hold and double-tap actions.
-- **Feature** — `height` card config option to set a fixed card height.
-- **Feature** — `entity` card config option to pre-select a default player.
+- **Feature** — custom tab-bar buttons with tap/hold/double-tap actions.
+- **Feature** — `height` and `entity` card config options.
 
 ### 2.4.0
-- **Feature** — Library tab: browse favorite artists, albums, playlists and tracks.
-- **Feature** — infinite scroll / pagination for large libraries.
+- **Feature** — Library tab with infinite scroll / pagination.
 
 ### 2.3.0
-- **Feature** — Search tab: full-text search across artists, albums, tracks and playlists.
+- **Feature** — Search tab.
 
 ### 2.2.0
-- **Feature** — multilingual support: English, French, German.
-- **Feature** — responsive layout (stacked on mobile, side-by-side on tablet/desktop).
+- **Feature** — multilingual support (en, fr, de) and responsive layout.
 
 ### 2.1.0
-- **Feature** — device picker: switch between media players at runtime; selection saved in `localStorage`.
+- **Feature** — device picker with localStorage persistence.
 
 ### 2.0.0
-- Initial public release: Player tab with now-playing display, playback controls, progress bar, volume and queue.
+- Initial public release.
 
 ---
 

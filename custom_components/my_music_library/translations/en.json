@@ -27,7 +27,11 @@
         "title": "Player settings",
         "description": "Select players to hide from the device picker. You can also type a wildcard pattern (e.g. `media_player.browser_mod_*`) and press Enter to exclude all matching players.",
         "data": {
-          "excluded_players": "Hidden players"
+          "excluded_players": "Hidden players",
+          "debug_mode": "Enable debug logging"
+        },
+        "data_description": {
+          "debug_mode": "When enabled, detailed logs appear in HA logs (filter: my_music_library) and in the browser console (F12). Disable after debugging."
         }
       }
     }

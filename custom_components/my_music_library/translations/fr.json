@@ -27,7 +27,11 @@
         "title": "Paramètres des lecteurs",
         "description": "Sélectionnez les lecteurs à masquer dans le sélecteur de périphérique. Vous pouvez aussi saisir un motif avec wildcard (ex. `media_player.browser_mod_*`) et appuyer sur Entrée pour exclure tous les lecteurs correspondants.",
         "data": {
-          "excluded_players": "Lecteurs masqués"
+          "excluded_players": "Lecteurs masqués",
+          "debug_mode": "Activer les logs de débogage"
+        },
+        "data_description": {
+          "debug_mode": "Quand activé, des logs détaillés apparaissent dans les journaux HA (filtre : my_music_library) et dans la console du navigateur (F12). Désactivez après le débogage."
         }
       }
     }

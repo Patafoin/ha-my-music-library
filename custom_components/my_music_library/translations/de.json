@@ -27,7 +27,11 @@
         "title": "Player-Einstellungen",
         "description": "Wählen Sie Player aus, die in der Geräteauswahl ausgeblendet werden sollen. Sie können auch ein Wildcard-Muster eingeben (z.B. `media_player.browser_mod_*`) und Enter drücken, um alle passenden Player auszuschließen.",
         "data": {
-          "excluded_players": "Ausgeblendete Player"
+          "excluded_players": "Ausgeblendete Player",
+          "debug_mode": "Debug-Protokollierung aktivieren"
+        },
+        "data_description": {
+          "debug_mode": "Wenn aktiviert, erscheinen detaillierte Protokolle in den HA-Logs (Filter: my_music_library) und in der Browser-Konsole (F12). Nach dem Debugging deaktivieren."
         }
       }
     }

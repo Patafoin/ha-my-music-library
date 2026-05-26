@@ -220,6 +220,7 @@ _LIBRARY_METHODS: dict[str, list[str]] = {
     "albums":    ["get_library_albums",  "get_albums"],
     "tracks":    ["get_library_tracks",  "get_tracks"],
     "playlists": ["get_library_playlists", "get_playlists"],
+    "radios":    ["get_library_radios",  "get_radios"],
 }
 
 
@@ -524,7 +525,7 @@ async def _get_providers_via_ma_client(hass: HomeAssistant) -> list | None:
         return None
 
 
-# ── Queue jump (play_index) ───────────────────────────────────────────────────
+# ── MA queue helpers ──────────────────────────────────────────────────────────
 
 def _resolve_ma_player_id(hass: HomeAssistant, entity_id: str) -> str | None:
     """Map a HA media_player entity_id to its Music Assistant player_id.
@@ -540,20 +541,29 @@ def _resolve_ma_player_id(hass: HomeAssistant, entity_id: str) -> str | None:
     return entry.unique_id or None
 
 
-async def _queue_jump_via_ma_client(
-    hass: HomeAssistant, entity_id: str, index: int,
-) -> bool:
-    """Ask MA to jump to ``index`` within the player's existing queue."""
+def _resolve_queue_id(hass: HomeAssistant, entity_id: str) -> tuple[Any | None, str | None]:
+    """Return (mass_client, queue_id) for a HA media_player entity."""
     mass = _get_mass_client(hass)
     if mass is None:
-        return False
+        return None, None
 
     ma_player_id = _resolve_ma_player_id(hass, entity_id)
     if not ma_player_id:
-        _LOGGER.warning("queue_jump: cannot resolve MA player_id for %s", entity_id)
-        return False
+        return mass, None
 
     queue_id = ma_player_id
+    player_queues = getattr(mass, "player_queues", None)
+    if player_queues is not None:
+        get_active = getattr(player_queues, "get_active_queue", None)
+        if get_active is not None:
+            try:
+                q = get_active(ma_player_id)
+                if q is not None:
+                    queue_id = getattr(q, "queue_id", None) or ma_player_id
+                    return mass, queue_id
+            except Exception:  # noqa: BLE001
+                pass
+
     players = getattr(mass, "players", None)
     if players is not None:
         try:
@@ -567,6 +577,60 @@ async def _queue_jump_via_ma_client(
                 )
         except Exception:  # noqa: BLE001
             pass
+
+    return mass, queue_id
+
+
+def _normalize_queue_item(item: dict) -> dict:
+    """Normalize a MA QueueItem dict for the frontend."""
+    name = item.get("name") or ""
+    queue_item_id = item.get("queue_item_id") or ""
+    duration = item.get("duration") or 0
+
+    thumbnail = ""
+    image = item.get("image") or {}
+    if isinstance(image, dict):
+        thumbnail = image.get("path") or image.get("url") or ""
+    if not thumbnail:
+        media_item = item.get("media_item") or {}
+        metadata = media_item.get("metadata") or {}
+        images = metadata.get("images") or []
+        for img in images:
+            path = img.get("path", "") if isinstance(img, dict) else ""
+            if path and path.startswith("http"):
+                thumbnail = path
+                break
+
+    media_item = item.get("media_item") or {}
+    uri = media_item.get("uri") or ""
+    artist = ""
+    artists = media_item.get("artists") or []
+    if artists and isinstance(artists[0], dict):
+        artist = artists[0].get("name", "")
+
+    media_type = media_item.get("media_type", "track")
+    if isinstance(media_type, dict):
+        media_type = media_type.get("value", "track")
+
+    return {
+        "queue_item_id": queue_item_id,
+        "title": name or media_item.get("name", ""),
+        "media_content_id": uri,
+        "media_content_type": str(media_type),
+        "media_artist": artist,
+        "duration": float(duration) if duration else 0,
+        "thumbnail": thumbnail,
+    }
+
+
+async def _queue_jump_via_ma_client(
+    hass: HomeAssistant, entity_id: str, index: int,
+) -> bool:
+    """Ask MA to jump to ``index`` within the player's existing queue."""
+    mass, queue_id = _resolve_queue_id(hass, entity_id)
+    if mass is None or queue_id is None:
+        _LOGGER.warning("queue_jump: cannot resolve queue for %s", entity_id)
+        return False
 
     player_queues = getattr(mass, "player_queues", None)
     play_index_fn = getattr(player_queues, "play_index", None) if player_queues else None
@@ -641,7 +705,7 @@ class MusicAssistantLibraryView(HomeAssistantView):
         hass: HomeAssistant = request.app["hass"]
 
         media_type = request.query.get("type", "").strip()
-        if media_type not in ("artists", "albums", "tracks", "playlists"):
+        if media_type not in ("artists", "albums", "tracks", "playlists", "radios"):
             return self.json_message("Invalid 'type' parameter.", HTTPStatus.BAD_REQUEST)
 
         limit = min(int(request.query.get("limit", 25)), 100)
@@ -843,6 +907,104 @@ class PlayerGroupView(HomeAssistantView):
             })
 
         return web.json_response({"ok": True})
+
+
+class MAQueueView(HomeAssistantView):
+    """Proxy to Music Assistant's native player queue.
+
+    GET  /my_music_library/ma_queue?player=<entity_id>&limit=50&offset=0
+         → {"items": [...], "queue_id": "..."}
+
+    POST /my_music_library/ma_queue
+         body: {"player": "<entity_id>", "action": "delete_item", "item_id": "..."}
+         → {"ok": true}
+    """
+
+    url = "/my_music_library/ma_queue"
+    name = "my_music_library:ma_queue"
+    requires_auth = True
+
+    async def get(self, request: web.Request) -> web.Response:
+        """Return the MA queue items for a player."""
+        hass: HomeAssistant = request.app["hass"]
+        player = request.query.get("player", "").strip()
+        if not player:
+            return self.json_message("Missing 'player' parameter.", HTTPStatus.BAD_REQUEST)
+
+        mass, queue_id = _resolve_queue_id(hass, player)
+        if mass is None or queue_id is None:
+            _LOGGER.warning("ma_queue GET: cannot resolve queue for %s", player)
+            return self.json_message(
+                "Cannot resolve MA queue. Check HA logs.", HTTPStatus.BAD_GATEWAY,
+            )
+
+        player_queues = getattr(mass, "player_queues", None)
+        get_items_fn = getattr(player_queues, "get_queue_items", None) if player_queues else None
+        if get_items_fn is None:
+            _LOGGER.warning("ma_queue GET: get_queue_items not available")
+            return self.json_message("get_queue_items not available.", HTTPStatus.BAD_GATEWAY)
+
+        limit = min(int(request.query.get("limit", 50)), 500)
+        offset = max(0, int(request.query.get("offset", 0)))
+
+        try:
+            items = await get_items_fn(queue_id, limit=limit, offset=offset)
+            normalized = [_normalize_queue_item(_to_json_safe(i)) for i in items]
+            _LOGGER.debug("ma_queue GET: queue=%s → %d items", queue_id, len(normalized))
+            return web.json_response({"items": normalized, "queue_id": queue_id})
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("ma_queue GET failed: %s", err)
+            return self.json_message(
+                f"Failed to get queue items: {err}", HTTPStatus.BAD_GATEWAY,
+            )
+
+    async def post(self, request: web.Request) -> web.Response:
+        """Execute a queue action (delete_item)."""
+        hass: HomeAssistant = request.app["hass"]
+        try:
+            body: dict = await request.json()
+        except Exception:  # noqa: BLE001
+            return self.json_message("Invalid JSON body.", HTTPStatus.BAD_REQUEST)
+
+        player = (body.get("player") or "").strip()
+        action = (body.get("action") or "").strip()
+        if not player or not action:
+            return self.json_message("Missing 'player' or 'action'.", HTTPStatus.BAD_REQUEST)
+
+        mass, queue_id = _resolve_queue_id(hass, player)
+        if mass is None or queue_id is None:
+            return self.json_message("Cannot resolve MA queue.", HTTPStatus.BAD_GATEWAY)
+
+        player_queues = getattr(mass, "player_queues", None)
+        if player_queues is None:
+            return self.json_message("player_queues not available.", HTTPStatus.BAD_GATEWAY)
+
+        if action == "delete_item":
+            item_id = body.get("item_id")
+            if item_id is None:
+                return self.json_message("Missing 'item_id'.", HTTPStatus.BAD_REQUEST)
+            fn = getattr(player_queues, "delete_item", None)
+            if fn is None:
+                return self.json_message("delete_item not available.", HTTPStatus.BAD_GATEWAY)
+            try:
+                await fn(queue_id, item_id)
+                return web.json_response({"ok": True})
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.warning("ma_queue delete_item failed: %s", err)
+                return self.json_message(f"delete_item failed: {err}", HTTPStatus.BAD_GATEWAY)
+
+        if action == "clear":
+            fn = getattr(player_queues, "clear", None)
+            if fn is None:
+                return self.json_message("clear not available.", HTTPStatus.BAD_GATEWAY)
+            try:
+                await fn(queue_id)
+                return web.json_response({"ok": True})
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.warning("ma_queue clear failed: %s", err)
+                return self.json_message(f"clear failed: {err}", HTTPStatus.BAD_GATEWAY)
+
+        return self.json_message(f"Unknown action: {action}", HTTPStatus.BAD_REQUEST)
 
 
 class PlayerQueueJumpView(HomeAssistantView):

@@ -1,0 +1,84 @@
+name: Bug Report
+description: Report a bug with My Music Library
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug!
+        Please fill out the sections below so we can reproduce and fix the issue.
+
+  - type: input
+    id: version
+    attributes:
+      label: Integration version
+      description: "Found in Settings > Integrations > My Music Library (e.g. 3.4.0)"
+      placeholder: "3.4.0"
+    validations:
+      required: true
+
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      description: "Found in Settings > About"
+      placeholder: "2025.6.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear description of what happened and what you expected instead.
+      placeholder: "When I click X, Y happens instead of Z..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps to trigger the bug.
+      placeholder: |
+        1. Open the card
+        2. Go to the Library tab
+        3. Click on an artist
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Debug logs
+      description: |
+        **How to collect logs:**
+        1. Go to **Settings > Integrations > My Music Library > Configure**
+        2. Enable **"Enable debug logging"** and click Submit
+        3. Reproduce the bug
+        4. Collect logs from two sources:
+           - **HA logs:** Settings > System > Logs, filter by `my_music_library`
+           - **Browser console:** press F12, go to the Console tab, filter by `[MML]`
+        5. Paste both logs below
+        6. **Disable debug logging** when done (Configure > uncheck > Submit)
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: card_config
+    attributes:
+      label: Card YAML configuration
+      description: Your card configuration (remove any sensitive data).
+      render: yaml
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain the problem.
+    validations:
+      required: false

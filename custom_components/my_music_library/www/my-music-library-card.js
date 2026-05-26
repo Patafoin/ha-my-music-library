@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.1.3";
+const CARD_VERSION = "3.6.0";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -31,18 +31,23 @@ const ICONS = {
   album: `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-5.5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/></svg>`,
   artist: `<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>`,
   playlist: `<svg viewBox="0 0 24 24"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/></svg>`,
+  chevronLeft: `<svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>`,
   chevronRight: `<svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>`,
   plus: `<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>`,
   group: `<svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>`,
   folder: `<svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
   folderOpen: `<svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>`,
   home: `<svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`,
+  radio: `<svg viewBox="0 0 24 24"><path d="M20 6H8.3L20.1 3.2 19.6 1.3 2 5.5V20c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/></svg>`,
+  queue: `<svg viewBox="0 0 24 24"><path d="M3 5.5h18v3H3V5.5zm0 5h18v3H3v-3zm0 5h12v3H3v-3z"/></svg>`,
+  remove: `<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`,
+  addNext: `<svg viewBox="0 0 24 24"><path d="M21 3H3v18h18V3zm-4 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>`,
 };
 
 /* ─── i18n ────────────────────────────────────────────────── */
 const TRANSLATIONS = {
   en: {
-    tabs: { player: "Player", search: "Search", library: "Library" },
+    tabs: { player: "Player", search: "Search", library: "Library", settings: "Settings" },
     player: {
       nothing_playing: "Nothing playing",
       select_player: "Select a player",
@@ -60,7 +65,7 @@ const TRANSLATIONS = {
       no_results: "No results for",
       player_label: "Player",
       console_hint: "Check browser console (F12) for details.",
-      artists: "Artists", albums: "Albums", tracks: "Tracks", playlists: "Playlists",
+      artists: "Artists", albums: "Albums", tracks: "Tracks", playlists: "Playlists", radios: "Radios",
     },
     lib: {
       loading: "Loading library…",
@@ -69,6 +74,7 @@ const TRANSLATIONS = {
       albums: "Albums",
       playlists: "Playlists",
       tracks: "Tracks",
+      radios: "Radios",
       filter_all: "All",
       filter_local: "Local",
       filter_streaming: "Streaming",
@@ -85,7 +91,8 @@ const TRANSLATIONS = {
       browse_error: "Could not load folder contents",
       browse_empty: "Empty folder",
     },
-    queue: { up_next: "Up Next" },
+    queue: { up_next: "Up Next", empty: "Queue is empty", play_next: "Play next", add_to_end: "Add to end", remove: "Remove", toggle: "Toggle queue" },
+    errors: { media_not_found: "Media not found on source" },
     nav: { back: "← Back" },
     group: {
       section_master: "Active",
@@ -100,10 +107,58 @@ const TRANSLATIONS = {
       providers_title: "Library providers",
       providers_hint: "Choose which providers appear in your library",
       providers_empty: "No providers found — check Music Assistant connection",
+      debug_active: "Debug mode is active",
+      debug_hint: "Detailed logs are visible in the browser console (F12) and in HA logs (filter: my_music_library). Disable in integration options when done.",
+      layout_title: "Library layout",
+      layout_hint: "How sections are displayed",
+      layout_lanes: "Lanes",
+      layout_grid: "Grid",
+      layout_columns: "Columns",
+      layout_auto: "Auto",
+    },
+    editor: {
+      default_tab: "Default tab",
+      entity: "Entity (media_player)",
+      entity_hint: "e.g. media_player.living_room",
+      height: "Height",
+      height_hint: "Auto (fill container)",
+      tabs_title: "Tabs",
+      add_tab: "Add tab",
+      tab_label: "Label",
+      tab_label_hint: "Custom label (empty = default)",
+      tab_icon: "Icon",
+      tab_icon_hint: "e.g. mdi:play-circle",
+      sections_title: "Library sections",
+      layout_label: "Layout",
+      layout_grid_disabled: "Grid is only available with a single section",
+      btn_icon: "Icon",
+      btn_name: "Name",
+      btn_entity: "Entity",
+      btn_action: "Tap action",
+      btn_action_type: "Action type",
+      btn_nav_path: "Navigation path",
+      btn_url: "URL",
+      btn_service: "Service",
+      action_none: "None",
+      action_toggle: "Toggle",
+      action_more_info: "More info",
+      action_navigate: "Navigate",
+      action_url: "Open URL",
+      action_call_service: "Call service",
+      action_assist: "Assist",
+      type_player: "Player",
+      type_search: "Search",
+      type_library: "Library",
+      type_settings: "Settings",
+      type_button: "Button",
+      confirm_delete: "Remove this tab?",
+      search_layout: "Layout",
+      search_layout_rows: "Rows",
+      search_layout_columns: "Columns",
     },
   },
   fr: {
-    tabs: { player: "Lecteur", search: "Recherche", library: "Bibliothèque" },
+    tabs: { player: "Lecteur", search: "Recherche", library: "Bibliothèque", settings: "Paramètres" },
     player: {
       nothing_playing: "Rien en cours de lecture",
       select_player: "Sélectionnez un lecteur",
@@ -121,7 +176,7 @@ const TRANSLATIONS = {
       no_results: "Aucun résultat pour",
       player_label: "Lecteur",
       console_hint: "Consultez la console du navigateur (F12) pour plus de détails.",
-      artists: "Artistes", albums: "Albums", tracks: "Titres", playlists: "Playlists",
+      artists: "Artistes", albums: "Albums", tracks: "Titres", playlists: "Playlists", radios: "Radios",
     },
     lib: {
       loading: "Chargement de la bibliothèque…",
@@ -130,6 +185,7 @@ const TRANSLATIONS = {
       albums: "Albums",
       playlists: "Playlists",
       tracks: "Titres",
+      radios: "Radios",
       filter_all: "Tout",
       filter_local: "Local",
       filter_streaming: "Streaming",
@@ -146,7 +202,8 @@ const TRANSLATIONS = {
       browse_error: "Impossible de charger le contenu du dossier",
       browse_empty: "Dossier vide",
     },
-    queue: { up_next: "À suivre" },
+    queue: { up_next: "À suivre", empty: "File d'attente vide", play_next: "Lire après le titre en cours", add_to_end: "Ajouter à la fin", remove: "Supprimer", toggle: "Afficher/masquer la file" },
+    errors: { media_not_found: "Média introuvable sur la source" },
     nav: { back: "← Retour" },
     group: {
       section_master: "Actif",
@@ -161,10 +218,58 @@ const TRANSLATIONS = {
       providers_title: "Sources de la bibliothèque",
       providers_hint: "Choisissez quelles sources apparaissent dans votre bibliothèque",
       providers_empty: "Aucune source trouvée — vérifiez la connexion à Music Assistant",
+      debug_active: "Mode débogage actif",
+      debug_hint: "Les logs détaillés sont visibles dans la console du navigateur (F12) et dans les journaux HA (filtre : my_music_library). Désactivez dans les options de l'intégration une fois terminé.",
+      layout_title: "Disposition de la bibliothèque",
+      layout_hint: "Mode d'affichage des sections",
+      layout_lanes: "Lignes",
+      layout_grid: "Grille",
+      layout_columns: "Colonnes",
+      layout_auto: "Auto",
+    },
+    editor: {
+      default_tab: "Onglet par défaut",
+      entity: "Entité (media_player)",
+      entity_hint: "ex. media_player.salon",
+      height: "Hauteur",
+      height_hint: "Auto (remplit le conteneur)",
+      tabs_title: "Onglets",
+      add_tab: "Ajouter un onglet",
+      tab_label: "Libellé",
+      tab_label_hint: "Libellé personnalisé (vide = défaut)",
+      tab_icon: "Icône",
+      tab_icon_hint: "ex. mdi:play-circle",
+      sections_title: "Sections de la bibliothèque",
+      layout_label: "Disposition",
+      layout_grid_disabled: "La grille n'est disponible qu'avec une seule section",
+      btn_icon: "Icône",
+      btn_name: "Nom",
+      btn_entity: "Entité",
+      btn_action: "Action au toucher",
+      btn_action_type: "Type d'action",
+      btn_nav_path: "Chemin de navigation",
+      btn_url: "URL",
+      btn_service: "Service",
+      action_none: "Aucune",
+      action_toggle: "Basculer",
+      action_more_info: "Plus d'infos",
+      action_navigate: "Naviguer",
+      action_url: "Ouvrir URL",
+      action_call_service: "Appeler un service",
+      action_assist: "Assistant",
+      type_player: "Lecteur",
+      type_search: "Recherche",
+      type_library: "Bibliothèque",
+      type_settings: "Paramètres",
+      type_button: "Bouton",
+      confirm_delete: "Supprimer cet onglet ?",
+      search_layout: "Disposition",
+      search_layout_rows: "Lignes",
+      search_layout_columns: "Colonnes",
     },
   },
   de: {
-    tabs: { player: "Wiedergabe", search: "Suche", library: "Bibliothek" },
+    tabs: { player: "Wiedergabe", search: "Suche", library: "Bibliothek", settings: "Einstellungen" },
     player: {
       nothing_playing: "Nichts wird abgespielt",
       select_player: "Player auswählen",
@@ -182,7 +287,7 @@ const TRANSLATIONS = {
       no_results: "Keine Ergebnisse für",
       player_label: "Player",
       console_hint: "Browser-Konsole (F12) für Details prüfen.",
-      artists: "Künstler", albums: "Alben", tracks: "Titel", playlists: "Playlists",
+      artists: "Künstler", albums: "Alben", tracks: "Titel", playlists: "Playlists", radios: "Radios",
     },
     lib: {
       loading: "Bibliothek wird geladen…",
@@ -191,6 +296,7 @@ const TRANSLATIONS = {
       albums: "Alben",
       playlists: "Playlists",
       tracks: "Titel",
+      radios: "Radios",
       filter_all: "Alle",
       filter_local: "Lokal",
       filter_streaming: "Streaming",
@@ -207,7 +313,8 @@ const TRANSLATIONS = {
       browse_error: "Ordnerinhalt konnte nicht geladen werden",
       browse_empty: "Leerer Ordner",
     },
-    queue: { up_next: "Als Nächstes" },
+    queue: { up_next: "Als Nächstes", empty: "Warteschlange ist leer", play_next: "Als Nächstes abspielen", add_to_end: "Am Ende hinzufügen", remove: "Entfernen", toggle: "Warteschlange ein-/ausblenden" },
+    errors: { media_not_found: "Medium auf der Quelle nicht gefunden" },
     nav: { back: "← Zurück" },
     group: {
       section_master: "Aktiv",
@@ -222,6 +329,54 @@ const TRANSLATIONS = {
       providers_title: "Bibliotheksquellen",
       providers_hint: "Wählen Sie, welche Quellen in Ihrer Bibliothek angezeigt werden",
       providers_empty: "Keine Quellen gefunden — Music Assistant-Verbindung prüfen",
+      debug_active: "Debug-Modus ist aktiv",
+      debug_hint: "Detaillierte Protokolle sind in der Browser-Konsole (F12) und in den HA-Logs (Filter: my_music_library) sichtbar. Nach dem Debugging in den Integrationsoptionen deaktivieren.",
+      layout_title: "Bibliothek-Layout",
+      layout_hint: "Anzeigemodus der Bereiche",
+      layout_lanes: "Bahnen",
+      layout_grid: "Raster",
+      layout_columns: "Spalten",
+      layout_auto: "Auto",
+    },
+    editor: {
+      default_tab: "Standard-Tab",
+      entity: "Entität (media_player)",
+      entity_hint: "z.B. media_player.wohnzimmer",
+      height: "Höhe",
+      height_hint: "Auto (Container füllen)",
+      tabs_title: "Tabs",
+      add_tab: "Tab hinzufügen",
+      tab_label: "Bezeichnung",
+      tab_label_hint: "Eigene Bezeichnung (leer = Standard)",
+      tab_icon: "Symbol",
+      tab_icon_hint: "z.B. mdi:play-circle",
+      sections_title: "Bibliotheksbereiche",
+      layout_label: "Layout",
+      layout_grid_disabled: "Raster ist nur mit einem einzelnen Bereich verfügbar",
+      btn_icon: "Symbol",
+      btn_name: "Name",
+      btn_entity: "Entität",
+      btn_action: "Tipp-Aktion",
+      btn_action_type: "Aktionstyp",
+      btn_nav_path: "Navigationspfad",
+      btn_url: "URL",
+      btn_service: "Dienst",
+      action_none: "Keine",
+      action_toggle: "Umschalten",
+      action_more_info: "Mehr Infos",
+      action_navigate: "Navigieren",
+      action_url: "URL öffnen",
+      action_call_service: "Dienst aufrufen",
+      action_assist: "Assistent",
+      type_player: "Wiedergabe",
+      type_search: "Suche",
+      type_library: "Bibliothek",
+      type_settings: "Einstellungen",
+      type_button: "Schaltfläche",
+      confirm_delete: "Diesen Tab entfernen?",
+      search_layout: "Layout",
+      search_layout_rows: "Zeilen",
+      search_layout_columns: "Spalten",
     },
   },
 };
@@ -257,14 +412,45 @@ const STYLES = `
   }
 
   /* ── NAV TABS ── */
+  .nav-wrapper {
+    position: relative;
+    flex-shrink: 0;
+  }
   .nav {
     display: flex;
     background: var(--bg2);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    scroll-snap-type: x mandatory;
   }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-fade-left,
+  .nav-fade-right {
+    position: absolute;
+    top: 0;
+    bottom: 1px;
+    width: 24px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .2s;
+    z-index: 2;
+  }
+  .nav-fade-left {
+    left: 0;
+    background: linear-gradient(to right, var(--bg2), transparent);
+  }
+  .nav-fade-right {
+    right: 0;
+    background: linear-gradient(to left, var(--bg2), transparent);
+  }
+  .nav-fade-left.visible,
+  .nav-fade-right.visible { opacity: 1; }
   .nav-tab {
-    flex: 1;
+    flex: 1 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -276,10 +462,13 @@ const STYLES = `
     color: var(--text2);
     font-size: 13px;
     font-weight: 500;
+    white-space: nowrap;
+    scroll-snap-align: start;
     transition: color .2s, background .2s;
     -webkit-tap-highlight-color: transparent;
   }
   .nav-tab svg { width: 18px; height: 18px; fill: currentColor; flex-shrink: 0; }
+  .nav-tab ha-icon { --mdc-icon-size: 18px; display: block; pointer-events: none; flex-shrink: 0; }
   .nav-tab { border-right: 2px solid var(--border); }
   .nav-tab.active {
     color: var(--accent);
@@ -289,16 +478,10 @@ const STYLES = `
   .nav-tab:not(.active):hover { color: var(--text); background: rgba(255,255,255,0.04); }
 
   /* ── NAV TABS WRAPPER (allows extra buttons on sides) ── */
-  /* align-items: stretch ensures tab buttons fill the full nav height
-     even when nav-extra buttons are taller than the default tab padding */
-  .nav-tabs { display: flex; flex: 1; overflow: hidden; align-items: stretch; }
+  .nav-tabs { display: flex; flex: 1 0 auto; align-items: stretch; }
   .nav-tab { align-self: stretch; }
 
-  /* ── NAV EXTRA BUTTONS ── */
-  /* stretch: buttons fill the full nav height so the tap target equals the nav height */
-  .nav-extra { display: flex; align-items: stretch; gap: 0; padding: 0; flex-shrink: 0; }
-  .nav-extra-left .nav-btn { border-right: 2px solid var(--border); }
-  .nav-extra-right .nav-btn:not(:last-child) { border-right: 2px solid var(--border); }
+  /* ── NAV ACTION BUTTONS ── */
   .nav-btn {
     display: flex;
     flex-direction: column;
@@ -307,16 +490,19 @@ const STYLES = `
     gap: 2px;
     padding: 6px 8px;
     min-width: 36px;
-    min-height: 44px; /* comfortable minimum tap target */
+    min-height: 44px;
     box-sizing: border-box;
     cursor: pointer;
     border: none;
     border-radius: 0;
     background: none;
     color: var(--text2);
+    white-space: nowrap;
+    flex-shrink: 0;
+    scroll-snap-align: start;
     transition: color .2s, background .2s;
     -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation; /* eliminates 300 ms tap delay on mobile/tablet */
+    touch-action: manipulation;
     user-select: none;
   }
   .nav-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
@@ -325,8 +511,6 @@ const STYLES = `
   .nav-btn ha-icon { --mdc-icon-size: 20px; display: block; pointer-events: none; }
   .nav-btn svg { width: 20px; height: 20px; fill: currentColor; flex-shrink: 0; }
   .nav-btn-label { font-size: 10px; font-weight: 500; line-height: 1; pointer-events: none; }
-  #settings-btn { padding: 12px 10px; gap: 4px; }
-
   /* ── CONTENT AREA ── */
   /* position:relative + inset:0 on children is the most reliable way to
      give tab panels a definite pixel height without relying on flex cross-axis
@@ -459,6 +643,7 @@ const STYLES = `
     align-items: center;
     justify-content: center;
     gap: 8px;
+    position: relative;
   }
   .ctrl-btn {
     width: var(--control-size);
@@ -860,6 +1045,24 @@ const STYLES = `
     margin-top: 2px;
   }
 
+  .search-columns {
+    display: flex;
+    gap: 0;
+    height: 100%;
+  }
+  .search-column {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+  }
+  .search-column:last-child { border-right: none; }
+  @media (max-width: 639px) {
+    .search-columns { flex-direction: column; height: auto; }
+    .search-column { border-right: none; border-bottom: 1px solid var(--border); overflow-y: visible; }
+    .search-column:last-child { border-bottom: none; }
+  }
+
   .section-title {
     font-size: 12px;
     font-weight: 600;
@@ -949,17 +1152,49 @@ const STYLES = `
   .lib-see-all { font-size: 12px; color: var(--accent); cursor: pointer; background: none; border: none; }
   .lib-see-all:hover { text-decoration: underline; }
 
-  /* Horizontal scroll grid */
+  /* ── Lanes layout (horizontal scroll) ── */
   .lib-scroll {
     display: flex;
     gap: 12px;
     padding: 0 16px 4px;
     overflow-x: auto;
     scrollbar-width: none;
+    position: relative;
   }
   .lib-scroll::-webkit-scrollbar { display: none; }
+  @media (hover: hover) and (pointer: fine) {
+    .lib-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.2) transparent; }
+    .lib-scroll::-webkit-scrollbar { display: block; height: 6px; }
+    .lib-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 3px; }
+    .lib-scroll::-webkit-scrollbar-track { background: transparent; }
+  }
   .lib-sentinel { flex-shrink: 0; width: 1px; height: 1px; pointer-events: none; }
   .lib-sentinel-v { height: 1px; pointer-events: none; }
+
+  /* Lane arrows (desktop only) */
+  .lib-lane-wrap { position: relative; }
+  .lib-lane-arrow {
+    display: none;
+    position: absolute;
+    top: 0;
+    bottom: 6px;
+    width: 36px;
+    z-index: 2;
+    border: none;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    color: var(--text);
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  .lib-lane-arrow svg { width: 20px; height: 20px; fill: currentColor; filter: drop-shadow(0 0 4px rgba(0,0,0,.6)); }
+  .lib-lane-arrow.left { left: 0; background: linear-gradient(to right, var(--bg1) 30%, transparent); padding-left: 4px; }
+  .lib-lane-arrow.right { right: 0; background: linear-gradient(to left, var(--bg1) 30%, transparent); padding-right: 4px; }
+  @media (hover: hover) and (pointer: fine) {
+    .lib-lane-arrow { display: flex; }
+    .lib-lane-wrap:hover .lib-lane-arrow.visible { opacity: 1; }
+  }
 
   .lib-card {
     flex-shrink: 0;
@@ -995,6 +1230,47 @@ const STYLES = `
     text-overflow: ellipsis;
   }
   .lib-card-sub { font-size: 11px; color: var(--text2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── Grid layout ── */
+  .lib-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 16px 12px;
+    padding: 0 16px 4px;
+  }
+  .lib-grid .lib-card { width: auto; flex-shrink: unset; }
+  .lib-grid .lib-card-art { width: 100%; height: auto; aspect-ratio: 1; }
+  .lib-grid .lib-card-art-placeholder { width: 100%; height: auto; aspect-ratio: 1; }
+
+  /* ── Columns layout ── */
+  .lib-content.lib-layout-columns { overflow-y: hidden; }
+  .lib-columns-wrap {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+  .lib-columns-wrap > .lib-column {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+  }
+  .lib-columns-wrap > .lib-column:last-child { border-right: none; }
+  .lib-column .lib-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+  @media (max-width: 639px) {
+    .lib-columns-wrap { flex-direction: column; }
+    .lib-columns-wrap > .lib-column {
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      overflow-y: visible;
+    }
+    .lib-columns-wrap > .lib-column:last-child { border-bottom: none; }
+  }
+
 
   /* List style for tracks */
   .lib-list-item {
@@ -1079,7 +1355,8 @@ const STYLES = `
     .track-title { font-size: 22px; }
     .modal-sheet { max-height: 80%; }
   }
-  .queue-header { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text2); padding: 10px 16px 4px; }
+  .queue-header { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text2); padding: 10px 16px 4px; display: flex; align-items: center; justify-content: space-between; }
+  .queue-header-label { flex: 1; }
   .queue-item { display: flex; align-items: center; gap: 10px; padding: 8px 16px; cursor: pointer; transition: background .15s; }
   .queue-item:hover { background: rgba(255,255,255,.04); }
   .queue-num { font-size: 12px; color: var(--text2); width: 18px; text-align: right; flex-shrink: 0; }
@@ -1087,6 +1364,26 @@ const STYLES = `
   .queue-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .queue-sub { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
   .queue-dur { font-size: 11px; color: var(--text2); flex-shrink: 0; }
+  .queue-remove { background: none; border: none; cursor: pointer; padding: 4px; color: var(--text2); opacity: .6; flex-shrink: 0; display: flex; align-items: center; }
+  .queue-remove:active { opacity: 1; }
+  .queue-remove svg { width: 16px; height: 16px; fill: currentColor; }
+  .queue-empty { font-size: 12px; color: var(--text2); padding: 16px; text-align: center; opacity: .6; }
+
+  /* Queue toggle button (burger icon) */
+  .queue-toggle-btn { background: none; border: none; cursor: pointer; color: var(--text2); padding: 4px; display: flex; align-items: center; opacity: .7; transition: opacity .15s; position: absolute; right: 0; }
+  .queue-toggle-btn:active { opacity: 1; }
+  .queue-toggle-btn svg { width: 30px; height: 30px; fill: currentColor; }
+  .queue-toggle-btn.active { opacity: 1; color: var(--accent); }
+
+  /* Add-to-queue button on items */
+  .add-queue-btn { background: none; border: none; cursor: pointer; padding: 4px; color: var(--text2); flex-shrink: 0; display: flex; align-items: center; opacity: .6; position: relative; }
+  .add-queue-btn:active { opacity: 1; }
+  .add-queue-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+  /* Add-to-queue dropdown */
+  .queue-dropdown { position: absolute; z-index: 1000; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 0; min-width: 200px; box-shadow: 0 4px 16px rgba(0,0,0,.3); }
+  .queue-dropdown-item { padding: 8px 14px; font-size: 13px; color: var(--text); cursor: pointer; white-space: nowrap; }
+  .queue-dropdown-item:active { background: rgba(255,255,255,.08); }
 
   /* ══════════════════════════════════════════
      SETTINGS MODAL
@@ -1119,6 +1416,26 @@ const STYLES = `
   }
   .toggle-switch input:checked + .toggle-track { background: var(--accent); }
   .toggle-switch input:checked + .toggle-track::after { transform: translateX(18px); }
+  .settings-debug-banner {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: rgba(255, 152, 0, .12); border: 1px solid rgba(255, 152, 0, .35);
+    border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;
+  }
+  .settings-debug-dot {
+    width: 10px; height: 10px; min-width: 10px; border-radius: 50%;
+    background: #ff9800; margin-top: 3px;
+    animation: mml-debug-pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes mml-debug-pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+  .mml-toast {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+    background: var(--error-color, #b00020); color: #fff;
+    padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0,0,0,.3); z-index: 999;
+    opacity: 0; transition: opacity .3s ease;
+    pointer-events: none; max-width: 90%; text-align: center;
+  }
+  .mml-toast.visible { opacity: 1; }
 `;
 
 /* ─── Helpers ─────────────────────────────────────────────── */
@@ -1186,8 +1503,9 @@ class MyMusicLibraryCard extends HTMLElement {
     this._progressInterval = null;
     this._localPosition = null;
     this._localPositionTime = null;
-    this._queue = [];
-    this._lastQueueSource = null;  // URI of the album/playlist whose queue is loaded
+    this._maQueueItems = [];
+    this._lastKnownUri = null;
+    this._queueVisible = this._loadPref("mml_queue_visible") !== "false";
     this._groupMembers = [];       // entity_ids attached to _activePlayer as group
     this._excludedPlayers = [];    // entity_ids hidden from the device picker (HA options)
     this._libBrowseMode = false;   // true = browse filesystem mode
@@ -1197,6 +1515,11 @@ class MyMusicLibraryCard extends HTMLElement {
     this._maUrl = null;       // stored but only used as a last-resort hint
     this._maEntryId = null;   // MA config entry ID — used for music_assistant/search WS calls
     this._maConfigLoaded = false;
+    this._debugMode = false;
+  }
+
+  _debugLog(...args) {
+    if (this._debugMode) console.debug("[MML]", ...args);
   }
 
   /* ── i18n helper ── */
@@ -1209,31 +1532,28 @@ class MyMusicLibraryCard extends HTMLElement {
     return key.split(".").reduce((o, k) => o?.[k], TRANSLATIONS.en) ?? key;
   }
 
-  /* ── Queue persistence (server-side, per player) ── */
+  /* ── MA Queue (via Music Assistant native queue) ── */
 
-  /** Load queue for a given player from the HA backend. Fire-and-forget safe. */
-  async _loadQueueFromServer(player) {
-    if (!player || !this._hass) { this._queue = []; this._lastQueueSource = null; return; }
+  async _loadMAQueue() {
+    if (!this._activePlayer || !this._hass) { this._maQueueItems = []; this._updateQueueUI(); return; }
     try {
-      const data = await this._callIntegration("GET", `queue?player=${encodeURIComponent(player)}`);
-      this._queue = data?.queue || [];
-      this._lastQueueSource = data?.source || null;
+      const data = await this._callIntegration("GET", `ma_queue?player=${encodeURIComponent(this._activePlayer)}&limit=100`);
+      this._maQueueItems = data?.items || [];
+      this._debugLog("MA queue loaded →", this._maQueueItems.length, "items");
     } catch (_) {
-      this._queue = [];
-      this._lastQueueSource = null;
+      this._maQueueItems = [];
     }
-    const card = this.shadowRoot?.querySelector(".card-root");
-    if (card) this._updateQueueDisplay(card);
+    this._updateQueueUI();
   }
 
-  /** Persist the current queue to the HA backend (fire-and-forget). */
-  _saveQueueState() {
-    if (!this._activePlayer || !this._hass) return;
-    this._callIntegration("POST", "queue", {
-      player: this._activePlayer,
-      queue: this._queue,
-      source: this._lastQueueSource,
-    }).catch(() => {});
+  _refreshQueueSoon(delay = 1200) {
+    clearTimeout(this._queueRefreshTimer);
+    this._queueRefreshTimer = setTimeout(() => this._loadMAQueue(), delay);
+  }
+
+  _updateQueueUI() {
+    const card = this.shadowRoot?.querySelector(".card-root");
+    if (card) this._updateQueueDisplay(card);
   }
 
   /* ── Group persistence (server-side, per player) ── */
@@ -1270,6 +1590,7 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   async _callIntegration(method, path, body) {
+    this._debugLog(`API ${method} /my_music_library/${path}`, body !== undefined ? body : "");
     const opts = { method };
     if (body !== undefined) {
       opts.headers = { "Content-Type": "application/json" };
@@ -1278,20 +1599,81 @@ class MyMusicLibraryCard extends HTMLElement {
     const resp = await this._hass.fetchWithAuth(`/my_music_library/${path}`, opts);
     if (!resp.ok) {
       const text = await resp.text().catch(() => "");
+      this._debugLog(`API ${method} /my_music_library/${path} → ${resp.status}:`, text);
       throw new Error(`${resp.status}: ${text}`);
     }
-    return resp.json();
+    const data = await resp.json();
+    this._debugLog(`API ${method} /my_music_library/${path} → OK`, data);
+    return data;
   }
 
   /* ── Lovelace required ── */
   setConfig(config) {
     this._config = { default_tab: "player", ...config };
-    this._tab = this._config.default_tab || "player";
-    // config.height sets the minimum height; the card always fills 100% of available space
+    this._resolvedTabs = this._buildResolvedTabs(config);
+    const firstPanel = this._resolvedTabs.find(t => t.type !== "button");
+    const defaultTab = this._config.default_tab || (firstPanel ? firstPanel.id : "player");
+    this._tab = defaultTab;
     if (config.height != null && config.height !== "") {
       const h = typeof config.height === "number" ? `${config.height}px` : String(config.height);
       this.style.setProperty("--mml-height", h);
     }
+  }
+
+  _buildResolvedTabs(config) {
+    const DEFAULT_SECTIONS = ["artists", "albums", "playlists", "tracks"];
+    const VALID_SECTIONS = ["artists", "albums", "playlists", "tracks", "radios"];
+    const TAB_ICONS = { player: "player", search: "search", library: "library", settings: "settings" };
+
+    if (config.tabs && Array.isArray(config.tabs)) {
+      let idx = 0;
+      return config.tabs.map(t => {
+        const type = t.type || "button";
+        if (type === "button") {
+          return { type: "button", id: `btn-${idx++}`, icon: t.icon, name: t.name || "", entity: t.entity,
+            tap_action: t.tap_action, hold_action: t.hold_action, double_tap_action: t.double_tap_action,
+            width: t.width, height: t.height };
+        }
+        const id = type === "settings" ? "settings" : type;
+        const tab = { type, id, label: t.label || null, iconOverride: t.icon || null,
+          defaultIcon: TAB_ICONS[type] || null };
+        if (type === "library") {
+          const sections = Array.isArray(t.sections) ? t.sections.filter(s => VALID_SECTIONS.includes(s)) : null;
+          tab.sections = sections && sections.length ? sections : DEFAULT_SECTIONS;
+          const VALID_LAYOUTS = ["lanes", "grid", "columns", "auto"];
+          tab.layout = VALID_LAYOUTS.includes(t.layout) ? t.layout : "lanes";
+        }
+        if (type === "search") {
+          tab.search_layout = t.search_layout === "columns" ? "columns" : "rows";
+        }
+        return tab;
+      });
+    }
+
+    // Backward compatibility: build from legacy config
+    const tabs = [];
+    if (config.nav_buttons_left) {
+      let idx = 0;
+      for (const b of config.nav_buttons_left) {
+        tabs.push({ type: "button", id: `btn-${idx++}`, icon: b.icon, name: b.name || "", entity: b.entity,
+          tap_action: b.tap_action, hold_action: b.hold_action, double_tap_action: b.double_tap_action,
+          width: b.width, height: b.height });
+      }
+    }
+    tabs.push({ type: "player", id: "player", label: null, iconOverride: null, defaultIcon: "player" });
+    tabs.push({ type: "search", id: "search", label: null, iconOverride: null, defaultIcon: "search", search_layout: "rows" });
+    tabs.push({ type: "library", id: "library", label: null, iconOverride: null, defaultIcon: "library",
+      sections: DEFAULT_SECTIONS, layout: "lanes" });
+    if (config.nav_buttons_right) {
+      let idx = (config.nav_buttons_left?.length || 0);
+      for (const b of config.nav_buttons_right) {
+        tabs.push({ type: "button", id: `btn-${idx++}`, icon: b.icon, name: b.name || "", entity: b.entity,
+          tap_action: b.tap_action, hold_action: b.hold_action, double_tap_action: b.double_tap_action,
+          width: b.width, height: b.height });
+      }
+    }
+    tabs.push({ type: "settings", id: "settings", label: null, iconOverride: null, defaultIcon: "settings" });
+    return tabs;
   }
 
   // Tell Lovelace masonry how many rows to reserve (1 row ≈ 50px)
@@ -1300,6 +1682,10 @@ class MyMusicLibraryCard extends HTMLElement {
     if (h && typeof h === "number") return Math.ceil(h / 50);
     if (h && typeof h === "string" && h.endsWith("px")) return Math.ceil(parseInt(h) / 50);
     return 8; // default ~400px
+  }
+
+  static getConfigElement() {
+    return document.createElement("my-music-library-card-editor");
   }
 
   static getStubConfig() {
@@ -1321,14 +1707,14 @@ class MyMusicLibraryCard extends HTMLElement {
       this._activePlayer = null;
     } else {
       if (!this._activePlayer || !this._players.find(p => p.entity_id === this._activePlayer)) {
-        // Priority: 1) localStorage  2) card config entity  3) currently playing  4) first player
         const saved = this._loadSavedPlayer();
         const prevActive = this._activePlayer;
         this._activePlayer = (saved && this._players.find(p => p.entity_id === saved) ? saved : null)
           || this._config.entity
           || (this._players.find(p => p.state === "playing") || this._players[0])?.entity_id;
+        this._debugLog("Player selected:", this._activePlayer, "prev:", prevActive, "saved:", saved, "players:", this._players.map(p => p.entity_id));
         if (this._activePlayer && this._activePlayer !== prevActive) {
-          this._loadQueueFromServer(this._activePlayer);
+          this._loadMAQueue();
           this._loadGroupFromServer(this._activePlayer);
         }
       }
@@ -1370,6 +1756,8 @@ class MyMusicLibraryCard extends HTMLElement {
   async _fetchMaConfig() {
     try {
       const cfg = await this._hass.callWS({ type: "my_music_library/config" });
+      this._debugMode = !!cfg?.debug_mode;
+      this._debugLog("Config loaded:", JSON.stringify(cfg));
       if (cfg?.ma_entry_id) {
         this._maEntryId = cfg.ma_entry_id;
       }
@@ -1379,13 +1767,12 @@ class MyMusicLibraryCard extends HTMLElement {
       }
       if (Array.isArray(cfg?.excluded_players)) {
         this._excludedPlayers = cfg.excluded_players;
-        // Refresh player list now that exclusions are known
         this._players = this._getMaPlayers();
         const card = this.shadowRoot?.querySelector(".card-root");
         if (card) this._updatePlayerContent(card);
       }
     } catch (e) {
-      // Integration config fetch failed
+      this._debugLog("Config fetch failed:", e);
     }
   }
 
@@ -1489,15 +1876,22 @@ class MyMusicLibraryCard extends HTMLElement {
 
     const card = document.createElement("div");
     card.className = "card-root";
+
+    const panels = this._resolvedTabs.filter(t => t.type !== "button");
+    const panelRenderers = {
+      player: () => this._renderPlayerTab(),
+      search: () => this._renderSearchTab(),
+      library: () => this._renderLibraryTab(),
+    };
+
     card.innerHTML = `
       ${this._renderNav()}
       <div class="content">
-        ${this._renderPlayerTab()}
-        ${this._renderSearchTab()}
-        ${this._renderLibraryTab()}
+        ${panels.map(t => panelRenderers[t.type] ? panelRenderers[t.type]() : "").join("")}
       </div>
       ${this._renderDeviceModal()}
       ${this._renderSettingsModal()}
+      <div class="mml-toast" id="mml-toast"></div>
     `;
     root.appendChild(card);
 
@@ -1507,52 +1901,58 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   _renderNav() {
+    const items = this._resolvedTabs.map(t => {
+      if (t.type === "button") {
+        return this._renderNavButton(t);
+      }
+      if (t.type === "settings") {
+        const label = t.label || this._t("tabs.settings");
+        const icon = t.iconOverride
+          ? `<ha-icon icon="${this._esc(t.iconOverride)}"></ha-icon>`
+          : ICONS.settings;
+        const debugStyle = this._debugMode ? ' style="color: orange;"' : '';
+        return `<button class="nav-tab"${debugStyle} data-tab="settings" title="${this._esc(label)}">
+          ${icon}<span>${this._esc(label)}</span>
+        </button>`;
+      }
+      const label = t.label || this._t(`tabs.${t.type}`);
+      const icon = t.iconOverride
+        ? `<ha-icon icon="${this._esc(t.iconOverride)}"></ha-icon>`
+        : (ICONS[t.defaultIcon] || ICONS.player);
+      return `<button class="nav-tab ${this._tab === t.id ? "active" : ""}" data-tab="${t.id}">
+        ${icon}<span>${this._esc(label)}</span>
+      </button>`;
+    }).join("");
+
     return `
-      <nav class="nav">
-        <div class="nav-extra nav-extra-left">${this._renderNavButtons(this._config.nav_buttons_left, "left")}</div>
-        <div class="nav-tabs">
-          <button class="nav-tab ${this._tab === "player" ? "active" : ""}" data-tab="player">
-            ${ICONS.player}<span>${this._t("tabs.player")}</span>
-          </button>
-          <button class="nav-tab ${this._tab === "search" ? "active" : ""}" data-tab="search">
-            ${ICONS.search}<span>${this._t("tabs.search")}</span>
-          </button>
-          <button class="nav-tab ${this._tab === "library" ? "active" : ""}" data-tab="library">
-            ${ICONS.library}<span>${this._t("tabs.library")}</span>
-          </button>
-        </div>
-        <div class="nav-extra nav-extra-right">
-          ${this._renderNavButtons(this._config.nav_buttons_right, "right")}
-          <button class="nav-btn" id="settings-btn" title="${this._t("settings.title")}">
-            ${ICONS.settings}
-            <span class="nav-btn-label">${this._t("settings.title")}</span>
-          </button>
-        </div>
-      </nav>`;
+      <div class="nav-wrapper">
+        <div class="nav-fade-left"></div>
+        <div class="nav-fade-right"></div>
+        <nav class="nav">
+          <div class="nav-tabs">${items}</div>
+        </nav>
+      </div>`;
   }
 
-  _renderNavButtons(buttons, side) {
-    if (!buttons?.length) return "";
-    return buttons.map((btn, i) => {
-      const entity = btn.entity ? this._hass?.states[btn.entity] : null;
-      const isActive = entity
-        ? ["on", "playing", "active", "home"].includes(entity.state)
-        : false;
-      const icon = btn.icon || entity?.attributes?.icon || "mdi:gesture-tap";
-      const label = btn.name || "";
-      const title = label || entity?.attributes?.friendly_name || "";
-      const sizeParts = [];
-      if (btn.width)  sizeParts.push(`width:${typeof btn.width  === "number" ? btn.width  + "px" : btn.width}`);
-      if (btn.height) sizeParts.push(`height:${typeof btn.height === "number" ? btn.height + "px" : btn.height}`);
-      const sizeStyle = sizeParts.length ? ` style="${sizeParts.join(";")}"` : "";
-      return `
-        <button class="nav-btn${isActive ? " active" : ""}"
-                data-nav-side="${side}" data-nav-idx="${i}"
-                title="${this._esc(title)}"${sizeStyle}>
-          <ha-icon icon="${this._esc(icon)}"></ha-icon>
-          ${label ? `<span class="nav-btn-label">${this._esc(label)}</span>` : ""}
-        </button>`;
-    }).join("");
+  _renderNavButton(btn) {
+    const entity = btn.entity ? this._hass?.states[btn.entity] : null;
+    const isActive = entity
+      ? ["on", "playing", "active", "home"].includes(entity.state)
+      : false;
+    const icon = btn.icon || entity?.attributes?.icon || "mdi:gesture-tap";
+    const label = btn.name || "";
+    const title = label || entity?.attributes?.friendly_name || "";
+    const sizeParts = [];
+    if (btn.width)  sizeParts.push(`width:${typeof btn.width  === "number" ? btn.width  + "px" : btn.width}`);
+    if (btn.height) sizeParts.push(`height:${typeof btn.height === "number" ? btn.height + "px" : btn.height}`);
+    const sizeStyle = sizeParts.length ? ` style="${sizeParts.join(";")}"` : "";
+    return `
+      <button class="nav-btn${isActive ? " active" : ""}"
+              data-tab-btn="${btn.id}"
+              title="${this._esc(title)}"${sizeStyle}>
+        <ha-icon icon="${this._esc(icon)}"></ha-icon>
+        ${label ? `<span class="nav-btn-label">${this._esc(label)}</span>` : ""}
+      </button>`;
   }
 
   _renderPlayerTab() {
@@ -1583,6 +1983,7 @@ class MyMusicLibraryCard extends HTMLElement {
                 <button class="ctrl-btn primary" id="btn-playpause" title="${this._t("btns.play_pause")}">${ICONS.play}</button>
                 <button class="ctrl-btn ctrl-nav" id="btn-next" title="${this._t("btns.next")}">${ICONS.next}</button>
                 <button class="ctrl-btn" id="btn-repeat" title="${this._t("btns.repeat")}">${ICONS.repeat}</button>
+                <button class="queue-toggle-btn ${this._queueVisible ? "active" : ""}" id="btn-queue-toggle" title="${this._t("queue.toggle")}">${ICONS.queue}</button>
               </div>
               <div class="volume-row">
                 <button class="ctrl-btn" id="btn-mute" title="${this._t("btns.mute")}">${ICONS.volumeHigh}</button>
@@ -1595,9 +1996,13 @@ class MyMusicLibraryCard extends HTMLElement {
               </div>
             </div>
           </div>
-          <div class="queue-section" id="queue-section" style="display:none">
-            <div class="queue-header">${this._t("queue.up_next")}</div>
-            <div id="queue-list"></div>
+          <div class="queue-section" id="queue-section" style="${this._queueVisible ? "" : "display:none"}">
+            <div class="queue-header">
+              <span class="queue-header-label">${this._t("queue.up_next")}</span>
+            </div>
+            <div id="queue-list">
+              <div class="queue-empty">${this._t("queue.empty")}</div>
+            </div>
           </div>
         </div>
       </div>`;
@@ -1681,14 +2086,32 @@ class MyMusicLibraryCard extends HTMLElement {
 
   /* ── Event Listeners ── */
   _attachListeners(card) {
-    // Nav tabs
+    // Nav tabs (panel tabs + settings)
     card.querySelectorAll(".nav-tab").forEach(btn => {
       btn.addEventListener("click", () => {
         const tab = btn.dataset.tab;
+        if (tab === "settings") {
+          this._openSettings(card);
+          return;
+        }
         this._setActiveTab(tab, card);
         if (tab === "library" && !this._libLoaded) this._loadLibrary();
       });
     });
+
+    // Nav scroll fade indicators
+    const navEl = card.querySelector(".nav");
+    if (navEl) {
+      const fadeL = card.querySelector(".nav-fade-left");
+      const fadeR = card.querySelector(".nav-fade-right");
+      const updateFades = () => {
+        const { scrollLeft, scrollWidth, clientWidth } = navEl;
+        fadeL?.classList.toggle("visible", scrollLeft > 2);
+        fadeR?.classList.toggle("visible", scrollLeft + clientWidth < scrollWidth - 2);
+      };
+      navEl.addEventListener("scroll", updateFades, { passive: true });
+      requestAnimationFrame(updateFades);
+    }
 
     // Library source filter (All / Local / Streaming)
     card.querySelector("#lib-source-filter")?.addEventListener("click", (e) => {
@@ -1722,86 +2145,100 @@ class MyMusicLibraryCard extends HTMLElement {
       this._reloadLibrary();
     });
 
-    // Player controls
-    card.querySelector("#btn-playpause").addEventListener("click", () => this._togglePlayPause());
-    card.querySelector("#btn-prev").addEventListener("click", () => this._callService("media_previous_track"));
-    card.querySelector("#btn-next").addEventListener("click", () => this._callService("media_next_track"));
-    card.querySelector("#btn-shuffle").addEventListener("click", () => this._toggleShuffle());
-    card.querySelector("#btn-repeat").addEventListener("click", () => this._cycleRepeat());
-    card.querySelector("#btn-mute").addEventListener("click", () => this._toggleMute());
+    const hasPanel = (type) => this._resolvedTabs.some(t => t.type === type);
 
-    // Volume — send command only on release (pointerup), not during drag
-    const volSlider = card.querySelector("#volume-slider");
-    volSlider.addEventListener("pointerdown", () => { this._volumeDragging = true; });
-    const endVolDrag = (e) => {
-      if (!this._volumeDragging) return;
-      this._volumeDragging = false;
-      this._callService("volume_set", { volume_level: parseInt(e.target.value) / 100 });
-    };
-    volSlider.addEventListener("pointerup", endVolDrag);
-    volSlider.addEventListener("pointercancel", () => { this._volumeDragging = false; });
+    // Player controls (only if player tab is present)
+    if (hasPanel("player")) {
+      card.querySelector("#btn-playpause").addEventListener("click", () => this._togglePlayPause());
+      card.querySelector("#btn-prev").addEventListener("click", () => this._callService("media_previous_track"));
+      card.querySelector("#btn-next").addEventListener("click", () => this._callService("media_next_track"));
+      card.querySelector("#btn-shuffle").addEventListener("click", () => this._toggleShuffle());
+      card.querySelector("#btn-repeat").addEventListener("click", () => this._cycleRepeat());
+      card.querySelector("#btn-mute").addEventListener("click", () => this._toggleMute());
 
-    // Progress bar — seek on release only (covers both tap and drag)
-    const progressBar = card.querySelector("#progress-bar");
-    const progressFill = card.querySelector("#progress-fill");
-    const posTimeEl = card.querySelector("#pos-time");
-    const getSeekPct = (e) => {
-      const rect = progressBar.getBoundingClientRect();
-      return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    };
-    progressBar.addEventListener("pointerdown", (e) => {
-      const state = this._getActiveState();
-      if (!state?.attributes?.media_duration) return;
-      this._seekDragging = true;
-      progressBar.setPointerCapture(e.pointerId);
-      progressFill.style.transition = "none";
-      const pct = getSeekPct(e);
-      progressFill.style.width = `${(pct * 100).toFixed(1)}%`;
-      if (posTimeEl) posTimeEl.textContent = fmt(pct * state.attributes.media_duration);
-    });
-    progressBar.addEventListener("pointermove", (e) => {
-      if (!this._seekDragging) return;
-      const state = this._getActiveState();
-      if (!state?.attributes?.media_duration) return;
-      const pct = getSeekPct(e);
-      progressFill.style.width = `${(pct * 100).toFixed(1)}%`;
-      if (posTimeEl) posTimeEl.textContent = fmt(pct * state.attributes.media_duration);
-    });
-    const endSeekDrag = (e) => {
-      if (!this._seekDragging) return;
-      this._seekDragging = false;
-      progressFill.style.transition = "";
-      const state = this._getActiveState();
-      if (!state?.attributes?.media_duration) return;
-      const pct = getSeekPct(e);
-      const pos = pct * state.attributes.media_duration;
-      this._callService("media_seek", { seek_position: Math.round(pos) });
-      this._localPosition = pos;
-      this._localPositionTime = Date.now() / 1000;
-    };
-    progressBar.addEventListener("pointerup", endSeekDrag);
-    progressBar.addEventListener("pointercancel", () => {
-      this._seekDragging = false;
-      progressFill.style.transition = "";
-    });
+      // Volume — send command only on release (pointerup), not during drag
+      const volSlider = card.querySelector("#volume-slider");
+      volSlider.addEventListener("pointerdown", () => { this._volumeDragging = true; });
+      const endVolDrag = (e) => {
+        if (!this._volumeDragging) return;
+        this._volumeDragging = false;
+        this._callService("volume_set", { volume_level: parseInt(e.target.value) / 100 });
+      };
+      volSlider.addEventListener("pointerup", endVolDrag);
+      volSlider.addEventListener("pointercancel", () => { this._volumeDragging = false; });
 
-    // Device row
-    card.querySelector("#device-row").addEventListener("click", () => this._openDeviceModal(card));
-    card.querySelector("#modal-close").addEventListener("click", () => this._closeDeviceModal(card));
-    card.querySelector("#device-modal").addEventListener("click", (e) => {
-      if (e.target === card.querySelector("#device-modal")) this._closeDeviceModal(card);
-    });
+      // Progress bar — seek on release only (covers both tap and drag)
+      const progressBar = card.querySelector("#progress-bar");
+      const progressFill = card.querySelector("#progress-fill");
+      const posTimeEl = card.querySelector("#pos-time");
+      const getSeekPct = (e) => {
+        const rect = progressBar.getBoundingClientRect();
+        return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      };
+      progressBar.addEventListener("pointerdown", (e) => {
+        const state = this._getActiveState();
+        if (!state?.attributes?.media_duration) return;
+        this._seekDragging = true;
+        progressBar.setPointerCapture(e.pointerId);
+        progressFill.style.transition = "none";
+        const pct = getSeekPct(e);
+        progressFill.style.width = `${(pct * 100).toFixed(1)}%`;
+        if (posTimeEl) posTimeEl.textContent = fmt(pct * state.attributes.media_duration);
+      });
+      progressBar.addEventListener("pointermove", (e) => {
+        if (!this._seekDragging) return;
+        const state = this._getActiveState();
+        if (!state?.attributes?.media_duration) return;
+        const pct = getSeekPct(e);
+        progressFill.style.width = `${(pct * 100).toFixed(1)}%`;
+        if (posTimeEl) posTimeEl.textContent = fmt(pct * state.attributes.media_duration);
+      });
+      const endSeekDrag = (e) => {
+        if (!this._seekDragging) return;
+        this._seekDragging = false;
+        progressFill.style.transition = "";
+        const state = this._getActiveState();
+        if (!state?.attributes?.media_duration) return;
+        const pct = getSeekPct(e);
+        const pos = pct * state.attributes.media_duration;
+        this._callService("media_seek", { seek_position: Math.round(pos) });
+        this._localPosition = pos;
+        this._localPositionTime = Date.now() / 1000;
+      };
+      progressBar.addEventListener("pointerup", endSeekDrag);
+      progressBar.addEventListener("pointercancel", () => {
+        this._seekDragging = false;
+        progressFill.style.transition = "";
+      });
 
-    // Settings
-    card.querySelector("#settings-btn").addEventListener("click", () => this._openSettings(card));
+      // Queue toggle
+      card.querySelector("#btn-queue-toggle")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this._queueVisible = !this._queueVisible;
+        this._savePref("mml_queue_visible", String(this._queueVisible));
+        const qs = card.querySelector("#queue-section");
+        if (qs) qs.style.display = this._queueVisible ? "" : "none";
+        const btn = card.querySelector("#btn-queue-toggle");
+        if (btn) btn.classList.toggle("active", this._queueVisible);
+      });
+
+      // Device row
+      card.querySelector("#device-row").addEventListener("click", () => this._openDeviceModal(card));
+      card.querySelector("#modal-close").addEventListener("click", () => this._closeDeviceModal(card));
+      card.querySelector("#device-modal").addEventListener("click", (e) => {
+        if (e.target === card.querySelector("#device-modal")) this._closeDeviceModal(card);
+      });
+    }
+
+    // Settings modal close
     card.querySelector("#settings-close").addEventListener("click", () => this._closeSettings(card));
     card.querySelector("#settings-modal").addEventListener("click", (e) => {
       if (e.target === card.querySelector("#settings-modal")) this._closeSettings(card);
     });
 
-    // Search
+    // Search (only if search tab is present)
     const searchInput = card.querySelector("#search-input");
-    searchInput.addEventListener("input", (e) => {
+    searchInput?.addEventListener("input", (e) => {
       clearTimeout(this._searchTimeout);
       this._searchQuery = e.target.value;
       if (this._searchQuery.trim().length < 2) {
@@ -1811,16 +2248,14 @@ class MyMusicLibraryCard extends HTMLElement {
       this._searchTimeout = setTimeout(() => this._doSearch(card), 700);
     });
 
-    // Nav extra buttons (tap / hold / double-tap → HA actions)
-    card.querySelectorAll(".nav-btn").forEach(btn => {
+    // Nav action buttons (tap / hold / double-tap → HA actions)
+    card.querySelectorAll("[data-tab-btn]").forEach(btn => {
       let holdTimer = null;
       let didHold = false;
 
       const getBtnCfg = () => {
-        const side = btn.dataset.navSide;
-        const idx = parseInt(btn.dataset.navIdx, 10);
-        const list = side === "left" ? this._config.nav_buttons_left : this._config.nav_buttons_right;
-        return list?.[idx];
+        const id = btn.dataset.tabBtn;
+        return this._resolvedTabs.find(t => t.id === id);
       };
 
       btn.addEventListener("pointerdown", () => {
@@ -1936,18 +2371,12 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   _updateNavButtons(card) {
-    const sides = [
-      { side: "left",  buttons: this._config.nav_buttons_left  || [] },
-      { side: "right", buttons: this._config.nav_buttons_right || [] },
-    ];
-    for (const { side, buttons } of sides) {
-      buttons.forEach((btn, i) => {
-        if (!btn.entity) return;
-        const st = this._hass?.states[btn.entity];
-        const isActive = st ? ["on", "playing", "active", "home"].includes(st.state) : false;
-        const el = card.querySelector(`.nav-btn[data-nav-side="${side}"][data-nav-idx="${i}"]`);
-        if (el) el.classList.toggle("active", isActive);
-      });
+    for (const tab of this._resolvedTabs) {
+      if (tab.type !== "button" || !tab.entity) continue;
+      const st = this._hass?.states[tab.entity];
+      const isActive = st ? ["on", "playing", "active", "home"].includes(st.state) : false;
+      const el = card.querySelector(`[data-tab-btn="${tab.id}"]`);
+      if (el) el.classList.toggle("active", isActive);
     }
   }
 
@@ -1960,7 +2389,31 @@ class MyMusicLibraryCard extends HTMLElement {
     const artWrapper = card.querySelector("#art-wrapper");
     if (artWrapper) {
       if (attr.entity_picture) {
-        artWrapper.innerHTML = `<img class="art" src="${this._hass.hassUrl(attr.entity_picture)}" alt="Album art">`;
+        const ep = attr.entity_picture;
+        const isAbsolute = ep.startsWith("http");
+        const hasHassUrl = typeof this._hass.hassUrl === "function";
+        const src = isAbsolute ? ep : (hasHassUrl ? this._hass.hassUrl(ep) : ep);
+        console.debug("[MML] Cover art: entity_picture=%s isAbsolute=%s hassUrl=%s → src=%s", ep, isAbsolute, hasHassUrl, src);
+        const existing = artWrapper.querySelector("img.art");
+        if (!existing || existing.src !== src) {
+          artWrapper.innerHTML = "";
+          const img = document.createElement("img");
+          img.className = "art";
+          img.alt = "Album art";
+          img.src = src;
+          img.onload = () => console.debug("[MML] Cover art loaded OK: %s", src);
+          img.onerror = () => {
+            console.warn("[MML] Cover art FAILED: %s", src);
+            if (!isAbsolute && img.src !== ep) {
+              console.debug("[MML] Cover art fallback to raw: %s", ep);
+              img.src = ep;
+            } else {
+              console.warn("[MML] Cover art all attempts failed, showing placeholder");
+              artWrapper.innerHTML = `<div class="art-placeholder">${ICONS.music}</div>`;
+            }
+          };
+          artWrapper.appendChild(img);
+        }
       } else {
         artWrapper.innerHTML = `<div class="art-placeholder">${ICONS.music}</div>`;
       }
@@ -2009,54 +2462,11 @@ class MyMusicLibraryCard extends HTMLElement {
     // Device row (name + icon reflect group state)
     this._updateDeviceRow(card);
 
-    // Queue update logic:
-    // - New album/playlist URI detected → fetch its tracks.
-    // - Track URI detected AND track is in current queue → keep queue (normal playback).
-    // - Track URI detected AND track NOT in queue → source changed externally, clear stale queue.
-    // - Any other URI type (null, stopped, etc.) → just redisplay, never clear.
+    // Refresh MA queue when the current track changes
     const currentUri = attr.media_content_id || null;
-    const uriType = this._maUriType(currentUri);
-    if ((uriType === "album" || uriType === "playlist") && currentUri !== this._lastQueueSource) {
-      this._lastQueueSource = currentUri;
-      this._saveQueueState();
-      const action = uriType === "album" ? "album_tracks" : "playlist_tracks";
-      this._fetchQueueForUri(currentUri, action, card);
-    } else if (uriType === "track" && this._queue.length > 0) {
-      const inQueue = this._queue.some(t => t.media_content_id === currentUri);
-      if (!inQueue) {
-        // Playing something outside our cached queue → discard stale queue
-        this._queue = [];
-        this._lastQueueSource = null;
-        this._saveQueueState();
-      }
-      this._updateQueueDisplay(card);
-    } else {
-      this._updateQueueDisplay(card);
-    }
-  }
-
-  /** Extract the item type from a MA URI: "spotify://album/123" → "album" */
-  _maUriType(uri) {
-    if (!uri || !uri.includes("://")) return null;
-    const rest = uri.split("://")[1] || "";
-    const parts = rest.split("/").filter(Boolean);
-    return parts[0] || null; // "album", "track", "artist", "playlist", …
-  }
-
-  async _fetchQueueForUri(uri, action, card) {
-    try {
-      const data = await this._callIntegration(
-        "GET",
-        `subitems?action=${action}&uri=${encodeURIComponent(uri)}&limit=100`
-      );
-      this._queue = data?.items || [];
-      if (action === "album_tracks") {
-        this._queue.sort((a, b) => (a.track_number || 0) - (b.track_number || 0));
-      }
-      this._saveQueueState();
-      this._updateQueueDisplay(card);
-    } catch (err) {
-      // Auto-queue fetch failed
+    if (currentUri !== this._lastKnownUri) {
+      this._lastKnownUri = currentUri;
+      this._refreshQueueSoon(800);
     }
   }
 
@@ -2218,7 +2628,7 @@ class MyMusicLibraryCard extends HTMLElement {
         this._savePlayer(player.entity_id);
         if (this._activePlayer !== prevActive) {
           this._groupMembers = [];
-          this._loadQueueFromServer(this._activePlayer);
+          this._loadMAQueue();
           this._loadGroupFromServer(this._activePlayer);
         }
         this._closeDeviceModal(card);
@@ -2294,8 +2704,17 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   _buildSettingsContent() {
+    const debugBanner = this._debugMode ? `
+      <div class="settings-debug-banner">
+        <span class="settings-debug-dot"></span>
+        <div>
+          <strong>${this._t("settings.debug_active")}</strong>
+          <p class="settings-hint" style="margin:4px 0 0">${this._t("settings.debug_hint")}</p>
+        </div>
+      </div>` : "";
+
     if (this._maProviders.length === 0) {
-      return `<p style="color:var(--text2);font-size:13px;padding:8px 0;opacity:.7">${this._t("settings.providers_empty")}</p>`;
+      return `${debugBanner}<p style="color:var(--text2);font-size:13px;padding:8px 0;opacity:.7">${this._t("settings.providers_empty")}</p>`;
     }
     const rows = this._maProviders.map(p => {
       const key = p.instance_id || p.domain;
@@ -2310,6 +2729,7 @@ class MyMusicLibraryCard extends HTMLElement {
         </div>`;
     }).join("");
     return `
+      ${debugBanner}
       <div class="settings-section-title">${this._t("settings.providers_title")}</div>
       <p class="settings-hint">${this._t("settings.providers_hint")}</p>
       ${rows}`;
@@ -2360,9 +2780,9 @@ class MyMusicLibraryCard extends HTMLElement {
   async _doSearch(card) {
     if (!this._hass) return;
 
-    // Cancellation token: ignore results from superseded requests
     const id = ++this._searchId;
     const query = this._searchQuery;
+    this._debugLog("Search start:", query, "id:", id);
 
     this._searchLoading = true;
     const resultsEl = card.querySelector("#search-results");
@@ -2370,35 +2790,42 @@ class MyMusicLibraryCard extends HTMLElement {
 
     let results = null;
 
-    // Strategies 1+2 in parallel — use first non-null result
     {
+      const strategies = ["HA proxy"];
       const candidates = [this._searchViaHaProxy(query)];
-      if (this._maEntryId) candidates.push(this._searchViaMaWs(query));
-      const settled = await Promise.allSettled(candidates);
-      for (const r of settled) {
-        if (r.status === "fulfilled" && r.value) { results = r.value; break; }
-      }
+      if (this._maEntryId) { candidates.push(this._searchViaMaWs(query)); strategies.push("MA WS"); }
+      this._debugLog("Search strategies:", strategies.join(", "));
+      results = await new Promise(resolve => {
+        let pending = candidates.length;
+        candidates.forEach((p, i) => p.then(v => {
+          if (v) { this._debugLog(`Search strategy ${strategies[i]}: fulfilled, has results`); resolve(v); }
+          else { this._debugLog(`Search strategy ${strategies[i]}: fulfilled, null`); if (--pending === 0) resolve(null); }
+        }).catch(e => {
+          this._debugLog(`Search strategy ${strategies[i]}: rejected`, e);
+          if (--pending === 0) resolve(null);
+        }));
+      });
     }
 
-    // Strategy 3 — browse_media on a confirmed MA entity (last resort)
     if (!results) {
       const browseEntity = this._getBrowseEntity();
       if (browseEntity) {
+        this._debugLog("Search fallback: browse_media on", browseEntity);
         results = await this._searchViaBrowseMedia(browseEntity, query);
       }
     }
 
-    // Nothing worked
     if (!results) {
+      this._debugLog("Search: all strategies failed");
       results = {
         tracks: [], artists: [], albums: [], playlists: [],
         error: this._t("search.unavailable"),
       };
     }
 
-    // Discard results if a newer search has been fired in the meantime
     if (id !== this._searchId) return;
 
+    this._debugLog("Search results:", { tracks: results.tracks?.length, artists: results.artists?.length, albums: results.albums?.length, playlists: results.playlists?.length });
     this._searchResults = results;
     this._searchLoading = false;
     this._renderSearchResults(card, this._searchResults);
@@ -2533,6 +2960,9 @@ class MyMusicLibraryCard extends HTMLElement {
       return;
     }
 
+    const searchTab = this._resolvedTabs.find(t => t.type === "search");
+    const useColumns = searchTab?.search_layout === "columns";
+
     const sections = [
       { key: "artists",   label: this._t("search.artists"),   icon: "artist",   card: true,  limit: 15 },
       { key: "albums",    label: this._t("search.albums"),    icon: "album",    card: true,  limit: 15 },
@@ -2540,36 +2970,46 @@ class MyMusicLibraryCard extends HTMLElement {
       { key: "playlists", label: this._t("search.playlists"), icon: "playlist", card: true,  limit: 15 },
     ];
 
-    // Clear and render each section progressively via microtasks
-    el.innerHTML = "";
-    let total = 0;
-    let pending = sections.length;
-
-    for (const { key, label, icon: iconName, card: isCard, limit } of sections) {
-      const items = (results[key] || []).slice(0, limit);
-      if (items.length === 0) { pending--; continue; }
-      total += items.length;
-
-      // Use a microtask so each section paints independently
-      queueMicrotask(() => {
-        const secHtml = isCard
-          ? `<div class="search-section">
-               <div class="search-section-title">${label}</div>
-               <div class="lib-scroll">${items.map(i => this._renderSearchCard(i, iconName)).join("")}</div>
-             </div>`
-          : `<div class="search-section">
-               <div class="search-section-title">${label}</div>
-               ${items.map(i => this._renderResultItem(i, iconName)).join("")}
-             </div>`;
-        const tmp = document.createElement("div");
-        tmp.innerHTML = secHtml;
-        while (tmp.firstChild) el.appendChild(tmp.firstChild);
-        this._attachItemActions(el);
-      });
+    const populated = sections.filter(s => (results[s.key] || []).length > 0);
+    if (populated.length === 0) {
+      el.innerHTML = `<div class="empty-state">${ICONS.search}<p>${this._t("search.no_results")} « ${this._searchQuery} »</p></div>`;
+      return;
     }
 
-    if (total === 0) {
-      el.innerHTML = `<div class="empty-state">${ICONS.search}<p>${this._t("search.no_results")} « ${this._searchQuery} »</p></div>`;
+    el.innerHTML = "";
+
+    if (useColumns) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "search-columns";
+      for (const { key, label, icon: iconName, limit } of populated) {
+        const items = (results[key] || []).slice(0, limit);
+        const col = document.createElement("div");
+        col.className = "search-column";
+        col.innerHTML = `<div class="search-section-title">${label}</div>`
+          + items.map(i => this._renderResultItem(i, iconName)).join("");
+        wrapper.appendChild(col);
+      }
+      el.appendChild(wrapper);
+      this._attachItemActions(el);
+    } else {
+      for (const { key, label, icon: iconName, card: isCard, limit } of populated) {
+        const items = (results[key] || []).slice(0, limit);
+        queueMicrotask(() => {
+          const secHtml = isCard
+            ? `<div class="search-section">
+                 <div class="search-section-title">${label}</div>
+                 <div class="lib-scroll">${items.map(i => this._renderSearchCard(i, iconName)).join("")}</div>
+               </div>`
+            : `<div class="search-section">
+                 <div class="search-section-title">${label}</div>
+                 ${items.map(i => this._renderResultItem(i, iconName)).join("")}
+               </div>`;
+          const tmp = document.createElement("div");
+          tmp.innerHTML = secHtml;
+          while (tmp.firstChild) el.appendChild(tmp.firstChild);
+          this._attachItemActions(el);
+        });
+      }
     }
   }
 
@@ -2577,6 +3017,8 @@ class MyMusicLibraryCard extends HTMLElement {
     const thumb = item.thumbnail
       ? `<img class="result-thumb" src="${item.thumbnail}" alt="" loading="lazy">`
       : `<div class="result-thumb-placeholder">${ICONS[iconName] || ICONS.music}</div>`;
+    const queueType = item.type === "track" || iconName === "music" ? "track" : item.type;
+    const canQueue = ["track", "music", "album", "playlist"].includes(queueType);
     return `
       <div class="result-item">
         ${thumb}
@@ -2584,6 +3026,7 @@ class MyMusicLibraryCard extends HTMLElement {
           <div class="result-title">${this._esc(item.title)}</div>
           ${item.subtitle ? `<div class="result-sub">${this._esc(item.subtitle)}</div>` : ""}
         </div>
+        ${canQueue ? `<button class="add-queue-btn" data-queue-id="${this._esc(item.id)}" data-queue-type="${this._esc(queueType)}" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>` : ""}
         ${item.can_play ? `<button class="result-play" data-action="play" data-id="${this._esc(item.id)}" data-type="${this._esc(item.type)}" title="Play">${ICONS.play}</button>` : ""}
       </div>`;
   }
@@ -2640,6 +3083,18 @@ class MyMusicLibraryCard extends HTMLElement {
     return "";
   }
 
+  _resolveLibLayout() {
+    const libTab = this._resolvedTabs.find(t => t.type === "library");
+    const configLayout = libTab?.layout || "lanes";
+    const sectionCount = (libTab?.sections || []).length;
+    if (configLayout === "grid" && sectionCount > 1) return "lanes";
+    if (configLayout !== "auto") return configLayout;
+    if (sectionCount <= 1) return "grid";
+    const isDesktop = window.matchMedia("(min-width: 640px) and (hover: hover)").matches;
+    if (sectionCount <= 2) return isDesktop ? "columns" : "lanes";
+    return "lanes";
+  }
+
   _reloadLibrary() {
     this._libLoaded = false;
     // Update filter bar in-place (no outerHTML replacement — preserves display state)
@@ -2670,6 +3125,7 @@ class MyMusicLibraryCard extends HTMLElement {
     if (!libEl) return;
 
     this._libLoaded = true;
+    this._debugLog("Library load start, browseMode:", this._libBrowseMode, "sourceFilter:", this._libSourceFilter, "favFilter:", this._libFavFilter);
 
     if (this._libBrowseMode) {
       const currentUri = this._browseStack.length ? this._browseStack[this._browseStack.length - 1].uri : null;
@@ -2681,47 +3137,85 @@ class MyMusicLibraryCard extends HTMLElement {
     const sourceFilter = this._libSourceFilter;
     const providerParam = this._providerParam();
 
-    const SECTIONS = [
-      { type: "artists",   label: this._t("lib.artists"),   icon: "artist",   favorite },
-      { type: "albums",    label: this._t("lib.albums"),    icon: "album",    favorite },
-      { type: "playlists", label: this._t("lib.playlists"), icon: "playlist", favorite },
-      { type: "tracks",    label: this._t("lib.tracks"),    icon: "music",    favorite },
-    ];
+    const SECTION_META = {
+      artists:   { icon: "artist" },
+      albums:    { icon: "album" },
+      playlists: { icon: "playlist" },
+      tracks:    { icon: "music" },
+      radios:    { icon: "radio" },
+    };
+    const libTab = this._resolvedTabs.find(t => t.type === "library");
+    const sectionKeys = libTab?.sections || ["artists", "albums", "playlists", "tracks"];
+    const SECTIONS = sectionKeys.map(key => ({
+      type: key,
+      label: this._t(`lib.${key}`),
+      icon: SECTION_META[key]?.icon || "music",
+      favorite,
+    }));
     const PAGE = 25;
     const MAX_PAGES = 8;
 
+    const layout = this._resolveLibLayout();
+    this._activeLibLayout = layout;
+
     libEl.innerHTML = `<div class="loader" id="lib-loader"><div class="spinner"></div> ${this._t("lib.loading")}</div>`;
+    libEl.classList.toggle("lib-layout-columns", layout === "columns");
     this._libSections = {};
 
-    // Helper: build section HTML
+    // Helper: build section HTML (layout-aware)
     const sectionHtml = (type, label, iconName, items) => {
       const isTrackList = iconName === "music";
+      const itemsHtml = isTrackList
+        ? items.map(i => this._renderLibListItem(i)).join("")
+        : items.map(i => this._renderLibCard(i, iconName)).join("");
+      const sentinel = isTrackList
+        ? `<div class="lib-sentinel-v" id="lib-sentinel-${type}"></div>`
+        : `<div class="lib-sentinel" id="lib-sentinel-${type}"></div>`;
+
+      let containerClass, containerId;
+      if (isTrackList) {
+        containerId = `lib-list-${type}`;
+        containerClass = "";
+      } else if (layout === "grid" || layout === "columns") {
+        containerId = `lib-grid-${type}`;
+        containerClass = "lib-grid";
+      } else {
+        containerId = `lib-scroll-${type}`;
+        containerClass = "lib-scroll";
+      }
+
+      const inner = `<div class="${containerClass}" id="${containerId}">${itemsHtml}${sentinel}</div>`;
+
+      const body = (layout === "lanes" && !isTrackList)
+        ? `<div class="lib-lane-wrap">
+             <button class="lib-lane-arrow left" data-lane="${type}" data-dir="left">${ICONS.chevronLeft}</button>
+             ${inner}
+             <button class="lib-lane-arrow right" data-lane="${type}" data-dir="right">${ICONS.chevronRight}</button>
+           </div>`
+        : inner;
+
       return `
         <div class="lib-section" id="lib-sec-${type}">
           <div class="lib-section-header">
             <span class="lib-section-title">${label}</span>
           </div>
-          ${isTrackList
-            ? `<div id="lib-list-${type}">${items.map(i => this._renderLibListItem(i)).join("")}
-                 <div class="lib-sentinel-v" id="lib-sentinel-${type}"></div>
-               </div>`
-            : `<div class="lib-scroll" id="lib-scroll-${type}">${items.map(i => this._renderLibCard(i, iconName)).join("")}
-                 <div class="lib-sentinel" id="lib-sentinel-${type}"></div>
-               </div>`
-          }
+          ${body}
         </div>`;
     };
 
-    // Helper: append a section to the DOM and wire up actions
+    // Helper: append a section into its pre-created placeholder
     const appendSection = (type, label, iconName, items) => {
       if (loadId !== this._libLoadId) return; // stale load
       const loader = libEl.querySelector("#lib-loader");
       if (loader) loader.remove();
-      const tmp = document.createElement("div");
-      tmp.innerHTML = sectionHtml(type, label, iconName, items);
-      while (tmp.firstChild) libEl.appendChild(tmp.firstChild);
-      const sec = libEl.querySelector(`#lib-sec-${type}`);
+
+      const placeholder = libEl.querySelector(`#lib-slot-${type}`);
+      if (!placeholder) return;
+      placeholder.innerHTML = sectionHtml(type, label, iconName, items);
+
+      const sec = placeholder.querySelector(`#lib-sec-${type}`);
       if (sec) this._attachItemActions(sec);
+      if (layout === "lanes") this._attachLaneArrows(sec);
     };
 
     // Fetch one section: first page in parallel, then lazy-paginate if source filter needs more
@@ -2763,7 +3257,7 @@ class MyMusicLibraryCard extends HTMLElement {
           const sentinel = libEl.querySelector(`#lib-sentinel-${s.type}`);
           const container = isTrackList
             ? libEl.querySelector(`#lib-list-${s.type}`)
-            : libEl.querySelector(`#lib-scroll-${s.type}`);
+            : (libEl.querySelector(`#lib-scroll-${s.type}`) || libEl.querySelector(`#lib-grid-${s.type}`));
           if (container && sentinel) {
             const tmp = document.createElement("div");
             tmp.innerHTML = filtered.map(i => isTrackList ? this._renderLibListItem(i) : this._renderLibCard(i, s.icon)).join("");
@@ -2783,6 +3277,23 @@ class MyMusicLibraryCard extends HTMLElement {
         this._libSections[s.type] = { offset, loading: false, exhausted: true, favorite: s.favorite, iconName: s.icon };
       }
     };
+
+    // Pre-create ordered placeholders so parallel fetches render in config order
+    if (layout === "columns") {
+      const colsHtml = SECTIONS.map(s =>
+        `<div class="lib-column" id="lib-slot-${s.type}"></div>`
+      ).join("");
+      const colsWrap = document.createElement("div");
+      colsWrap.className = "lib-columns-wrap";
+      colsWrap.innerHTML = colsHtml;
+      libEl.appendChild(colsWrap);
+    } else {
+      for (const s of SECTIONS) {
+        const slot = document.createElement("div");
+        slot.id = `lib-slot-${s.type}`;
+        libEl.appendChild(slot);
+      }
+    }
 
     // Launch all sections in parallel — each renders itself as soon as ready
     await Promise.allSettled(SECTIONS.map(s => fetchSection(s)));
@@ -2804,29 +3315,72 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   _attachLibInfiniteScroll(libEl) {
-    // Horizontal scroll sections: listen on the scroll container
+    const layout = this._activeLibLayout || "lanes";
     for (const [type, state] of Object.entries(this._libSections)) {
-      if (state.iconName === "music") continue; // tracks handled via vertical scroll
-      const scrollEl = libEl.querySelector(`#lib-scroll-${type}`);
-      if (!scrollEl) continue;
-      scrollEl.addEventListener("scroll", () => {
-        const remaining = scrollEl.scrollWidth - scrollEl.scrollLeft - scrollEl.clientWidth;
-        if (remaining < 300 && !state.loading && !state.exhausted) {
-          this._loadMoreLibSection(type, libEl);
-        }
-      }, { passive: true });
+      if (state.iconName === "music") continue;
+      if (layout === "lanes") {
+        const scrollEl = libEl.querySelector(`#lib-scroll-${type}`);
+        if (!scrollEl) continue;
+        scrollEl.addEventListener("scroll", () => {
+          const remaining = scrollEl.scrollWidth - scrollEl.scrollLeft - scrollEl.clientWidth;
+          if (remaining < 300 && !state.loading && !state.exhausted) {
+            this._loadMoreLibSection(type, libEl);
+          }
+        }, { passive: true });
+      }
+      if (layout === "grid" || layout === "columns") {
+        const scrollParent = layout === "columns"
+          ? libEl.querySelector(`#lib-slot-${type}`)
+          : libEl;
+        if (!scrollParent) continue;
+        scrollParent.addEventListener("scroll", () => {
+          const remaining = scrollParent.scrollHeight - scrollParent.scrollTop - scrollParent.clientHeight;
+          if (remaining < 300 && !state.loading && !state.exhausted) {
+            this._loadMoreLibSection(type, libEl);
+          }
+        }, { passive: true });
+      }
     }
 
-    // Vertical scroll (tracks): listen on the library panel itself
     const tracksState = this._libSections["tracks"];
     if (tracksState) {
-      libEl.addEventListener("scroll", () => {
-        const remaining = libEl.scrollHeight - libEl.scrollTop - libEl.clientHeight;
+      const tracksScrollParent = (layout === "columns")
+        ? (libEl.querySelector("#lib-slot-tracks") || libEl)
+        : libEl;
+      tracksScrollParent.addEventListener("scroll", () => {
+        const remaining = tracksScrollParent.scrollHeight - tracksScrollParent.scrollTop - tracksScrollParent.clientHeight;
         if (remaining < 300 && !tracksState.loading && !tracksState.exhausted) {
           this._loadMoreLibSection("tracks", libEl);
         }
       }, { passive: true });
     }
+  }
+
+  _attachLaneArrows(sectionEl) {
+    if (!sectionEl) return;
+    const wrap = sectionEl.querySelector(".lib-lane-wrap");
+    if (!wrap) return;
+    const scrollEl = wrap.querySelector(".lib-scroll");
+    if (!scrollEl) return;
+    const leftBtn = wrap.querySelector(".lib-lane-arrow.left");
+    const rightBtn = wrap.querySelector(".lib-lane-arrow.right");
+
+    const updateArrows = () => {
+      const atStart = scrollEl.scrollLeft <= 4;
+      const atEnd = scrollEl.scrollLeft + scrollEl.clientWidth >= scrollEl.scrollWidth - 4;
+      leftBtn.classList.toggle("visible", !atStart);
+      rightBtn.classList.toggle("visible", !atEnd);
+    };
+
+    scrollEl.addEventListener("scroll", updateArrows, { passive: true });
+    requestAnimationFrame(updateArrows);
+
+    const scrollBy = (dir) => {
+      const amount = scrollEl.clientWidth * 0.75;
+      scrollEl.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
+    };
+    leftBtn.addEventListener("click", (e) => { e.stopPropagation(); scrollBy("left"); });
+    rightBtn.addEventListener("click", (e) => { e.stopPropagation(); scrollBy("right"); });
   }
 
   async _loadMoreLibSection(type, libEl) {
@@ -2845,7 +3399,7 @@ class MyMusicLibraryCard extends HTMLElement {
       const sentinel = libEl.querySelector(`#lib-sentinel-${type}`);
       const container = isTrackList
         ? libEl.querySelector(`#lib-list-${type}`)
-        : libEl.querySelector(`#lib-scroll-${type}`);
+        : (libEl.querySelector(`#lib-scroll-${type}`) || libEl.querySelector(`#lib-grid-${type}`));
       if (!container || !sentinel) return;
       const tmp = document.createElement("div");
       tmp.innerHTML = items.map(i => isTrackList ? this._renderLibListItem(i) : this._renderLibCard(i, iconName)).join("");
@@ -2889,17 +3443,20 @@ class MyMusicLibraryCard extends HTMLElement {
     const type = item.type || iconName;
     const action = type === "artist" ? "browse" : (type === "track" ? "play" : "play-queue");
     const extra = type === "artist" ? `data-title="${this._esc(item.title)}" data-thumb="${this._esc(item.thumbnail || "")}"` : "";
+    const canQueue = ["album", "playlist", "track"].includes(type);
     return `
       <div class="search-card" data-action="${action}" data-id="${this._esc(item.id)}" data-type="${type}" ${extra}>
         ${art}
         <div class="search-card-name">${this._esc(item.title)}</div>
         ${item.subtitle ? `<div class="search-card-sub">${this._esc(item.subtitle)}</div>` : ""}
+        ${canQueue ? `<button class="add-queue-btn" data-queue-id="${this._esc(item.id)}" data-queue-type="${this._esc(type)}" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>` : ""}
       </div>`;
   }
 
   _attachItemActions(container) {
     container.querySelectorAll("[data-action]").forEach(el => {
       el.addEventListener("click", (e) => {
+        if (e.target.closest(".add-queue-btn")) return;
         e.stopPropagation();
         const { action, id, type, title, thumb } = el.dataset;
         if (action === "browse") {
@@ -2911,6 +3468,14 @@ class MyMusicLibraryCard extends HTMLElement {
           const card = this.shadowRoot.querySelector(".card-root");
           if (card) this._setActiveTab("player", card);
         }
+      });
+    });
+    container.querySelectorAll(".add-queue-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const { queueId, queueType } = btn.dataset;
+        this._showQueueDropdown(btn, queueId, queueType);
       });
     });
   }
@@ -2991,85 +3556,152 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   async _playAndSwitchToPlayer(id, type) {
-    this._playItem(id, type);
+    if (!this._hass || !this._activePlayer) return;
     const card = this.shadowRoot.querySelector(".card-root");
     if (!card) return;
     this._setActiveTab("player", card);
-    this._queue = [];
-    // Mark as source immediately so _updatePlayerContent doesn't double-fetch
-    this._lastQueueSource = id;
-    this._updateQueueDisplay(card);
 
-    const actionMap = { album: "album_tracks", playlist: "playlist_tracks" };
-    const action = actionMap[type];
-    if (!action) return;
-
+    this._debugLog("PlayQueue:", id, "type:", type, "on:", this._activePlayer);
     try {
-      const data = await this._callIntegration("GET", `subitems?action=${action}&uri=${encodeURIComponent(id)}&limit=100`);
-      this._queue = data?.items || [];
-      // Sort album tracks by track number to match real album order
-      if (action === "album_tracks") {
-        this._queue.sort((a, b) => (a.track_number || 0) - (b.track_number || 0));
+      await this._callServiceSilent("music_assistant", "play_media", {
+        entity_id: this._activePlayer,
+        media_id: id,
+        enqueue: "replace",
+      });
+    } catch (_) {
+      try {
+        await this._callServiceSilent("media_player", "play_media", {
+          entity_id: this._activePlayer,
+          media_content_id: id,
+          media_content_type: type || "music",
+        });
+      } catch (err) {
+        this._debugLog("play_media error:", err);
+        if (this._isMediaNotFoundError(err)) {
+          this._showToast(this._t("errors.media_not_found"));
+        }
       }
-      this._saveQueueState();
-      this._updateQueueDisplay(card);
-    } catch (err) {
-      // Queue fetch failed
     }
+    this._refreshQueueSoon(1500);
   }
 
   _updateQueueDisplay(card) {
     const section = card.querySelector("#queue-section");
     if (!section) return;
-    if (!this._queue.length) {
-      section.style.display = "none";
+    const list = section.querySelector("#queue-list");
+    if (!this._maQueueItems.length) {
+      list.innerHTML = `<div class="queue-empty">${this._t("queue.empty")}</div>`;
       return;
     }
-    section.style.display = "";
-    const list = section.querySelector("#queue-list");
-    list.innerHTML = this._queue.map((t, i) => `
-      <div class="queue-item" data-action="play" data-id="${this._esc(t.media_content_id)}" data-type="${this._esc(t.media_content_type)}">
+    list.innerHTML = this._maQueueItems.map((t, i) => `
+      <div class="queue-item" data-queue-idx="${i}" data-queue-item-id="${this._esc(t.queue_item_id)}">
         <div class="queue-num">${i + 1}</div>
         <div class="queue-info">
           <div class="queue-title">${this._esc(t.title)}</div>
           ${t.media_artist ? `<div class="queue-sub">${this._esc(t.media_artist)}</div>` : ""}
         </div>
         ${t.duration ? `<div class="queue-dur">${fmt(t.duration)}</div>` : ""}
+        <button class="queue-remove" data-queue-item-id="${this._esc(t.queue_item_id)}" title="${this._t("queue.remove")}">${ICONS.remove}</button>
       </div>
     `).join("");
-    list.querySelectorAll("[data-action='play']").forEach((item, idx) => {
-      item.addEventListener("click", () => this._jumpToQueueIndex(idx));
+    list.querySelectorAll(".queue-item").forEach(item => {
+      item.addEventListener("click", (e) => {
+        if (e.target.closest(".queue-remove")) return;
+        this._jumpToQueueIndex(parseInt(item.dataset.queueIdx, 10));
+      });
+    });
+    list.querySelectorAll(".queue-remove").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this._removeFromQueue(btn.dataset.queueItemId);
+      });
     });
   }
 
-  /* Jump to the track at `index` within MA's existing queue. Does NOT modify
-     the queue contents — just seeks playback. Falls back to play_media with
-     the full remaining queue if MA's queue jump endpoint is unavailable. */
+  async _removeFromQueue(queueItemId) {
+    if (!queueItemId || !this._activePlayer) return;
+    try {
+      await this._callIntegration("POST", "ma_queue", {
+        player: this._activePlayer,
+        action: "delete_item",
+        item_id: queueItemId,
+      });
+      this._refreshQueueSoon(500);
+    } catch (err) {
+      this._debugLog("removeFromQueue failed:", err);
+    }
+  }
+
+  async _addItemToQueue(id, type, mode) {
+    if (!this._hass || !this._activePlayer) return;
+    const enqueue = mode === "next" ? "next" : "add";
+    try {
+      await this._callServiceSilent("music_assistant", "play_media", {
+        entity_id: this._activePlayer,
+        media_id: id,
+        enqueue,
+      });
+      this._showToast(this._t(mode === "next" ? "queue.play_next" : "queue.add_to_end"));
+      this._refreshQueueSoon(1000);
+    } catch (err) {
+      this._debugLog("addItemToQueue failed:", err);
+    }
+  }
+
+  _showQueueDropdown(btnEl, id, type) {
+    this._closeQueueDropdown();
+    const dd = document.createElement("div");
+    dd.className = "queue-dropdown";
+    dd.id = "mml-queue-dropdown";
+    dd.innerHTML = `
+      <div class="queue-dropdown-item" data-mode="next">${this._t("queue.play_next")}</div>
+      <div class="queue-dropdown-item" data-mode="end">${this._t("queue.add_to_end")}</div>
+    `;
+    dd.querySelectorAll(".queue-dropdown-item").forEach(item => {
+      item.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this._addItemToQueue(id, type, item.dataset.mode);
+        this._closeQueueDropdown();
+      });
+    });
+    const root = this.shadowRoot;
+    root.appendChild(dd);
+    const rect = btnEl.getBoundingClientRect();
+    const hostRect = this.getBoundingClientRect();
+    dd.style.top = `${rect.bottom - hostRect.top}px`;
+    dd.style.left = `${Math.max(0, rect.right - hostRect.left - 200)}px`;
+    const autoClose = (e) => {
+      const path = e.composedPath();
+      if (!path.includes(dd) && !path.includes(btnEl)) {
+        this._closeQueueDropdown();
+      }
+    };
+    setTimeout(() => {
+      document.addEventListener("click", autoClose, true);
+      root.addEventListener("click", autoClose, true);
+    }, 0);
+    this._queueDropdownCleanup = () => {
+      document.removeEventListener("click", autoClose, true);
+      root.removeEventListener("click", autoClose, true);
+    };
+  }
+
+  _closeQueueDropdown() {
+    const existing = this.shadowRoot?.querySelector("#mml-queue-dropdown");
+    if (existing) existing.remove();
+    if (this._queueDropdownCleanup) { this._queueDropdownCleanup(); this._queueDropdownCleanup = null; }
+  }
+
   async _jumpToQueueIndex(index) {
     if (!this._hass || !this._activePlayer) return;
-    if (index < 0 || index >= this._queue.length) return;
-
+    if (index < 0 || index >= this._maQueueItems.length) return;
     try {
       await this._callIntegration("POST", "queue_jump", {
         player: this._activePlayer,
         index,
       });
-    } catch (_) {
-      const mediaIds = this._queue.slice(index).map(t => t.media_content_id).filter(Boolean);
-      if (!mediaIds.length) return;
-      try {
-        await this._hass.callService("music_assistant", "play_media", {
-          entity_id: this._activePlayer,
-          media_id: mediaIds,
-          enqueue: "replace",
-        });
-      } catch (_) {
-        await this._hass.callService("media_player", "play_media", {
-          entity_id: this._activePlayer,
-          media_content_id: mediaIds[0],
-          media_content_type: "track",
-        });
-      }
+    } catch (err) {
+      this._debugLog("queue jump failed:", err);
     }
   }
 
@@ -3216,11 +3848,14 @@ class MyMusicLibraryCard extends HTMLElement {
       : `<div class="lib-card-art-placeholder">${ICONS[iconName] || ICONS.music}</div>`;
     const action = iconName === "artist" ? "browse" : (iconName === "music" ? "play" : "play-queue");
     const extra = iconName === "artist" ? `data-title="${this._esc(item.title)}" data-thumb="${this._esc(item.thumbnail || "")}"` : "";
+    const type = iconName === "artist" ? "artist" : (item.media_content_type || iconName);
+    const canQueue = ["album", "playlist", "track"].includes(type);
     return `
-      <div class="lib-card" data-action="${action}" data-id="${this._esc(item.media_content_id)}" data-type="${this._esc(iconName === 'artist' ? 'artist' : item.media_content_type)}" ${extra}>
+      <div class="lib-card" data-action="${action}" data-id="${this._esc(item.media_content_id)}" data-type="${this._esc(type)}" ${extra}>
         ${thumb}
         <div class="lib-card-name">${this._esc(item.title)}</div>
         ${item.media_artist ? `<div class="lib-card-sub">${this._esc(item.media_artist)}</div>` : ""}
+        ${canQueue ? `<button class="add-queue-btn" data-queue-id="${this._esc(item.media_content_id)}" data-queue-type="${this._esc(type)}" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>` : ""}
       </div>`;
   }
 
@@ -3235,19 +3870,60 @@ class MyMusicLibraryCard extends HTMLElement {
           <div class="lib-list-title">${this._esc(item.title)}</div>
           ${item.media_artist ? `<div class="lib-list-sub">${this._esc(item.media_artist)}</div>` : ""}
         </div>
+        <button class="add-queue-btn" data-queue-id="${this._esc(item.media_content_id)}" data-queue-type="track" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>
         <button class="result-play" data-action="play" data-id="${this._esc(item.media_content_id)}" data-type="${this._esc(item.media_content_type)}" title="Play">${ICONS.play}</button>
       </div>`;
   }
 
   /* ── Play an item ── */
-  _playItem(contentId, contentType) {
+  async _playItem(contentId, contentType) {
     if (!this._hass || !this._activePlayer) return;
-    // Try music_assistant.play_media first, fallback to media_player.play_media
-    this._hass.callService("media_player", "play_media", {
-      entity_id: this._activePlayer,
-      media_content_id: contentId,
-      media_content_type: contentType || "music",
+    this._debugLog("Play:", contentId, "type:", contentType, "on:", this._activePlayer);
+    try {
+      await this._callServiceSilent("music_assistant", "play_media", {
+        entity_id: this._activePlayer,
+        media_id: contentId,
+        enqueue: "replace",
+      });
+    } catch (_) {
+      try {
+        await this._callServiceSilent("media_player", "play_media", {
+          entity_id: this._activePlayer,
+          media_content_id: contentId,
+          media_content_type: contentType || "music",
+        });
+      } catch (err) {
+        this._debugLog("play_media error:", err);
+        if (this._isMediaNotFoundError(err)) {
+          this._showToast(this._t("errors.media_not_found"));
+        }
+      }
+    }
+    this._refreshQueueSoon(1500);
+  }
+
+  _callServiceSilent(domain, service, data) {
+    return this._hass.connection.sendMessagePromise({
+      type: "call_service",
+      domain,
+      service,
+      service_data: data,
     });
+  }
+
+  /* ── Toast ── */
+  _showToast(msg, duration = 4000) {
+    const el = this.shadowRoot?.querySelector("#mml-toast");
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add("visible");
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => el.classList.remove("visible"), duration);
+  }
+
+  _isMediaNotFoundError(err) {
+    const msg = err?.message || String(err);
+    return msg.includes("no data") || msg.includes("DataException");
   }
 
   /* ── Utilities ── */
@@ -3259,6 +3935,541 @@ class MyMusicLibraryCard extends HTMLElement {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
   }
+}
+
+/* ─── Card Editor (WYSIWYG) ──────────────────────────────── */
+
+const EDITOR_STYLES = `
+  :host { display: block; font-family: var(--paper-font-body1_-_font-family, Roboto, sans-serif); }
+  .editor { padding: 16px; }
+  .editor-section { margin-bottom: 20px; }
+  .editor-section-title {
+    font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--secondary-text-color, #727272); margin-bottom: 8px;
+  }
+  .editor-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .editor-row label { min-width: 120px; font-size: 14px; color: var(--primary-text-color, #212121); flex-shrink: 0; }
+  .editor-row input, .editor-row select {
+    flex: 1; padding: 8px; border: 1px solid var(--divider-color, #e0e0e0);
+    border-radius: 4px; font-size: 14px; background: var(--card-background-color, #fff);
+    color: var(--primary-text-color, #212121); min-width: 0;
+  }
+  .editor-row input:focus, .editor-row select:focus {
+    outline: none; border-color: var(--primary-color, #03a9f4);
+  }
+  .tab-list { border: 1px solid var(--divider-color, #e0e0e0); border-radius: 8px; overflow: hidden; }
+  .tab-item {
+    border-bottom: 1px solid var(--divider-color, #e0e0e0);
+    background: var(--card-background-color, #fff);
+  }
+  .tab-item:last-child { border-bottom: none; }
+  .tab-item-header {
+    display: flex; align-items: center; gap: 6px; padding: 8px 12px; cursor: pointer;
+    user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  .tab-item-header:hover { background: var(--secondary-background-color, #f5f5f5); }
+  .tab-item-type {
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 2px 6px; border-radius: 3px;
+    background: var(--primary-color, #03a9f4); color: #fff;
+  }
+  .tab-item-type.button { background: var(--accent-color, #ff9800); }
+  .tab-item-label { flex: 1; font-size: 14px; font-weight: 500; color: var(--primary-text-color, #212121); }
+  .tab-item-actions { display: flex; gap: 2px; }
+  .tab-item-actions button {
+    background: none; border: none; cursor: pointer; padding: 4px;
+    color: var(--secondary-text-color, #727272); border-radius: 4px;
+    font-size: 16px; line-height: 1; min-width: 28px; min-height: 28px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tab-item-actions button:hover { background: var(--secondary-background-color, #f5f5f5); color: var(--primary-text-color, #212121); }
+  .tab-item-actions button.delete:hover { color: var(--error-color, #db4437); }
+  .tab-item-actions button:disabled { opacity: 0.3; pointer-events: none; }
+  .tab-item-body { padding: 8px 12px 12px; border-top: 1px solid var(--divider-color, #e0e0e0); }
+  .tab-item-body .editor-row { margin-bottom: 6px; }
+  .tab-item-body .editor-row label { min-width: 100px; font-size: 13px; }
+  .tab-item-body .editor-row input, .tab-item-body .editor-row select { font-size: 13px; padding: 6px; }
+  .section-list { margin-top: 4px; }
+  .section-item {
+    display: flex; align-items: center; gap: 6px; padding: 4px 0;
+  }
+  .section-item label { flex: 1; font-size: 13px; cursor: pointer; user-select: none; }
+  .section-item input[type="checkbox"] { margin: 0; cursor: pointer; accent-color: var(--primary-color, #03a9f4); }
+  .section-item button {
+    background: none; border: none; cursor: pointer; padding: 2px;
+    color: var(--secondary-text-color, #727272); font-size: 14px; line-height: 1;
+    min-width: 24px; min-height: 24px; display: flex; align-items: center; justify-content: center;
+    border-radius: 4px;
+  }
+  .section-item button:hover { background: var(--secondary-background-color, #f5f5f5); }
+  .section-item button:disabled { opacity: 0.3; pointer-events: none; }
+  .add-tab-row { padding: 8px 12px; }
+  .add-tab-btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; padding: 8px; border: 2px dashed var(--divider-color, #e0e0e0);
+    border-radius: 6px; background: none; cursor: pointer;
+    color: var(--primary-color, #03a9f4); font-size: 14px; font-weight: 500;
+  }
+  .add-tab-btn:hover { border-color: var(--primary-color, #03a9f4); background: rgba(3,169,244,0.04); }
+  .add-tab-menu {
+    display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 12px;
+    border-top: 1px solid var(--divider-color, #e0e0e0);
+  }
+  .add-tab-menu button {
+    padding: 6px 12px; border: 1px solid var(--divider-color, #e0e0e0);
+    border-radius: 4px; background: var(--card-background-color, #fff); cursor: pointer;
+    font-size: 13px; color: var(--primary-text-color, #212121);
+  }
+  .add-tab-menu button:hover { border-color: var(--primary-color, #03a9f4); background: rgba(3,169,244,0.04); }
+  .expand-chevron { transition: transform 0.2s; font-size: 12px; }
+  .expand-chevron.open { transform: rotate(90deg); }
+`;
+
+class MyMusicLibraryCardEditor extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this._config = {};
+    this._hass = null;
+    this._expandedTab = -1;
+    this._showAddMenu = false;
+  }
+
+  _t(key) {
+    const raw = this._hass?.locale?.language || this._hass?.language || "en";
+    const lang = raw.toLowerCase().split("-")[0];
+    const dict = TRANSLATIONS[lang] || TRANSLATIONS.en;
+    const val = key.split(".").reduce((o, k) => o?.[k], dict);
+    if (val !== undefined) return val;
+    return key.split(".").reduce((o, k) => o?.[k], TRANSLATIONS.en) ?? key;
+  }
+
+  setConfig(config) {
+    this._config = { ...config };
+    if (this.shadowRoot) this._render();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    if (this.shadowRoot && !this.shadowRoot.querySelector(".editor")) this._render();
+  }
+
+  _fireChanged() {
+    const config = { ...this._config };
+    this.dispatchEvent(new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }));
+  }
+
+  _getResolvedTabs() {
+    if (this._config.tabs && Array.isArray(this._config.tabs)) return [...this._config.tabs];
+    const tabs = [];
+    if (this._config.nav_buttons_left) {
+      for (const b of this._config.nav_buttons_left) tabs.push({ type: "button", ...b });
+    }
+    tabs.push({ type: "player" });
+    tabs.push({ type: "search" });
+    tabs.push({ type: "library" });
+    if (this._config.nav_buttons_right) {
+      for (const b of this._config.nav_buttons_right) tabs.push({ type: "button", ...b });
+    }
+    tabs.push({ type: "settings" });
+    return tabs;
+  }
+
+  _updateTabs(tabs) {
+    this._config = { ...this._config, tabs };
+    delete this._config.nav_buttons_left;
+    delete this._config.nav_buttons_right;
+    this._fireChanged();
+    this._render();
+  }
+
+  _tabTypeLabel(type) {
+    return this._t(`editor.type_${type}`) || type;
+  }
+
+  _tabDisplayLabel(tab) {
+    if (tab.label) return tab.label;
+    if (tab.name) return tab.name;
+    if (tab.type === "button") return tab.icon || "Button";
+    return this._t(`tabs.${tab.type}`) || tab.type;
+  }
+
+  _render() {
+    const root = this.shadowRoot;
+    root.innerHTML = "";
+    const style = document.createElement("style");
+    style.textContent = EDITOR_STYLES;
+    root.appendChild(style);
+
+    const wrap = document.createElement("div");
+    wrap.className = "editor";
+
+    const tabs = this._getResolvedTabs();
+    const panelTypes = tabs.filter(t => t.type !== "button").map(t => t.type);
+    const defaultTabOptions = panelTypes.length ? panelTypes : ["player", "search", "library"];
+
+    wrap.innerHTML = `
+      ${this._renderBasicFields(defaultTabOptions)}
+      <div class="editor-section">
+        <div class="editor-section-title">${this._t("editor.tabs_title")}</div>
+        <div class="tab-list">
+          ${tabs.map((tab, i) => this._renderTabItem(tab, i, tabs.length)).join("")}
+        </div>
+        ${this._showAddMenu ? `
+          <div class="add-tab-menu">
+            ${["player","search","library","settings","button"].map(type => `
+              <button data-add-type="${type}">${this._tabTypeLabel(type)}</button>
+            `).join("")}
+          </div>` : `
+          <div class="add-tab-row">
+            <button class="add-tab-btn" id="add-tab-btn">+ ${this._t("editor.add_tab")}</button>
+          </div>`}
+      </div>
+    `;
+    root.appendChild(wrap);
+    this._attachEditorListeners(wrap, tabs);
+  }
+
+  _renderBasicFields(defaultTabOptions) {
+    const cfg = this._config;
+    return `
+      <div class="editor-section">
+        <div class="editor-row">
+          <label>${this._t("editor.default_tab")}</label>
+          <select id="ed-default-tab">
+            ${defaultTabOptions.map(t => `<option value="${t}" ${cfg.default_tab === t ? "selected" : ""}>${this._t(`tabs.${t}`) || t}</option>`).join("")}
+          </select>
+        </div>
+        <div class="editor-row">
+          <label>${this._t("editor.entity")}</label>
+          <input id="ed-entity" type="text" value="${cfg.entity || ""}" placeholder="${this._t("editor.entity_hint")}">
+        </div>
+        <div class="editor-row">
+          <label>${this._t("editor.height")}</label>
+          <input id="ed-height" type="text" value="${cfg.height || ""}" placeholder="${this._t("editor.height_hint")}">
+        </div>
+      </div>`;
+  }
+
+  _renderTabItem(tab, index, total) {
+    const isExpanded = this._expandedTab === index;
+    const typeClass = tab.type === "button" ? " button" : "";
+    return `
+      <div class="tab-item" data-tab-idx="${index}">
+        <div class="tab-item-header" data-toggle-idx="${index}">
+          <span class="expand-chevron ${isExpanded ? "open" : ""}">▶</span>
+          <span class="tab-item-type${typeClass}">${this._tabTypeLabel(tab.type)}</span>
+          <span class="tab-item-label">${this._esc(this._tabDisplayLabel(tab))}</span>
+          <div class="tab-item-actions">
+            <button data-move="up" data-idx="${index}" ${index === 0 ? "disabled" : ""} title="Move up">▲</button>
+            <button data-move="down" data-idx="${index}" ${index === total - 1 ? "disabled" : ""} title="Move down">▼</button>
+            <button class="delete" data-delete="${index}" title="Delete">✕</button>
+          </div>
+        </div>
+        ${isExpanded ? this._renderTabBody(tab, index) : ""}
+      </div>`;
+  }
+
+  _renderTabBody(tab, index) {
+    if (tab.type === "button") return this._renderButtonBody(tab, index);
+    let body = `
+      <div class="tab-item-body">
+        <div class="editor-row">
+          <label>${this._t("editor.tab_label")}</label>
+          <input data-field="label" data-idx="${index}" type="text" value="${this._esc(tab.label || "")}" placeholder="${this._t("editor.tab_label_hint")}">
+        </div>
+        <div class="editor-row">
+          <label>${this._t("editor.tab_icon")}</label>
+          <input data-field="icon" data-idx="${index}" type="text" value="${this._esc(tab.icon || "")}" placeholder="${this._t("editor.tab_icon_hint")}">
+        </div>`;
+    if (tab.type === "library") body += this._renderSectionsEditor(tab, index);
+    if (tab.type === "search") body += this._renderSearchLayoutEditor(tab, index);
+    body += `</div>`;
+    return body;
+  }
+
+  _renderSectionsEditor(tab, index) {
+    const ALL_SECTIONS = ["artists", "albums", "playlists", "tracks", "radios"];
+    const current = tab.sections || ["artists", "albums", "playlists", "tracks"];
+    const ordered = [...current, ...ALL_SECTIONS.filter(s => !current.includes(s))];
+    const currentLayout = tab.layout || "lanes";
+    const enabledCount = current.length;
+    const gridDisabled = enabledCount > 1;
+    const gridHint = gridDisabled ? this._t("editor.layout_grid_disabled") : "";
+
+    return `
+      <div style="margin-top:8px">
+        <div class="editor-row">
+          <label>${this._t("editor.layout_label")}</label>
+          <select data-layout-select data-tab-idx="${index}">
+            ${["lanes", "grid", "columns", "auto"].map(l => {
+              const dis = (l === "grid" && gridDisabled) ? " disabled" : "";
+              const label = this._t(`settings.layout_${l}`) + (l === "grid" && gridDisabled ? ` (⚠)` : "");
+              return `<option value="${l}" ${currentLayout === l ? "selected" : ""}${dis} title="${l === "grid" && gridDisabled ? this._esc(gridHint) : ""}">${label}</option>`;
+            }).join("")}
+          </select>
+        </div>
+        ${gridDisabled && currentLayout === "grid" ? `<p style="font-size:11px;color:var(--error-color,#db4437);margin:0 0 4px">${this._esc(gridHint)}</p>` : ""}
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px">${this._t("editor.sections_title")}</div>
+        <div class="section-list">
+          ${ordered.map((sec, si) => {
+            const enabled = current.includes(sec);
+            const posInCurrent = current.indexOf(sec);
+            return `
+              <div class="section-item">
+                <input type="checkbox" data-sec-toggle="${sec}" data-tab-idx="${index}" ${enabled ? "checked" : ""}>
+                <label data-sec-toggle="${sec}" data-tab-idx="${index}">${this._t(`lib.${sec}`) || sec}</label>
+                <button data-sec-move="up" data-sec="${sec}" data-tab-idx="${index}" ${!enabled || posInCurrent === 0 ? "disabled" : ""}>▲</button>
+                <button data-sec-move="down" data-sec="${sec}" data-tab-idx="${index}" ${!enabled || posInCurrent >= current.length - 1 ? "disabled" : ""}>▼</button>
+              </div>`;
+          }).join("")}
+        </div>
+      </div>`;
+  }
+
+  _renderSearchLayoutEditor(tab, index) {
+    const current = tab.search_layout || "rows";
+    return `
+      <div style="margin-top:8px">
+        <div class="editor-row">
+          <label>${this._t("editor.search_layout")}</label>
+          <select data-search-layout-select data-tab-idx="${index}">
+            ${["rows", "columns"].map(l =>
+              `<option value="${l}" ${current === l ? "selected" : ""}>${this._t(`editor.search_layout_${l}`)}</option>`
+            ).join("")}
+          </select>
+        </div>
+      </div>`;
+  }
+
+  _renderButtonBody(tab, index) {
+    const actionType = tab.tap_action?.action || "none";
+    let actionFields = "";
+    if (actionType === "navigate") {
+      actionFields = `
+        <div class="editor-row">
+          <label>${this._t("editor.btn_nav_path")}</label>
+          <input data-btn-field="navigation_path" data-idx="${index}" type="text" value="${this._esc(tab.tap_action?.navigation_path || "")}">
+        </div>`;
+    } else if (actionType === "url") {
+      actionFields = `
+        <div class="editor-row">
+          <label>${this._t("editor.btn_url")}</label>
+          <input data-btn-field="url_path" data-idx="${index}" type="text" value="${this._esc(tab.tap_action?.url_path || "")}">
+        </div>`;
+    } else if (actionType === "call-service" || actionType === "perform-action") {
+      actionFields = `
+        <div class="editor-row">
+          <label>${this._t("editor.btn_service")}</label>
+          <input data-btn-field="perform_action" data-idx="${index}" type="text" value="${this._esc(tab.tap_action?.perform_action || tab.tap_action?.service || "")}">
+        </div>`;
+    }
+    return `
+      <div class="tab-item-body">
+        <div class="editor-row">
+          <label>${this._t("editor.btn_icon")}</label>
+          <input data-field="icon" data-idx="${index}" type="text" value="${this._esc(tab.icon || "")}" placeholder="mdi:home">
+        </div>
+        <div class="editor-row">
+          <label>${this._t("editor.btn_name")}</label>
+          <input data-field="name" data-idx="${index}" type="text" value="${this._esc(tab.name || "")}">
+        </div>
+        <div class="editor-row">
+          <label>${this._t("editor.btn_entity")}</label>
+          <input data-field="entity" data-idx="${index}" type="text" value="${this._esc(tab.entity || "")}" placeholder="light.living_room">
+        </div>
+        <div class="editor-row">
+          <label>${this._t("editor.btn_action_type")}</label>
+          <select data-btn-action-type data-idx="${index}">
+            ${["none","toggle","more-info","navigate","url","call-service","assist"].map(a =>
+              `<option value="${a}" ${actionType === a ? "selected" : ""}>${this._t(`editor.action_${a.replace("-","_").replace("-","_")}`) || a}</option>`
+            ).join("")}
+          </select>
+        </div>
+        ${actionFields}
+      </div>`;
+  }
+
+  _attachEditorListeners(wrap, tabs) {
+    // Basic fields
+    wrap.querySelector("#ed-default-tab")?.addEventListener("change", (e) => {
+      this._config = { ...this._config, default_tab: e.target.value };
+      this._fireChanged();
+    });
+    wrap.querySelector("#ed-entity")?.addEventListener("change", (e) => {
+      const val = e.target.value.trim();
+      this._config = { ...this._config };
+      if (val) this._config.entity = val; else delete this._config.entity;
+      this._fireChanged();
+    });
+    wrap.querySelector("#ed-height")?.addEventListener("change", (e) => {
+      const val = e.target.value.trim();
+      this._config = { ...this._config };
+      if (val) {
+        this._config.height = /^\d+$/.test(val) ? parseInt(val) : val;
+      } else {
+        delete this._config.height;
+      }
+      this._fireChanged();
+    });
+
+    // Toggle expand
+    wrap.querySelectorAll("[data-toggle-idx]").forEach(el => {
+      el.addEventListener("click", (e) => {
+        if (e.target.closest("[data-move]") || e.target.closest("[data-delete]")) return;
+        const idx = parseInt(el.dataset.toggleIdx);
+        this._expandedTab = this._expandedTab === idx ? -1 : idx;
+        this._render();
+      });
+    });
+
+    // Move up/down
+    wrap.querySelectorAll("[data-move]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.idx);
+        const dir = btn.dataset.move === "up" ? -1 : 1;
+        const t = [...tabs];
+        [t[idx], t[idx + dir]] = [t[idx + dir], t[idx]];
+        this._expandedTab = idx + dir;
+        this._updateTabs(t);
+      });
+    });
+
+    // Delete
+    wrap.querySelectorAll("[data-delete]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.delete);
+        const t = [...tabs];
+        t.splice(idx, 1);
+        this._expandedTab = -1;
+        this._updateTabs(t);
+      });
+    });
+
+    // Add tab
+    wrap.querySelector("#add-tab-btn")?.addEventListener("click", () => {
+      this._showAddMenu = true;
+      this._render();
+    });
+    wrap.querySelectorAll("[data-add-type]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const type = btn.dataset.addType;
+        const t = [...tabs];
+        const newTab = { type };
+        if (type === "library") newTab.sections = ["artists", "albums", "playlists", "tracks"];
+        if (type === "button") { newTab.icon = "mdi:gesture-tap"; newTab.tap_action = { action: "none" }; }
+        t.push(newTab);
+        this._showAddMenu = false;
+        this._expandedTab = t.length - 1;
+        this._updateTabs(t);
+      });
+    });
+
+    // Tab field edits (label, icon, name, entity)
+    wrap.querySelectorAll("[data-field]").forEach(input => {
+      input.addEventListener("change", () => {
+        const idx = parseInt(input.dataset.idx);
+        const field = input.dataset.field;
+        const val = input.value.trim();
+        const t = [...tabs];
+        t[idx] = { ...t[idx] };
+        if (val) t[idx][field] = val; else delete t[idx][field];
+        this._updateTabs(t);
+      });
+    });
+
+    // Button action type change
+    wrap.querySelectorAll("[data-btn-action-type]").forEach(select => {
+      select.addEventListener("change", () => {
+        const idx = parseInt(select.dataset.idx);
+        const action = select.value;
+        const t = [...tabs];
+        t[idx] = { ...t[idx], tap_action: { action } };
+        this._updateTabs(t);
+      });
+    });
+
+    // Button action field edits (navigation_path, url_path, perform_action)
+    wrap.querySelectorAll("[data-btn-field]").forEach(input => {
+      input.addEventListener("change", () => {
+        const idx = parseInt(input.dataset.idx);
+        const field = input.dataset.btnField;
+        const val = input.value.trim();
+        const t = [...tabs];
+        t[idx] = { ...t[idx], tap_action: { ...t[idx].tap_action, [field]: val } };
+        this._updateTabs(t);
+      });
+    });
+
+    // Layout select (library tab)
+    wrap.querySelectorAll("[data-layout-select]").forEach(sel => {
+      sel.addEventListener("change", () => {
+        const tabIdx = parseInt(sel.dataset.tabIdx);
+        const t = [...tabs];
+        t[tabIdx] = { ...t[tabIdx], layout: sel.value };
+        this._updateTabs(t);
+      });
+    });
+
+    // Search layout select
+    wrap.querySelectorAll("[data-search-layout-select]").forEach(sel => {
+      sel.addEventListener("change", () => {
+        const tabIdx = parseInt(sel.dataset.tabIdx);
+        const t = [...tabs];
+        t[tabIdx] = { ...t[tabIdx], search_layout: sel.value };
+        this._updateTabs(t);
+      });
+    });
+
+    // Section toggles
+    wrap.querySelectorAll("[data-sec-toggle]").forEach(el => {
+      const handler = () => {
+        const sec = el.dataset.secToggle;
+        const tabIdx = parseInt(el.dataset.tabIdx);
+        const t = [...tabs];
+        t[tabIdx] = { ...t[tabIdx] };
+        const current = [...(t[tabIdx].sections || ["artists","albums","playlists","tracks"])];
+        const pos = current.indexOf(sec);
+        if (pos >= 0) {
+          current.splice(pos, 1);
+        } else {
+          current.push(sec);
+        }
+        t[tabIdx].sections = current;
+        this._updateTabs(t);
+      };
+      if (el.tagName === "INPUT") el.addEventListener("change", handler);
+      else el.addEventListener("click", handler);
+    });
+
+    // Section reorder
+    wrap.querySelectorAll("[data-sec-move]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const sec = btn.dataset.sec;
+        const tabIdx = parseInt(btn.dataset.tabIdx);
+        const dir = btn.dataset.secMove === "up" ? -1 : 1;
+        const t = [...tabs];
+        t[tabIdx] = { ...t[tabIdx] };
+        const current = [...(t[tabIdx].sections || ["artists","albums","playlists","tracks"])];
+        const pos = current.indexOf(sec);
+        if (pos < 0) return;
+        [current[pos], current[pos + dir]] = [current[pos + dir], current[pos]];
+        t[tabIdx].sections = current;
+        this._updateTabs(t);
+      });
+    });
+  }
+
+  _esc(str) {
+    if (!str) return "";
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+}
+
+if (!customElements.get("my-music-library-card-editor")) {
+  customElements.define("my-music-library-card-editor", MyMusicLibraryCardEditor);
 }
 
 if (!customElements.get("my-music-library-card")) {
