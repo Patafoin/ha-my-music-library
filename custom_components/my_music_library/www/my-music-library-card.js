@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.6.0";
+const CARD_VERSION = "3.6.1";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -2400,13 +2400,26 @@ class MyMusicLibraryCard extends HTMLElement {
           const img = document.createElement("img");
           img.className = "art";
           img.alt = "Album art";
+          let fallbackAttempted = false;
           img.src = src;
-          img.onload = () => console.debug("[MML] Cover art loaded OK: %s", src);
+          img.onload = () => console.debug("[MML] Cover art loaded OK: %s", img.src);
           img.onerror = () => {
-            console.warn("[MML] Cover art FAILED: %s", src);
-            if (!isAbsolute && img.src !== ep) {
-              console.debug("[MML] Cover art fallback to raw: %s", ep);
-              img.src = ep;
+            console.warn("[MML] Cover art FAILED: %s", img.src);
+            if (!fallbackAttempted) {
+              fallbackAttempted = true;
+              const player = this._activePlayer;
+              if (isAbsolute && player) {
+                const proxyPath = `/api/media_player_proxy/${player}`;
+                const fallbackUrl = hasHassUrl ? this._hass.hassUrl(proxyPath) : proxyPath;
+                console.debug("[MML] Cover art fallback to HA proxy: %s", fallbackUrl);
+                img.src = fallbackUrl;
+              } else if (!isAbsolute && img.src !== ep) {
+                console.debug("[MML] Cover art fallback to raw: %s", ep);
+                img.src = ep;
+              } else {
+                console.warn("[MML] Cover art all attempts failed, showing placeholder");
+                artWrapper.innerHTML = `<div class="art-placeholder">${ICONS.music}</div>`;
+              }
             } else {
               console.warn("[MML] Cover art all attempts failed, showing placeholder");
               artWrapper.innerHTML = `<div class="art-placeholder">${ICONS.music}</div>`;

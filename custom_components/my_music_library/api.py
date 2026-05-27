@@ -1,6 +1,7 @@
 """HTTP API views for My Music Library (proxy to Music Assistant)."""
 from __future__ import annotations
 
+import asyncio
 import dataclasses
 import enum
 import logging
@@ -541,7 +542,7 @@ def _resolve_ma_player_id(hass: HomeAssistant, entity_id: str) -> str | None:
     return entry.unique_id or None
 
 
-def _resolve_queue_id(hass: HomeAssistant, entity_id: str) -> tuple[Any | None, str | None]:
+async def _resolve_queue_id(hass: HomeAssistant, entity_id: str) -> tuple[Any | None, str | None]:
     """Return (mass_client, queue_id) for a HA media_player entity."""
     mass = _get_mass_client(hass)
     if mass is None:
@@ -558,6 +559,8 @@ def _resolve_queue_id(hass: HomeAssistant, entity_id: str) -> tuple[Any | None, 
         if get_active is not None:
             try:
                 q = get_active(ma_player_id)
+                if asyncio.iscoroutine(q):
+                    q = await q
                 if q is not None:
                     queue_id = getattr(q, "queue_id", None) or ma_player_id
                     return mass, queue_id
@@ -627,7 +630,7 @@ async def _queue_jump_via_ma_client(
     hass: HomeAssistant, entity_id: str, index: int,
 ) -> bool:
     """Ask MA to jump to ``index`` within the player's existing queue."""
-    mass, queue_id = _resolve_queue_id(hass, entity_id)
+    mass, queue_id = await _resolve_queue_id(hass, entity_id)
     if mass is None or queue_id is None:
         _LOGGER.warning("queue_jump: cannot resolve queue for %s", entity_id)
         return False
@@ -931,7 +934,7 @@ class MAQueueView(HomeAssistantView):
         if not player:
             return self.json_message("Missing 'player' parameter.", HTTPStatus.BAD_REQUEST)
 
-        mass, queue_id = _resolve_queue_id(hass, player)
+        mass, queue_id = await _resolve_queue_id(hass, player)
         if mass is None or queue_id is None:
             _LOGGER.warning("ma_queue GET: cannot resolve queue for %s", player)
             return self.json_message(
@@ -971,7 +974,7 @@ class MAQueueView(HomeAssistantView):
         if not player or not action:
             return self.json_message("Missing 'player' or 'action'.", HTTPStatus.BAD_REQUEST)
 
-        mass, queue_id = _resolve_queue_id(hass, player)
+        mass, queue_id = await _resolve_queue_id(hass, player)
         if mass is None or queue_id is None:
             return self.json_message("Cannot resolve MA queue.", HTTPStatus.BAD_GATEWAY)
 

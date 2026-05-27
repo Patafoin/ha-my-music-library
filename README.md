@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.6.0-blue)
+![Version](https://img.shields.io/badge/version-3.6.1-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -297,6 +297,10 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 3.6.1
+- **Fix** — `_resolve_queue_id` now async: awaits `player_queues.get_active_queue()` which became a coroutine in recent Music Assistant versions (fixes `RuntimeWarning: coroutine was never awaited`).
+- **Fix** — cover art fallback: when the direct MA imageproxy URL fails (CORS, network), the card now falls back to HA's built-in media player proxy (`/api/media_player_proxy/{entity_id}`) before showing the placeholder.
 
 ### 3.6.0
 - **Feature** — **MA native queue integration**: new `MAQueueView` endpoint reads and controls the Music Assistant queue directly, keeping the card in sync with MA's actual playback queue.
