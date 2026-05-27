@@ -7,7 +7,7 @@ connected to [Music Assistant](https://music-assistant.io/).
 
 - **Domain:** `my_music_library`
 - **GitHub:** https://github.com/Patafoin/ha-my-music-library
-- **Current version:** `3.6.0` (both `CARD_VERSION` in JS and `manifest.json`)
+- **Current version:** `3.6.1` (both `CARD_VERSION` in JS and `manifest.json`)
 - **Target HA:** 2025.x / 2026.x, HACS compatible
 
 ---
