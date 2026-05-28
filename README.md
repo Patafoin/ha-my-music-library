@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.6.2-blue)
+![Version](https://img.shields.io/badge/version-3.6.1-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -297,11 +297,6 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
-
-### 3.6.2
-- **Fix** — **cover art server-side image proxy**: new `/api/my_music_library/image_proxy` endpoint fetches images server-side, solving mixed-content (HTTPS page → HTTP MA) and CORS issues that prevented cover art from loading on Safari, iOS, and wall panels.
-- **Fix** — all thumbnail URLs (library, search, queue) are now routed through the image proxy, preventing mixed-content blocking everywhere.
-- **Fix** — subitems API compatibility: reordered `get_album_tracks` / `get_playlist_tracks` call attempts to try `(item_id, provider)` first, matching the new Music Assistant API signature. Reduced fallback log noise from `warning` to `debug`.
 
 ### 3.6.1
 - **Fix** — `_resolve_queue_id` now async: awaits `player_queues.get_active_queue()` which became a coroutine in recent Music Assistant versions (fixes `RuntimeWarning: coroutine was never awaited`).
