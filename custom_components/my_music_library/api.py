@@ -6,7 +6,6 @@ import dataclasses
 import enum
 import logging
 from http import HTTPStatus
-from urllib.parse import quote
 from typing import Any
 
 import aiohttp
@@ -158,12 +157,6 @@ async def _search_via_ma_client(
     return None
 
 
-def _proxy_image_url(url: str) -> str:
-    """Wrap an absolute image URL through our server-side proxy."""
-    if not url or not url.startswith("http"):
-        return url
-    return f"/api/my_music_library/image_proxy?url={quote(url, safe='')}"
-
 
 # ── Library ───────────────────────────────────────────────────────────────────
 
@@ -215,7 +208,7 @@ def _normalize_library_item(item: dict) -> dict:
         "title": title,
         "media_content_id": uri,
         "media_content_type": media_type,
-        "thumbnail": _proxy_image_url(thumbnail),
+        "thumbnail": thumbnail,
         "media_artist": artist,
         "album_type": str(album_type).lower() if album_type else "album",
         "track_number": int(track_number) if track_number else 0,
@@ -335,7 +328,7 @@ def _normalize_browse_item(item: dict) -> dict:
         "title": title,
         "uri": uri,
         "media_content_type": media_type or ("folder" if is_folder else "music"),
-        "thumbnail": _proxy_image_url(thumbnail),
+        "thumbnail": thumbnail,
         "subtitle": artist,
         "duration": float(duration) if duration else 0,
         "is_folder": is_folder,
@@ -631,7 +624,7 @@ def _normalize_queue_item(item: dict) -> dict:
         "media_content_type": str(media_type),
         "media_artist": artist,
         "duration": float(duration) if duration else 0,
-        "thumbnail": _proxy_image_url(thumbnail),
+        "thumbnail": thumbnail,
     }
 
 
