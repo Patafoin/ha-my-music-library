@@ -8,6 +8,7 @@ import logging
 from http import HTTPStatus
 from typing import Any
 
+import aiohttp
 from aiohttp import web
 
 from homeassistant.components.http import HomeAssistantView
@@ -154,6 +155,7 @@ async def _search_via_ma_client(
             return None
 
     return None
+
 
 
 # ── Library ───────────────────────────────────────────────────────────────────
@@ -449,10 +451,10 @@ async def _get_subitems(
             continue
 
         attempts = [
-            ((uri,), {}),
             ((item_id, provider), {}),
-            ((item_id,), {}),
             ((), {"item_id": item_id, "provider_instance_id_or_domain": provider}),
+            ((uri,), {}),
+            ((item_id,), {}),
             ((), {"item_id": item_id}),
         ]
         for call_args, call_kwargs in attempts:
@@ -462,7 +464,7 @@ async def _get_subitems(
                 _LOGGER.info("Subitems %s: %d items (args=%s kwargs=%s)", action, len(items), call_args, call_kwargs)
                 return [_normalize_library_item(_to_json_safe(i)) for i in items[:limit]]
             except Exception as err:  # noqa: BLE001
-                _LOGGER.warning("Subitems %s args=%s kwargs=%s → %s: %s", method_name, call_args, call_kwargs, type(err).__name__, err)
+                _LOGGER.debug("Subitems %s args=%s kwargs=%s → %s: %s", method_name, call_args, call_kwargs, type(err).__name__, err)
                 continue
 
     return None
@@ -1045,3 +1047,39 @@ class PlayerQueueJumpView(HomeAssistantView):
                 HTTPStatus.BAD_GATEWAY,
             )
         return web.json_response({"ok": True})
+
+
+class ImageProxyView(HomeAssistantView):
+    """Proxy an image URL through HA to avoid mixed-content / CORS issues.
+
+    GET /my_music_library/image_proxy?url=<encoded_url>
+        → binary image response
+    """
+
+    url = "/my_music_library/image_proxy"
+    name = "my_music_library:image_proxy"
+    requires_auth = False
+
+    async def get(self, request: web.Request) -> web.Response:
+        """Fetch an image URL server-side and return it."""
+        hass: HomeAssistant = request.app["hass"]
+        image_url = request.query.get("url", "").strip()
+        if not image_url or not image_url.startswith("http"):
+            return web.Response(status=HTTPStatus.BAD_REQUEST)
+
+        session = async_get_clientsession(hass)
+        try:
+            async with session.get(
+                image_url,
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                if resp.status != 200:
+                    return web.Response(status=resp.status)
+                body = await resp.read()
+                return web.Response(
+                    body=body,
+                    content_type=resp.content_type or "image/jpeg",
+                    headers={"Cache-Control": "public, max-age=300"},
+                )
+        except Exception:  # noqa: BLE001
+            return web.Response(status=HTTPStatus.BAD_GATEWAY)

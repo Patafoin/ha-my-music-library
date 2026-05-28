@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.6.1";
+const CARD_VERSION = "3.6.3";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -2380,6 +2380,19 @@ class MyMusicLibraryCard extends HTMLElement {
     }
   }
 
+  _resolveImageUrl(url) {
+    if (!url) return "";
+    if (!url.startsWith("http")) {
+      const hasHassUrl = typeof this._hass?.hassUrl === "function";
+      return hasHassUrl ? this._hass.hassUrl(url) : url;
+    }
+    const isMixedContent = location.protocol === "https:" && url.startsWith("http://");
+    if (isMixedContent) {
+      return `/my_music_library/image_proxy?url=${encodeURIComponent(url)}`;
+    }
+    return url;
+  }
+
   _updatePlayerContent(card) {
     const state = this._getActiveState();
     const attr = state?.attributes || {};
@@ -2390,40 +2403,19 @@ class MyMusicLibraryCard extends HTMLElement {
     if (artWrapper) {
       if (attr.entity_picture) {
         const ep = attr.entity_picture;
-        const isAbsolute = ep.startsWith("http");
-        const hasHassUrl = typeof this._hass.hassUrl === "function";
-        const src = isAbsolute ? ep : (hasHassUrl ? this._hass.hassUrl(ep) : ep);
-        console.debug("[MML] Cover art: entity_picture=%s isAbsolute=%s hassUrl=%s → src=%s", ep, isAbsolute, hasHassUrl, src);
+        const src = this._resolveImageUrl(ep);
+        console.debug("[MML] Cover art: entity_picture=%s → src=%s", ep, src);
         const existing = artWrapper.querySelector("img.art");
         if (!existing || existing.src !== src) {
           artWrapper.innerHTML = "";
           const img = document.createElement("img");
           img.className = "art";
           img.alt = "Album art";
-          let fallbackAttempted = false;
           img.src = src;
           img.onload = () => console.debug("[MML] Cover art loaded OK: %s", img.src);
           img.onerror = () => {
             console.warn("[MML] Cover art FAILED: %s", img.src);
-            if (!fallbackAttempted) {
-              fallbackAttempted = true;
-              const player = this._activePlayer;
-              if (isAbsolute && player) {
-                const proxyPath = `/api/media_player_proxy/${player}`;
-                const fallbackUrl = hasHassUrl ? this._hass.hassUrl(proxyPath) : proxyPath;
-                console.debug("[MML] Cover art fallback to HA proxy: %s", fallbackUrl);
-                img.src = fallbackUrl;
-              } else if (!isAbsolute && img.src !== ep) {
-                console.debug("[MML] Cover art fallback to raw: %s", ep);
-                img.src = ep;
-              } else {
-                console.warn("[MML] Cover art all attempts failed, showing placeholder");
-                artWrapper.innerHTML = `<div class="art-placeholder">${ICONS.music}</div>`;
-              }
-            } else {
-              console.warn("[MML] Cover art all attempts failed, showing placeholder");
-              artWrapper.innerHTML = `<div class="art-placeholder">${ICONS.music}</div>`;
-            }
+            artWrapper.innerHTML = `<div class="art-placeholder">${ICONS.music}</div>`;
           };
           artWrapper.appendChild(img);
         }
@@ -3028,7 +3020,7 @@ class MyMusicLibraryCard extends HTMLElement {
 
   _renderResultItem(item, iconName) {
     const thumb = item.thumbnail
-      ? `<img class="result-thumb" src="${item.thumbnail}" alt="" loading="lazy">`
+      ? `<img class="result-thumb" src="${this._resolveImageUrl(item.thumbnail)}" alt="" loading="lazy">`
       : `<div class="result-thumb-placeholder">${ICONS[iconName] || ICONS.music}</div>`;
     const queueType = item.type === "track" || iconName === "music" ? "track" : item.type;
     const canQueue = ["track", "music", "album", "playlist"].includes(queueType);
@@ -3451,11 +3443,11 @@ class MyMusicLibraryCard extends HTMLElement {
     const artClass = `search-card-art${round ? " round" : ""}`;
     const placeholderClass = `search-card-art-placeholder${round ? " round" : ""}`;
     const art = item.thumbnail
-      ? `<img class="${artClass}" src="${item.thumbnail}" alt="" loading="lazy">`
+      ? `<img class="${artClass}" src="${this._resolveImageUrl(item.thumbnail)}" alt="" loading="lazy">`
       : `<div class="${placeholderClass}">${ICONS[iconName] || ICONS.music}</div>`;
     const type = item.type || iconName;
     const action = type === "artist" ? "browse" : (type === "track" ? "play" : "play-queue");
-    const extra = type === "artist" ? `data-title="${this._esc(item.title)}" data-thumb="${this._esc(item.thumbnail || "")}"` : "";
+    const extra = type === "artist" ? `data-title="${this._esc(item.title)}" data-thumb="${this._esc(this._resolveImageUrl(item.thumbnail) || "")}"` : "";
     const canQueue = ["album", "playlist", "track"].includes(type);
     return `
       <div class="search-card" data-action="${action}" data-id="${this._esc(item.id)}" data-type="${type}" ${extra}>
@@ -3506,7 +3498,7 @@ class MyMusicLibraryCard extends HTMLElement {
     artistPanel.style.display = "";
 
     const heroArt = thumbnail
-      ? `<img class="artist-hero-art" src="${thumbnail}" alt="" loading="lazy">`
+      ? `<img class="artist-hero-art" src="${this._resolveImageUrl(thumbnail)}" alt="" loading="lazy">`
       : `<div class="artist-hero-art-placeholder">${ICONS.artist}</div>`;
 
     artistPanel.innerHTML = `
@@ -3827,7 +3819,7 @@ class MyMusicLibraryCard extends HTMLElement {
 
     const isFolder = item.is_folder;
     const iconHtml = item.thumbnail
-      ? `<div class="browse-item-icon"><img src="${this._esc(item.thumbnail)}" alt="" loading="lazy"></div>`
+      ? `<div class="browse-item-icon"><img src="${this._esc(this._resolveImageUrl(item.thumbnail))}" alt="" loading="lazy"></div>`
       : `<div class="browse-item-icon ${isFolder ? "folder" : ""}">${isFolder ? ICONS.folderOpen : ICONS.music}</div>`;
 
     const subtitle = item.subtitle
@@ -3857,10 +3849,10 @@ class MyMusicLibraryCard extends HTMLElement {
 
   _renderLibCard(item, iconName) {
     const thumb = item.thumbnail
-      ? `<img class="lib-card-art" src="${item.thumbnail}" alt="" loading="lazy">`
+      ? `<img class="lib-card-art" src="${this._resolveImageUrl(item.thumbnail)}" alt="" loading="lazy">`
       : `<div class="lib-card-art-placeholder">${ICONS[iconName] || ICONS.music}</div>`;
     const action = iconName === "artist" ? "browse" : (iconName === "music" ? "play" : "play-queue");
-    const extra = iconName === "artist" ? `data-title="${this._esc(item.title)}" data-thumb="${this._esc(item.thumbnail || "")}"` : "";
+    const extra = iconName === "artist" ? `data-title="${this._esc(item.title)}" data-thumb="${this._esc(this._resolveImageUrl(item.thumbnail) || "")}"` : "";
     const type = iconName === "artist" ? "artist" : (item.media_content_type || iconName);
     const canQueue = ["album", "playlist", "track"].includes(type);
     return `
@@ -3874,7 +3866,7 @@ class MyMusicLibraryCard extends HTMLElement {
 
   _renderLibListItem(item) {
     const thumb = item.thumbnail
-      ? `<img class="lib-list-thumb" src="${item.thumbnail}" alt="" loading="lazy">`
+      ? `<img class="lib-list-thumb" src="${this._resolveImageUrl(item.thumbnail)}" alt="" loading="lazy">`
       : "";
     return `
       <div class="lib-list-item" data-action="play" data-id="${this._esc(item.media_content_id)}" data-type="${this._esc(item.media_content_type)}">
