@@ -298,6 +298,11 @@ custom_components/my_music_library/
 
 ## Changelog
 
+### 3.7.4
+- **Fix** — **library provider filter**: server-side filtering via Music Assistant's `provider_instance_id_or_domain` parameter. Previously the filter relied on client-side matching of `provider_instances`, which didn't work because MA deduplicates content and assigns all available playback sources to each item. Now each enabled provider is queried individually and results are merged/deduplicated.
+- **Fix** — exclude MA internal `builtin` provider from the settings provider list, from item `provider_instances`, and from localStorage cache. The `builtin` provider (MA's internal library manager) was causing all items to pass the filter.
+- **Feature** — **device volume sliders**: the group/device modal now shows per-device volume sliders for the master and all group members, with live updating and drag support.
+
 ### 3.6.3
 - **Fix** — **cover art & thumbnails mixed-content proxy**: new `_resolveImageUrl` helper detects HTTPS pages loading HTTP images (mixed content blocked by browsers) and routes them through a server-side image proxy (`/my_music_library/image_proxy`). HTTP-only setups are unaffected — images load directly as before.
 - **Fix** — subitems API compatibility: reordered `get_album_tracks` / `get_playlist_tracks` call attempts to try `(item_id, provider)` first, matching newer Music Assistant API signatures. Reduced fallback log noise from `warning` to `debug`.
