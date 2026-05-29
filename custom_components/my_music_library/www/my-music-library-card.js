@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.6.3";
+const CARD_VERSION = "3.7.4";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -101,6 +101,7 @@ const TRANSLATIONS = {
       attach: "Add to group",
       detach: "Remove from group",
       no_players: "No Music Assistant players found.",
+      volume: "Volume",
     },
     settings: {
       title: "Settings",
@@ -212,6 +213,7 @@ const TRANSLATIONS = {
       attach: "Ajouter au groupe",
       detach: "Retirer du groupe",
       no_players: "Aucun lecteur Music Assistant trouvé.",
+      volume: "Volume",
     },
     settings: {
       title: "Paramètres",
@@ -323,6 +325,7 @@ const TRANSLATIONS = {
       attach: "Zur Gruppe hinzufügen",
       detach: "Aus der Gruppe entfernen",
       no_players: "Keine Music Assistant Player gefunden.",
+      volume: "Lautstärke",
     },
     settings: {
       title: "Einstellungen",
@@ -794,6 +797,30 @@ const STYLES = `
   .device-item-action svg { width: 16px; height: 16px; fill: currentColor; }
   .device-item-action.attach { color: var(--accent); }
   .device-item-action.detach:hover { color: #ff6b6b; background: rgba(255,107,107,.15); }
+
+  /* Device volume slider (inside group modal) */
+  .device-item-volume {
+    display: flex; align-items: center; gap: 6px;
+    padding: 2px 12px 8px 42px;
+    margin-top: -6px;
+  }
+  .device-item-volume svg { width: 14px; height: 14px; fill: var(--text2); flex-shrink: 0; }
+  .device-item-volume input[type=range] {
+    flex: 1; -webkit-appearance: none; height: 4px; border-radius: 2px;
+    background: color-mix(in srgb, var(--text) 25%, transparent);
+    outline: none; cursor: pointer; touch-action: none;
+  }
+  .device-item-volume input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--accent); cursor: pointer;
+  }
+  .device-item-volume input[type=range]::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--accent); border: none; cursor: pointer;
+  }
+  .device-item-volume .device-vol-pct {
+    font-size: 11px; color: var(--text2); min-width: 28px; text-align: right;
+  }
 
   /* ══════════════════════════════════════════
      SEARCH TAB
@@ -1491,7 +1518,10 @@ class MyMusicLibraryCard extends HTMLElement {
     this._enabledProviders = (() => {
       try {
         const s = this._loadPref("mml_providers");
-        return s ? new Set(JSON.parse(s)) : null;
+        if (!s) return null;
+        const set = new Set(JSON.parse(s));
+        set.delete("builtin");
+        return set.size > 0 ? set : null;
       } catch (_) { return null; }
     })();
     this._deviceModalOpen = false;
@@ -1507,6 +1537,7 @@ class MyMusicLibraryCard extends HTMLElement {
     this._lastKnownUri = null;
     this._queueVisible = this._loadPref("mml_queue_visible") !== "false";
     this._groupMembers = [];       // entity_ids attached to _activePlayer as group
+    this._deviceVolDragging = new Set();
     this._excludedPlayers = [];    // entity_ids hidden from the device picker (HA options)
     this._libBrowseMode = false;   // true = browse filesystem mode
     this._browseStack = [];        // [{uri, label}] — navigation stack for browse mode
@@ -1779,7 +1810,7 @@ class MyMusicLibraryCard extends HTMLElement {
   async _fetchProviders() {
     try {
       const data = await this._callIntegration("GET", "providers");
-      this._maProviders = data?.providers || [];
+      this._maProviders = (data?.providers || []).filter(p => (p.domain || p.instance_id) !== "builtin");
       // Validate stored filter: if none of the saved keys match current providers, reset
       if (this._enabledProviders !== null && this._maProviders.length > 0) {
         const validKeys = new Set(this._maProviders.map(p => p.instance_id || p.domain));
@@ -2467,6 +2498,9 @@ class MyMusicLibraryCard extends HTMLElement {
     // Device row (name + icon reflect group state)
     this._updateDeviceRow(card);
 
+    // Live-update volume sliders inside the device/group modal
+    this._updateDeviceModalVolumes(card);
+
     // Refresh MA queue when the current track changes
     const currentUri = attr.media_content_id || null;
     if (currentUri !== this._lastKnownUri) {
@@ -2606,11 +2640,11 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   _buildDeviceItem(player, role, card) {
+    const frag = document.createDocumentFragment();
     const item = document.createElement("div");
     item.className = `device-item${role === "master" ? " selected master" : role === "member" ? " member" : ""}`;
 
     const iconSvg = role === "member" ? ICONS.group : ICONS.device;
-    // Show + only if the player declares MediaPlayerEntityFeature.GROUPING in HA.
     const canGroup = player.canJoin;
     let actionHtml = "";
     if (role === "member") {
@@ -2624,6 +2658,36 @@ class MyMusicLibraryCard extends HTMLElement {
       <span class="device-item-name">${this._esc(player.name)}</span>
       <span class="device-item-state">${this._esc(player.state)}</span>
       ${actionHtml}`;
+    frag.appendChild(item);
+
+    if (role === "master" || role === "member") {
+      const volState = this._hass?.states[player.entity_id];
+      const volLevel = volState?.attributes?.volume_level;
+      const volPct = volLevel !== undefined ? Math.round(volLevel * 100) : 0;
+      const volRow = document.createElement("div");
+      volRow.className = "device-item-volume";
+      volRow.dataset.entity = player.entity_id;
+      volRow.innerHTML = `
+        ${ICONS.volumeHigh}
+        <input type="range" min="0" max="100" value="${volPct}" title="${this._t("group.volume")}">
+        <span class="device-vol-pct">${volPct}%</span>`;
+      const slider = volRow.querySelector("input");
+      const eid = player.entity_id;
+      slider.addEventListener("pointerdown", () => { this._deviceVolDragging.add(eid); });
+      slider.addEventListener("input", () => {
+        volRow.querySelector(".device-vol-pct").textContent = `${slider.value}%`;
+      });
+      slider.addEventListener("pointerup", () => {
+        if (!this._deviceVolDragging.has(eid)) return;
+        this._deviceVolDragging.delete(eid);
+        this._hass?.callService("media_player", "volume_set", {
+          entity_id: eid,
+          volume_level: parseInt(slider.value) / 100,
+        });
+      });
+      slider.addEventListener("pointercancel", () => { this._deviceVolDragging.delete(eid); });
+      frag.appendChild(volRow);
+    }
 
     if (role === "available") {
       item.addEventListener("click", (e) => {
@@ -2655,7 +2719,7 @@ class MyMusicLibraryCard extends HTMLElement {
         });
       }
     }
-    return item;
+    return frag;
   }
 
   _attachPlayer(entityId, card) {
@@ -2779,6 +2843,23 @@ class MyMusicLibraryCard extends HTMLElement {
 
   _closeDeviceModal(card) {
     card.querySelector("#device-modal").classList.remove("open");
+  }
+
+  _updateDeviceModalVolumes(card) {
+    const modal = card.querySelector("#device-modal");
+    if (!modal?.classList.contains("open")) return;
+    for (const volRow of modal.querySelectorAll(".device-item-volume")) {
+      const eid = volRow.dataset.entity;
+      const slider = volRow.querySelector("input");
+      if (!eid || !slider || this._deviceVolDragging.has(eid)) continue;
+      const st = this._hass?.states[eid];
+      const vol = st?.attributes?.volume_level;
+      if (vol === undefined) continue;
+      const pct = Math.round(vol * 100);
+      slider.value = pct;
+      const label = volRow.querySelector(".device-vol-pct");
+      if (label) label.textContent = `${pct}%`;
+    }
   }
 
   /* ── Search ── */
@@ -3061,31 +3142,63 @@ class MyMusicLibraryCard extends HTMLElement {
       });
     }
 
-    // Provider filter is skipped here when server-side filtering is active (single provider),
-    // because MA already returned only that provider's items.
-    if (this._enabledProviders !== null && this._enabledProviders.size > 0 && !this._serverSideProviderFilter) {
+    if (this._enabledProviders !== null && this._enabledProviders.size > 0) {
+      const before = result.length;
       result = result.filter(item => {
         const keys = (item.provider_instances?.length ? item.provider_instances : item.providers) || [];
-        if (keys.length === 0) {
+        const filtered = keys.filter(k => k !== "builtin");
+        if (filtered.length === 0) {
           const scheme = (item.media_content_id || "").split("://")[0];
-          return this._enabledProviders.has(scheme);
+          return scheme !== "builtin" && this._enabledProviders.has(scheme);
         }
-        return keys.some(k => this._enabledProviders.has(k));
+        return filtered.some(k => this._enabledProviders.has(k));
       });
+      this._debugLog("Provider filter:", before, "→", result.length,
+        "| enabled:", [...this._enabledProviders],
+        "| sample keys:", items.slice(0, 3).map(i => ({
+          title: i.title,
+          pi: i.provider_instances,
+          p: i.providers,
+          uri: (i.media_content_id || "").split("://")[0]
+        })));
     }
 
     return result;
   }
 
-  /* Returns "&provider=xxx" when exactly one provider is selected, "" otherwise.
-     Also updates _serverSideProviderFilter so _filterLibItems knows to skip client-side filtering. */
-  _providerParam() {
-    if (this._enabledProviders !== null && this._enabledProviders.size === 1) {
-      this._serverSideProviderFilter = true;
-      return `&provider=${encodeURIComponent([...this._enabledProviders][0])}`;
+  /* Returns list of enabled provider instance_ids when filtering is active, null otherwise. */
+  _activeProviderFilter() {
+    if (this._enabledProviders === null || this._enabledProviders.size === 0) return null;
+    if (this._enabledProviders.size >= this._maProviders.length) return null;
+    return [...this._enabledProviders];
+  }
+
+  /* Fetch library items for a section, querying per-provider when filter is active.
+     Returns deduplicated items array. */
+  async _fetchLibraryFiltered(type, limit, offset, favorite, providers) {
+    if (!providers || providers.length === 0) {
+      const r = await this._callIntegration("GET",
+        `library?type=${type}&limit=${limit}&offset=${offset}&favorite=${favorite}`);
+      return r?.items || [];
     }
-    this._serverSideProviderFilter = false;
-    return "";
+    if (providers.length === 1) {
+      const r = await this._callIntegration("GET",
+        `library?type=${type}&limit=${limit}&offset=${offset}&favorite=${favorite}&provider=${encodeURIComponent(providers[0])}`);
+      return r?.items || [];
+    }
+    const results = await Promise.all(providers.map(p =>
+      this._callIntegration("GET",
+        `library?type=${type}&limit=200&offset=0&favorite=${favorite}&provider=${encodeURIComponent(p)}`)
+    ));
+    const seen = new Set();
+    const merged = [];
+    for (const r of results) {
+      for (const item of (r?.items || [])) {
+        const key = item.media_content_id || item.title;
+        if (!seen.has(key)) { seen.add(key); merged.push(item); }
+      }
+    }
+    return merged;
   }
 
   _resolveLibLayout() {
@@ -3140,7 +3253,7 @@ class MyMusicLibraryCard extends HTMLElement {
     const loadId = this._libLoadId;
     const favorite = this._libFavFilter;
     const sourceFilter = this._libSourceFilter;
-    const providerParam = this._providerParam();
+    const activeProviders = this._activeProviderFilter();
 
     const SECTION_META = {
       artists:   { icon: "artist" },
@@ -3224,6 +3337,7 @@ class MyMusicLibraryCard extends HTMLElement {
     };
 
     // Fetch one section: first page in parallel, then lazy-paginate if source filter needs more
+    const multiProvider = activeProviders && activeProviders.length > 1;
     const fetchSection = async (s) => {
       let offset = 0;
       let exhausted = false;
@@ -3233,29 +3347,23 @@ class MyMusicLibraryCard extends HTMLElement {
       while (pages < MAX_PAGES && !exhausted) {
         if (loadId !== this._libLoadId) return; // stale load
         pages++;
-        const r = await this._callIntegration(
-          "GET",
-          `library?type=${s.type}&limit=${PAGE}&offset=${offset}&favorite=${s.favorite}${providerParam}`
-        );
-        const raw = r?.items || [];
+        const raw = await this._fetchLibraryFiltered(s.type, PAGE, offset, s.favorite, activeProviders);
         offset += raw.length;
-        if (raw.length < PAGE) exhausted = true;
+        if (raw.length < PAGE || multiProvider) exhausted = true;
 
         const filtered = this._filterLibItems(raw);
 
+        const hasClientFilter = sourceFilter !== "all";
+
         if (filtered.length > 0 && !rendered) {
-          // First batch with results — render immediately
           this._libSections[s.type] = { offset, loading: false, exhausted, favorite: s.favorite, iconName: s.icon };
           appendSection(s.type, s.label, s.icon, filtered);
           rendered = true;
-          // No source filter or server exhausted → done
-          if (sourceFilter === "all" || exhausted) break;
-          // Source filter active — continue fetching more in background to append
+          if (!hasClientFilter || exhausted) break;
           continue;
         }
 
         if (filtered.length > 0 && rendered) {
-          // Subsequent batches — append to existing section
           this._libSections[s.type].offset = offset;
           this._libSections[s.type].exhausted = exhausted;
           const isTrackList = s.icon === "music";
@@ -3272,12 +3380,9 @@ class MyMusicLibraryCard extends HTMLElement {
           break;
         }
 
-        // 0 filtered results — stop if no source filter or server exhausted
-        if (sourceFilter === "all" || exhausted) break;
-        // Source filter active, 0 matches so far — try next page
+        if (!hasClientFilter || exhausted) break;
       }
 
-      // Register section state even if nothing rendered
       if (!this._libSections[s.type]) {
         this._libSections[s.type] = { offset, loading: false, exhausted: true, favorite: s.favorite, iconName: s.icon };
       }
@@ -3398,7 +3503,7 @@ class MyMusicLibraryCard extends HTMLElement {
     const PAGE = 25;
     const MAX_PAGES = 8;
     const sourceFilter = this._libSourceFilter;
-    const providerParam = this._providerParam();
+    const activeProviders = this._activeProviderFilter();
 
     const appendItems = (items) => {
       const sentinel = libEl.querySelector(`#lib-sentinel-${type}`);
@@ -3416,11 +3521,10 @@ class MyMusicLibraryCard extends HTMLElement {
       let pages = 0;
       while (pages < MAX_PAGES && !state.exhausted) {
         pages++;
-        const data = await this._callIntegration("GET",
-          `library?type=${type}&limit=${PAGE}&offset=${state.offset}&favorite=${favorite}${providerParam}`);
-        const rawItems = data?.items || [];
+        const multiProvider = activeProviders && activeProviders.length > 1;
+        const rawItems = await this._fetchLibraryFiltered(type, PAGE, state.offset, favorite, activeProviders);
 
-        if (rawItems.length < PAGE) state.exhausted = true;
+        if (rawItems.length < PAGE || multiProvider) state.exhausted = true;
         state.offset += rawItems.length;
 
         const filtered = this._filterLibItems(rawItems);
@@ -3428,8 +3532,8 @@ class MyMusicLibraryCard extends HTMLElement {
           appendItems(filtered);
           break;
         }
-        // Source filter active, 0 matches — try next page
-        if (sourceFilter === "all" || state.exhausted) break;
+        const hasClientFilter = sourceFilter !== "all";
+        if (!hasClientFilter || state.exhausted) break;
       }
     } catch (err) {
       state.exhausted = true;

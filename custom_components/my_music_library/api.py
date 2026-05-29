@@ -193,17 +193,38 @@ def _normalize_library_item(item: dict) -> dict:
     duration = item.get("duration") or 0
 
     provider_mappings = item.get("provider_mappings") or []
-    providers = sorted({
-        m.get("provider_domain", "")
-        for m in provider_mappings if isinstance(m, dict) and m.get("provider_domain")
-    })
-    provider_instances = sorted({
-        m.get("provider_instance_id_or_domain")
-        or m.get("provider_instance")
-        or m.get("provider_instance_id")
-        or m.get("provider_domain", "")
-        for m in provider_mappings if isinstance(m, dict)
-    } - {""})
+    providers: set[str] = set()
+    provider_instances: set[str] = set()
+    for m in provider_mappings:
+        if isinstance(m, dict):
+            dom = m.get("provider_domain", "")
+            inst = (
+                m.get("provider_instance_id_or_domain")
+                or m.get("provider_instance")
+                or m.get("provider_instance_id")
+                or dom
+            )
+            if dom:
+                providers.add(dom)
+            if inst:
+                provider_instances.add(inst)
+        elif isinstance(m, str):
+            provider_instances.add(m)
+        else:
+            dom = str(getattr(m, "provider_domain", "") or "")
+            inst = str(
+                getattr(m, "provider_instance", "")
+                or getattr(m, "provider_instance_id_or_domain", "")
+                or dom
+            )
+            if dom:
+                providers.add(dom)
+            if inst:
+                provider_instances.add(inst)
+    provider_instances.discard("")
+    provider_instances.discard("builtin")
+    providers.discard("")
+    providers.discard("builtin")
     return {
         "title": title,
         "media_content_id": uri,
@@ -213,8 +234,8 @@ def _normalize_library_item(item: dict) -> dict:
         "album_type": str(album_type).lower() if album_type else "album",
         "track_number": int(track_number) if track_number else 0,
         "duration": float(duration) if duration else 0,
-        "providers": providers,
-        "provider_instances": provider_instances,
+        "providers": sorted(providers),
+        "provider_instances": sorted(provider_instances),
     }
 
 
@@ -272,8 +293,16 @@ async def _get_library_via_ma_client(
         try:
             result = await fn(**kwargs)
             items = list(result) if not isinstance(result, list) else result
-            _LOGGER.debug("Library %s: %d items (kwargs=%s)", media_type, len(items), kwargs)
-            return [_normalize_library_item(_to_json_safe(i)) for i in items[:limit]]
+            _LOGGER.debug("Library %s: %d items (kwargs=%s, requested_provider=%s)", media_type, len(items), kwargs, provider_instance)
+            normalized = [_normalize_library_item(_to_json_safe(i)) for i in items[:limit]]
+            if normalized:
+                sample = normalized[0]
+                _LOGGER.debug(
+                    "Library %s sample: providers=%s provider_instances=%s uri=%s",
+                    media_type, sample.get("providers"), sample.get("provider_instances"),
+                    sample.get("media_content_id", "")[:60],
+                )
+            return normalized
         except TypeError:
             continue
         except Exception as err:  # noqa: BLE001
@@ -501,6 +530,8 @@ async def _get_providers_via_ma_client(hass: HomeAssistant) -> list | None:
                 if provider_type and provider_type != "music":
                     continue
                 domain = str(getattr(p, "domain", "") or "")
+                if domain == "builtin":
+                    continue
                 instance_id = str(getattr(p, "instance_id", "") or domain)
                 name = str(getattr(p, "name", "") or domain)
                 available = bool(getattr(p, "available", True))
