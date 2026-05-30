@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.7.4";
+const CARD_VERSION = "3.8.0";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -91,7 +91,7 @@ const TRANSLATIONS = {
       browse_error: "Could not load folder contents",
       browse_empty: "Empty folder",
     },
-    queue: { up_next: "Up Next", empty: "Queue is empty", play_next: "Play next", add_to_end: "Add to end", remove: "Remove", toggle: "Toggle queue" },
+    queue: { up_next: "Up Next", empty: "Queue is empty", play_next: "Play next", add_to_end: "Add to end", added_next: "Added after current track", added_end: "Added to end of queue", remove: "Remove", toggle: "Toggle queue" },
     errors: { media_not_found: "Media not found on source" },
     nav: { back: "← Back" },
     group: {
@@ -203,7 +203,7 @@ const TRANSLATIONS = {
       browse_error: "Impossible de charger le contenu du dossier",
       browse_empty: "Dossier vide",
     },
-    queue: { up_next: "À suivre", empty: "File d'attente vide", play_next: "Lire après le titre en cours", add_to_end: "Ajouter à la fin", remove: "Supprimer", toggle: "Afficher/masquer la file" },
+    queue: { up_next: "À suivre", empty: "File d'attente vide", play_next: "Lire après le titre en cours", add_to_end: "Ajouter à la fin", added_next: "Ajouté après le titre en cours", added_end: "Ajouté à la fin de la file d'attente", remove: "Supprimer", toggle: "Afficher/masquer la file" },
     errors: { media_not_found: "Média introuvable sur la source" },
     nav: { back: "← Retour" },
     group: {
@@ -315,7 +315,7 @@ const TRANSLATIONS = {
       browse_error: "Ordnerinhalt konnte nicht geladen werden",
       browse_empty: "Leerer Ordner",
     },
-    queue: { up_next: "Als Nächstes", empty: "Warteschlange ist leer", play_next: "Als Nächstes abspielen", add_to_end: "Am Ende hinzufügen", remove: "Entfernen", toggle: "Warteschlange ein-/ausblenden" },
+    queue: { up_next: "Als Nächstes", empty: "Warteschlange ist leer", play_next: "Als Nächstes abspielen", add_to_end: "Am Ende hinzufügen", added_next: "Nach dem aktuellen Titel hinzugefügt", added_end: "Am Ende der Warteschlange hinzugefügt", remove: "Entfernen", toggle: "Warteschlange ein-/ausblenden" },
     errors: { media_not_found: "Medium auf der Quelle nicht gefunden" },
     nav: { back: "← Zurück" },
     group: {
@@ -1463,6 +1463,108 @@ const STYLES = `
     pointer-events: none; max-width: 90%; text-align: center;
   }
   .mml-toast.visible { opacity: 1; }
+
+  /* ═══════════════════════════════════════════
+     COMPANION MOBILE MODE
+  ═══════════════════════════════════════════ */
+
+  /* Queue overlay backdrop */
+  .queue-backdrop {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 49;
+  }
+  .queue-backdrop.open { display: block; }
+
+  .mml-mobile .player-tab-body { position: relative; }
+
+  /* Enlarged touch targets */
+  .mml-mobile .add-queue-btn {
+    width: 38px; height: 38px; min-width: 38px; padding: 0;
+    opacity: 1;
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    border-radius: 50%;
+    justify-content: center;
+  }
+  .mml-mobile .add-queue-btn:active { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+  .mml-mobile .add-queue-btn svg { width: 20px; height: 20px; }
+  .mml-mobile .result-play { width: 44px; height: 44px; }
+  .mml-mobile .result-play svg { width: 22px; height: 22px; }
+  .mml-mobile .queue-remove {
+    width: 34px; height: 34px; min-width: 34px; padding: 0;
+    opacity: 1;
+    background: color-mix(in srgb, var(--text2) 15%, transparent);
+    border-radius: 50%;
+    justify-content: center;
+  }
+  .mml-mobile .queue-remove:active { background: color-mix(in srgb, var(--text2) 30%, transparent); }
+  .mml-mobile .queue-remove svg { width: 16px; height: 16px; }
+  .mml-mobile .queue-dropdown { min-width: 240px; border-radius: 12px; padding: 6px 0; }
+  .mml-mobile .queue-dropdown-item { padding: 16px 20px; font-size: 16px; }
+  .mml-mobile .browse-mode-btn { padding: 10px 16px; font-size: 13px; }
+  .mml-mobile .browse-play-btn { min-width: 44px; min-height: 44px; }
+
+  /* Larger slider thumbs and tracks */
+  .mml-mobile input[type=range] { height: 8px; border-radius: 4px; }
+  .mml-mobile input[type=range]::-webkit-slider-thumb { width: 28px; height: 28px; }
+  .mml-mobile input[type=range]::-moz-range-thumb { width: 28px; height: 28px; }
+  .mml-mobile .device-item-volume input[type=range] { height: 6px; }
+  .mml-mobile .device-item-volume input[type=range]::-webkit-slider-thumb { width: 22px; height: 22px; }
+  .mml-mobile .device-item-volume input[type=range]::-moz-range-thumb { width: 22px; height: 22px; }
+
+  /* Taller progress bar hit zone */
+  .mml-mobile .progress-bar-container { padding: 12px 0; }
+
+  /* More spacious controls */
+  .mml-mobile .controls { gap: 4px; }
+  .mml-mobile .ctrl-btn { min-width: 44px; min-height: 44px; }
+  .mml-mobile .ctrl-btn.ctrl-nav { width: 50px; height: 50px; }
+  .mml-mobile .ctrl-btn.primary { width: 62px; height: 62px; }
+  .mml-mobile .queue-toggle-btn { position: static; }
+  .mml-mobile .volume-row { gap: 14px; }
+  .mml-mobile .player-controls-section { gap: 16px; }
+
+  /* Queue as bottom-sheet overlay */
+  .mml-mobile .queue-section {
+    position: absolute !important;
+    bottom: 0; left: 0; right: 0;
+    max-height: 70%;
+    border-radius: 16px 16px 0 0;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    border-left: none !important;
+    box-shadow: 0 -4px 24px rgba(0,0,0,.4);
+    z-index: 50;
+    flex: none !important;
+    transform: translateY(100%);
+    transition: transform .3s ease;
+    overflow-y: auto;
+  }
+  .mml-mobile .queue-section.mml-queue-open {
+    transform: translateY(0);
+  }
+
+  /* Queue close button */
+  .queue-close-btn {
+    background: none; border: none; cursor: pointer; color: var(--text2);
+    padding: 8px; display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; transition: background .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .queue-close-btn:active { background: rgba(255,255,255,.12); }
+  .queue-close-btn svg { width: 20px; height: 20px; fill: currentColor; }
+
+  /* Queue items: larger touch targets */
+  .mml-mobile .queue-item { padding: 12px 16px; gap: 12px; }
+  .mml-mobile .queue-title { font-size: 14px; }
+  .mml-mobile .queue-sub { font-size: 12px; }
+
+  /* Result items: more breathing room */
+  .mml-mobile .result-item { padding: 12px 16px; }
+  .mml-mobile .browse-item { padding: 12px 16px; }
+  .mml-mobile .lib-list-item { padding: 10px 16px; }
 `;
 
 /* ─── Helpers ─────────────────────────────────────────────── */
@@ -1542,6 +1644,7 @@ class MyMusicLibraryCard extends HTMLElement {
     this._libBrowseMode = false;   // true = browse filesystem mode
     this._browseStack = [];        // [{uri, label}] — navigation stack for browse mode
     this._rendered = false;
+    this._isMobile = this._detectMobile();
     // MA config fetched from backend via WebSocket
     this._maUrl = null;       // stored but only used as a last-resort hint
     this._maEntryId = null;   // MA config entry ID — used for music_assistant/search WS calls
@@ -1551,6 +1654,11 @@ class MyMusicLibraryCard extends HTMLElement {
 
   _debugLog(...args) {
     if (this._debugMode) console.debug("[MML]", ...args);
+  }
+
+  _detectMobile() {
+    const isCompanion = !!window.externalApp || !!window.webkit?.messageHandlers?.getExternalAuth;
+    return isCompanion && window.innerWidth < 640;
   }
 
   /* ── i18n helper ── */
@@ -1905,8 +2013,10 @@ class MyMusicLibraryCard extends HTMLElement {
     style.textContent = STYLES;
     root.appendChild(style);
 
+    this._isMobile = this._detectMobile();
+
     const card = document.createElement("div");
-    card.className = "card-root";
+    card.className = `card-root${this._isMobile ? " mml-mobile" : ""}`;
 
     const panels = this._resolvedTabs.filter(t => t.type !== "button");
     const panelRenderers = {
@@ -2027,9 +2137,11 @@ class MyMusicLibraryCard extends HTMLElement {
               </div>
             </div>
           </div>
-          <div class="queue-section" id="queue-section" style="${this._queueVisible ? "" : "display:none"}">
+          <div class="queue-backdrop ${this._isMobile && this._queueVisible ? "open" : ""}" id="queue-backdrop"></div>
+          <div class="queue-section ${this._isMobile && this._queueVisible ? "mml-queue-open" : ""}" id="queue-section" style="${!this._isMobile && !this._queueVisible ? "display:none" : ""}">
             <div class="queue-header">
               <span class="queue-header-label">${this._t("queue.up_next")}</span>
+              ${this._isMobile ? `<button class="queue-close-btn" id="queue-close-btn">${ICONS.close}</button>` : ""}
             </div>
             <div id="queue-list">
               <div class="queue-empty">${this._t("queue.empty")}</div>
@@ -2111,6 +2223,7 @@ class MyMusicLibraryCard extends HTMLElement {
             <button id="settings-close">${ICONS.close}</button>
           </div>
           <div id="settings-content"></div>
+          <div style="text-align:right;font-size:12px;color:var(--text2);opacity:.7;margin-top:12px;">v${CARD_VERSION}</div>
         </div>
       </div>`;
   }
@@ -2247,11 +2360,17 @@ class MyMusicLibraryCard extends HTMLElement {
         e.stopPropagation();
         this._queueVisible = !this._queueVisible;
         this._savePref("mml_queue_visible", String(this._queueVisible));
-        const qs = card.querySelector("#queue-section");
-        if (qs) qs.style.display = this._queueVisible ? "" : "none";
-        const btn = card.querySelector("#btn-queue-toggle");
-        if (btn) btn.classList.toggle("active", this._queueVisible);
+        this._applyQueueVisibility(card);
       });
+
+      // Queue close (mobile: backdrop tap or close button)
+      const closeQueue = () => {
+        this._queueVisible = false;
+        this._savePref("mml_queue_visible", "false");
+        this._applyQueueVisibility(card);
+      };
+      card.querySelector("#queue-backdrop")?.addEventListener("click", closeQueue);
+      card.querySelector("#queue-close-btn")?.addEventListener("click", closeQueue);
 
       // Device row
       card.querySelector("#device-row").addEventListener("click", () => this._openDeviceModal(card));
@@ -2839,6 +2958,19 @@ class MyMusicLibraryCard extends HTMLElement {
 
   _loadPref(key) {
     try { return localStorage.getItem(key); } catch (_) { return null; }
+  }
+
+  _applyQueueVisibility(card) {
+    const qs = card.querySelector("#queue-section");
+    const btn = card.querySelector("#btn-queue-toggle");
+    const backdrop = card.querySelector("#queue-backdrop");
+    if (this._isMobile) {
+      if (qs) qs.classList.toggle("mml-queue-open", this._queueVisible);
+      if (backdrop) backdrop.classList.toggle("open", this._queueVisible);
+    } else {
+      if (qs) qs.style.display = this._queueVisible ? "" : "none";
+    }
+    if (btn) btn.classList.toggle("active", this._queueVisible);
   }
 
   _closeDeviceModal(card) {
@@ -3750,7 +3882,7 @@ class MyMusicLibraryCard extends HTMLElement {
         media_id: id,
         enqueue,
       });
-      this._showToast(this._t(mode === "next" ? "queue.play_next" : "queue.add_to_end"));
+      this._showToast(this._t(mode === "next" ? "queue.added_next" : "queue.added_end"));
       this._refreshQueueSoon(1000);
     } catch (err) {
       this._debugLog("addItemToQueue failed:", err);
