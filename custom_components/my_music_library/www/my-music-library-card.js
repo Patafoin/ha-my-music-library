@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.8.0";
+const CARD_VERSION = "3.8.1";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -1513,6 +1513,19 @@ const STYLES = `
   .mml-mobile .device-item-volume input[type=range] { height: 6px; }
   .mml-mobile .device-item-volume input[type=range]::-webkit-slider-thumb { width: 22px; height: 22px; }
   .mml-mobile .device-item-volume input[type=range]::-moz-range-thumb { width: 22px; height: 22px; }
+
+  /* Device modal action buttons (attach/detach) */
+  .mml-mobile .device-item-action {
+    width: 38px; height: 38px; min-width: 38px; padding: 0;
+    background: color-mix(in srgb, var(--text2) 15%, transparent);
+  }
+  .mml-mobile .device-item-action svg { width: 20px; height: 20px; }
+  .mml-mobile .device-item-action.attach {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+  .mml-mobile .device-item-action.detach {
+    background: color-mix(in srgb, var(--text2) 15%, transparent);
+  }
 
   /* Taller progress bar hit zone */
   .mml-mobile .progress-bar-container { padding: 12px 0; }

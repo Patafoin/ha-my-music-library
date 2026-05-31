@@ -298,6 +298,17 @@ custom_components/my_music_library/
 
 ## Changelog
 
+### 3.8.1
+- **Fix** — **mobile touch targets**: device modal attach/detach buttons now have visible circle backgrounds and 38×38 px hit zones on Companion mobile.
+
+### 3.8.0
+- **Feature** — **Companion mobile mode**: automatically detects HA Companion app on phone-sized screens and activates a touch-optimized UI.
+- **Feature** — **queue bottom-sheet overlay**: on mobile, the queue slides up from the bottom with a backdrop; tap outside or the close button to dismiss.
+- **Feature** — **enlarged touch targets**: add-to-queue buttons with accent circle, queue remove buttons with visible circle, bigger slider thumbs and progress bar hit zone.
+- **Feature** — **player controls reflowed**: queue toggle button integrated in the control row instead of overlapping on narrow screens.
+- **Feature** — **version in Settings**: version number displayed at the bottom of the Settings panel.
+- **Fix** — queue toast messages now show confirmation text ("Added after current track" / "Added to end of queue") instead of repeating the menu label.
+
 ### 3.7.4
 - **Fix** — **library provider filter**: server-side filtering via Music Assistant's `provider_instance_id_or_domain` parameter. Previously the filter relied on client-side matching of `provider_instances`, which didn't work because MA deduplicates content and assigns all available playback sources to each item. Now each enabled provider is queried individually and results are merged/deduplicated.
 - **Fix** — exclude MA internal `builtin` provider from the settings provider list, from item `provider_instances`, and from localStorage cache. The `builtin` provider (MA's internal library manager) was causing all items to pass the filter.
