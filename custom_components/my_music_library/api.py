@@ -414,12 +414,28 @@ async def _get_recommendations_via_ma_client(
                         if folder_domain and not item.get("providers"):
                             item["providers"] = [folder_domain]
                     items_norm.append(item)
+
+                # Infer folder provider from items when MA doesn't provide it
+                inferred_domain = folder_domain
+                inferred_instance = folder_instance
+                if is_library_folder and items_norm:
+                    instance_counts: dict[str, int] = {}
+                    for itm in items_norm:
+                        for pi in itm.get("provider_instances") or []:
+                            if pi and pi not in ("builtin", "library"):
+                                instance_counts[pi] = instance_counts.get(pi, 0) + 1
+                    if instance_counts:
+                        top_inst = max(instance_counts, key=instance_counts.get)  # type: ignore[arg-type]
+                        if instance_counts[top_inst] == len(items_norm):
+                            inferred_instance = top_inst
+                            inferred_domain = top_inst.split("--")[0] if "--" in top_inst else top_inst
+
                 normalized.append({
                     "folder_id": f.get("item_id") or f.get("path") or "",
                     "name": f.get("name") or f.get("label") or "",
                     "icon": f.get("icon") or "",
-                    "provider_domain": folder_domain,
-                    "provider_instance": folder_instance,
+                    "provider_domain": inferred_domain,
+                    "provider_instance": inferred_instance,
                     "items": items_norm,
                 })
             return normalized
