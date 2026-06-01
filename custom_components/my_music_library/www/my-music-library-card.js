@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.9.3";
+const CARD_VERSION = "3.9.4";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -3297,7 +3297,7 @@ class MyMusicLibraryCard extends HTMLElement {
       ? `<img class="result-thumb" src="${this._resolveImageUrl(item.thumbnail)}" alt="" loading="lazy">`
       : `<div class="result-thumb-placeholder">${ICONS[iconName] || ICONS.music}</div>`;
     const queueType = item.type === "track" || iconName === "music" ? "track" : item.type;
-    const canQueue = ["track", "music", "album", "playlist"].includes(queueType);
+    const canQueue = ["track", "music", "album", "playlist", "artist"].includes(queueType);
     return `
       <div class="result-item">
         ${thumb}
@@ -3865,7 +3865,7 @@ class MyMusicLibraryCard extends HTMLElement {
     const type = item.type || iconName;
     const action = type === "artist" ? "browse" : (type === "track" ? "play" : "play-queue");
     const extra = type === "artist" ? `data-title="${this._esc(item.title)}" data-thumb="${this._esc(this._resolveImageUrl(item.thumbnail) || "")}"` : "";
-    const canQueue = ["album", "playlist", "track"].includes(type);
+    const canQueue = ["album", "playlist", "track", "artist"].includes(type);
     return `
       <div class="search-card" data-action="${action}" data-id="${this._esc(item.id)}" data-type="${type}" ${extra}>
         ${art}
@@ -3923,6 +3923,7 @@ class MyMusicLibraryCard extends HTMLElement {
         <button class="back-btn" id="artist-back">${this._t("nav.back")}</button>
         ${heroArt}
         <div class="artist-page-name">${this._esc(title)}</div>
+        <button class="add-queue-btn" id="artist-queue-btn" data-queue-id="${this._esc(id)}" data-queue-type="artist" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>
       </div>
       <div class="artist-page-sections">
         <div class="loader"><div class="spinner"></div> ${this._t("lib.loading_short")}</div>
@@ -3932,6 +3933,10 @@ class MyMusicLibraryCard extends HTMLElement {
     artistPanel.querySelector("#artist-back").addEventListener("click", () => {
       artistPanel.style.display = "none";
       searchMain.style.display = "";
+    });
+    artistPanel.querySelector("#artist-queue-btn")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this._showQueueDropdown(e.currentTarget, id, "artist");
     });
 
     this._callIntegration("GET", `subitems?action=artist_albums&uri=${encodeURIComponent(id)}&limit=100`)
@@ -4297,7 +4302,7 @@ class MyMusicLibraryCard extends HTMLElement {
     const type = iconName === "artist" ? "artist" : (item.media_content_type || iconName);
     const id = item.media_content_id || item.uri || "";
     const artist = item.media_artist || item.subtitle || "";
-    const canQueue = ["album", "playlist", "track"].includes(type);
+    const canQueue = ["album", "playlist", "track", "artist"].includes(type);
     return `
       <div class="lib-card" data-action="${action}" data-id="${this._esc(id)}" data-type="${this._esc(type)}" ${extra}>
         ${thumb}

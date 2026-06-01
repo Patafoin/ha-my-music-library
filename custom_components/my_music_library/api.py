@@ -206,6 +206,10 @@ def _normalize_library_item(item: dict) -> dict:
 
     thumbnail = item.get("thumbnail") or ""
     if not thumbnail:
+        image = item.get("image") or {}
+        if isinstance(image, dict):
+            thumbnail = image.get("path") or image.get("url") or ""
+    if not thumbnail:
         metadata = item.get("metadata") or {}
         images = metadata.get("images") or []
         for img in images:
@@ -504,6 +508,10 @@ def _normalize_browse_item(item: dict) -> dict:
             uri = f"{_scheme}://{_path[len('folder/'):]}"
 
     thumbnail = item.get("thumbnail") or ""
+    if not thumbnail:
+        image = item.get("image") or {}
+        if isinstance(image, dict):
+            thumbnail = image.get("path") or image.get("url") or ""
     if not thumbnail:
         metadata = item.get("metadata") or {}
         images = metadata.get("images") or []

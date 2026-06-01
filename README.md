@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.9.3-blue)
+![Version](https://img.shields.io/badge/version-3.9.4-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -297,6 +297,10 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 3.9.4
+- **Fix** — **discover section thumbnails**: items returned by Music Assistant with image data in the `image` field (e.g., "Recently played" flows) were missing their cover art. The backend now reads `image.path` / `image.url` in addition to `metadata.images`.
+- **Feature** — **artist queue & mix**: artists now have a (+) button in the library lane, search results, and artist detail page. The dropdown menu offers "Play next", "Add to end", and "Start a mix" (radio mode) — same as albums and playlists.
 
 ### 3.9.3
 - **Fix** — **discover sections now respect provider filter**: Music Assistant returns recommendation folders without provider metadata. The backend now infers each folder's provider by analyzing its items — folders where all items share one provider (e.g., a Deezer account's "Made for you") are tagged with that provider. Mixed folders (e.g., "Recently added tracks") are filtered at the item level. Disabling a Deezer account in Settings now correctly hides that account's recommendations, mood flows, genre flows, and radios.
