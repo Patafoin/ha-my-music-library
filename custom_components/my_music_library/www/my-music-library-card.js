@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.9.2";
+const CARD_VERSION = "3.9.3";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -3583,11 +3583,16 @@ class MyMusicLibraryCard extends HTMLElement {
       const p = f.provider_instance || f.provider_domain || "";
       return p && p !== "library" && p !== "builtin";
     };
+    const _matchFolderProvider = (key) => {
+      if (!key || key === "library" || key === "builtin") return true;
+      if (this._enabledProviders.has(key)) return true;
+      return [...this._enabledProviders].some(ep => ep.startsWith(key + "_") || key.startsWith(ep.split("--")[0] + "--") || ep === key);
+    };
     const _isFolderEnabled = (f) => {
       if (!_isProviderFolder(f)) return true;
       if (this._enabledProviders === null) return true;
       const inst = f.provider_instance || f.provider_domain || "";
-      return this._enabledProviders.has(inst);
+      return _matchFolderProvider(inst);
     };
 
     const _extractDiscoverItems = async (sectionType) => {
