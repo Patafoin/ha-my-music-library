@@ -143,7 +143,7 @@ class TestLovelaceResourceRegistration:
         from custom_components.my_music_library import _async_register_lovelace_resource
 
         hass, resources_mock = hass_with_lovelace
-        await _async_register_lovelace_resource(hass, CARD_URL)
+        await _async_register_lovelace_resource(hass, CARD_URL, CARD_URL)
 
         resources_mock.async_create_item.assert_called_once_with(
             {"res_type": "module", "url": CARD_URL}
@@ -154,10 +154,10 @@ class TestLovelaceResourceRegistration:
 
         hass, resources_mock = hass_with_lovelace
         resources_mock.async_items = MagicMock(
-            return_value=[{"url": CARD_URL, "res_type": "module"}]
+            return_value=[{"url": CARD_URL, "res_type": "module", "id": "1"}]
         )
 
-        await _async_register_lovelace_resource(hass, CARD_URL)
+        await _async_register_lovelace_resource(hass, CARD_URL, CARD_URL)
 
         resources_mock.async_create_item.assert_not_called()
 
@@ -165,4 +165,4 @@ class TestLovelaceResourceRegistration:
         from custom_components.my_music_library import _async_register_lovelace_resource
 
         # No lovelace in hass.data — should log warning and not crash
-        await _async_register_lovelace_resource(mock_hass, CARD_URL)
+        await _async_register_lovelace_resource(mock_hass, CARD_URL, CARD_URL)

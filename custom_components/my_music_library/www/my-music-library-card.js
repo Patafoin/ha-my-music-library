@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.8.1";
+const CARD_VERSION = "3.9.1";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -42,6 +42,10 @@ const ICONS = {
   queue: `<svg viewBox="0 0 24 24"><path d="M3 5.5h18v3H3V5.5zm0 5h18v3H3v-3zm0 5h12v3H3v-3z"/></svg>`,
   remove: `<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`,
   addNext: `<svg viewBox="0 0 24 24"><path d="M21 3H3v18h18V3zm-4 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>`,
+  history: `<svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>`,
+  sparkle: `<svg viewBox="0 0 24 24"><path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>`,
+  newBox: `<svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm-7.5 12H11V10.5H9.5V9h3v7zm5.5 0h-1.5v-2.5H15V16h-1.5V9H15v2.5h1.5V9H18v7z"/></svg>`,
+  wave: `<svg viewBox="0 0 24 24"><path d="M21 6c-1.66 0-3 1.34-3 3 0 .55.15 1.06.41 1.5L15 14.5l-2.59-2.59c.35-.51.59-1.12.59-1.91 0-1.66-1.34-3-3-3s-3 1.34-3 3c0 .79.24 1.4.59 1.91L3 16.5 4.5 18l5-5L12 15.5l5-5 .5.5c.44.26.95.41 1.5.41 1.66 0 3-1.34 3-3s-1.34-3-3-3z"/></svg>`,
 };
 
 /* ─── i18n ────────────────────────────────────────────────── */
@@ -75,6 +79,10 @@ const TRANSLATIONS = {
       playlists: "Playlists",
       tracks: "Tracks",
       radios: "Radios",
+      recently_played: "Recently played",
+      recently_added: "Recently added",
+      recommended: "Recommended",
+      flows: "Flows",
       filter_all: "All",
       filter_local: "Local",
       filter_streaming: "Streaming",
@@ -91,7 +99,7 @@ const TRANSLATIONS = {
       browse_error: "Could not load folder contents",
       browse_empty: "Empty folder",
     },
-    queue: { up_next: "Up Next", empty: "Queue is empty", play_next: "Play next", add_to_end: "Add to end", added_next: "Added after current track", added_end: "Added to end of queue", remove: "Remove", toggle: "Toggle queue" },
+    queue: { up_next: "Up Next", empty: "Queue is empty", play_next: "Play next", add_to_end: "Add to end", added_next: "Added after current track", added_end: "Added to end of queue", remove: "Remove", toggle: "Toggle queue", start_mix: "Start a mix", mix_started: "Mix started" },
     errors: { media_not_found: "Media not found on source" },
     nav: { back: "← Back" },
     group: {
@@ -187,6 +195,10 @@ const TRANSLATIONS = {
       playlists: "Playlists",
       tracks: "Titres",
       radios: "Radios",
+      recently_played: "Écoutés récemment",
+      recently_added: "Ajoutés récemment",
+      recommended: "Recommandations",
+      flows: "Flows",
       filter_all: "Tout",
       filter_local: "Local",
       filter_streaming: "Streaming",
@@ -203,7 +215,7 @@ const TRANSLATIONS = {
       browse_error: "Impossible de charger le contenu du dossier",
       browse_empty: "Dossier vide",
     },
-    queue: { up_next: "À suivre", empty: "File d'attente vide", play_next: "Lire après le titre en cours", add_to_end: "Ajouter à la fin", added_next: "Ajouté après le titre en cours", added_end: "Ajouté à la fin de la file d'attente", remove: "Supprimer", toggle: "Afficher/masquer la file" },
+    queue: { up_next: "À suivre", empty: "File d'attente vide", play_next: "Lire après le titre en cours", add_to_end: "Ajouter à la fin", added_next: "Ajouté après le titre en cours", added_end: "Ajouté à la fin de la file d'attente", remove: "Supprimer", toggle: "Afficher/masquer la file", start_mix: "Lancer un mix", mix_started: "Mix lancé" },
     errors: { media_not_found: "Média introuvable sur la source" },
     nav: { back: "← Retour" },
     group: {
@@ -299,6 +311,10 @@ const TRANSLATIONS = {
       playlists: "Playlists",
       tracks: "Titel",
       radios: "Radios",
+      recently_played: "Kürzlich gespielt",
+      recently_added: "Kürzlich hinzugefügt",
+      recommended: "Empfehlungen",
+      flows: "Flows",
       filter_all: "Alle",
       filter_local: "Lokal",
       filter_streaming: "Streaming",
@@ -315,7 +331,7 @@ const TRANSLATIONS = {
       browse_error: "Ordnerinhalt konnte nicht geladen werden",
       browse_empty: "Leerer Ordner",
     },
-    queue: { up_next: "Als Nächstes", empty: "Warteschlange ist leer", play_next: "Als Nächstes abspielen", add_to_end: "Am Ende hinzufügen", added_next: "Nach dem aktuellen Titel hinzugefügt", added_end: "Am Ende der Warteschlange hinzugefügt", remove: "Entfernen", toggle: "Warteschlange ein-/ausblenden" },
+    queue: { up_next: "Als Nächstes", empty: "Warteschlange ist leer", play_next: "Als Nächstes abspielen", add_to_end: "Am Ende hinzufügen", added_next: "Nach dem aktuellen Titel hinzugefügt", added_end: "Am Ende der Warteschlange hinzugefügt", remove: "Entfernen", toggle: "Warteschlange ein-/ausblenden", start_mix: "Mix starten", mix_started: "Mix gestartet" },
     errors: { media_not_found: "Medium auf der Quelle nicht gefunden" },
     nav: { back: "← Zurück" },
     group: {
@@ -1411,6 +1427,8 @@ const STYLES = `
   .queue-dropdown { position: absolute; z-index: 1000; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 0; min-width: 200px; box-shadow: 0 4px 16px rgba(0,0,0,.3); }
   .queue-dropdown-item { padding: 8px 14px; font-size: 13px; color: var(--text); cursor: pointer; white-space: nowrap; }
   .queue-dropdown-item:active { background: rgba(255,255,255,.08); }
+  .queue-dropdown-mix { border-top: 1px solid var(--border); margin-top: 2px; padding-top: 10px; display: flex; align-items: center; gap: 6px; }
+  .queue-dropdown-mix svg { width: 16px; height: 16px; fill: var(--accent); flex-shrink: 0; }
 
   /* ══════════════════════════════════════════
      SETTINGS MODAL
@@ -1625,7 +1643,7 @@ class MyMusicLibraryCard extends HTMLElement {
     this._searchLoading = false;
     this._libData = {};
     this._libLoading = false;
-    this._libLoaded = false;
+    this._libLoadedTabs = new Set();
     this._libSections = {}; // type → { offset, loading, exhausted, favorite, iconName }
     this._libSourceFilter = this._loadPref("mml_lib_source") || "all";
     this._libFavFilter = this._loadPref("mml_lib_fav") === "true";
@@ -1774,11 +1792,12 @@ class MyMusicLibraryCard extends HTMLElement {
 
   _buildResolvedTabs(config) {
     const DEFAULT_SECTIONS = ["artists", "albums", "playlists", "tracks"];
-    const VALID_SECTIONS = ["artists", "albums", "playlists", "tracks", "radios"];
+    const VALID_SECTIONS = ["artists", "albums", "playlists", "tracks", "radios", "recently_played", "recently_added", "recommended", "flows"];
     const TAB_ICONS = { player: "player", search: "search", library: "library", settings: "settings" };
 
     if (config.tabs && Array.isArray(config.tabs)) {
       let idx = 0;
+      const typeCounts = {};
       return config.tabs.map(t => {
         const type = t.type || "button";
         if (type === "button") {
@@ -1786,7 +1805,8 @@ class MyMusicLibraryCard extends HTMLElement {
             tap_action: t.tap_action, hold_action: t.hold_action, double_tap_action: t.double_tap_action,
             width: t.width, height: t.height };
         }
-        const id = type === "settings" ? "settings" : type;
+        typeCounts[type] = (typeCounts[type] || 0) + 1;
+        const id = type === "settings" ? "settings" : (typeCounts[type] > 1 ? `${type}-${typeCounts[type] - 1}` : type);
         const tab = { type, id, label: t.label || null, iconOverride: t.icon || null,
           defaultIcon: TAB_ICONS[type] || null };
         if (type === "library") {
@@ -2033,15 +2053,15 @@ class MyMusicLibraryCard extends HTMLElement {
 
     const panels = this._resolvedTabs.filter(t => t.type !== "button");
     const panelRenderers = {
-      player: () => this._renderPlayerTab(),
-      search: () => this._renderSearchTab(),
-      library: () => this._renderLibraryTab(),
+      player: (t) => this._renderPlayerTab(),
+      search: (t) => this._renderSearchTab(),
+      library: (t) => this._renderLibraryTab(t),
     };
 
     card.innerHTML = `
       ${this._renderNav()}
       <div class="content">
-        ${panels.map(t => panelRenderers[t.type] ? panelRenderers[t.type]() : "").join("")}
+        ${panels.map(t => panelRenderers[t.type] ? panelRenderers[t.type](t) : "").join("")}
       </div>
       ${this._renderDeviceModal()}
       ${this._renderSettingsModal()}
@@ -2186,12 +2206,13 @@ class MyMusicLibraryCard extends HTMLElement {
       </div>`;
   }
 
-  _renderLibraryTab() {
+  _renderLibraryTab(tabDef) {
+    const panelId = tabDef?.id || "library";
     const src = this._libSourceFilter;
     const fav = this._libFavFilter;
     const browse = this._libBrowseMode;
     return `
-      <div class="tab-panel" data-panel="library">
+      <div class="tab-panel" data-panel="${panelId}">
         <div class="library-panel" id="library-content">
           <div class="lib-filters" id="lib-filters">
             <div class="lib-filter-group" id="lib-source-filter">
@@ -2252,7 +2273,8 @@ class MyMusicLibraryCard extends HTMLElement {
           return;
         }
         this._setActiveTab(tab, card);
-        if (tab === "library" && !this._libLoaded) this._loadLibrary();
+        const tabDef = this._resolvedTabs.find(t => t.id === tab);
+        if (tabDef?.type === "library" && !this._libLoadedTabs.has(tab)) this._loadLibrary();
       });
     });
 
@@ -2530,7 +2552,8 @@ class MyMusicLibraryCard extends HTMLElement {
     if (!card) return;
     this._updatePlayerContent(card);
     this._updateNavButtons(card);
-    if (this._tab === "library" && !this._libLoaded) this._loadLibrary();
+    const activeTabDef = this._resolvedTabs.find(t => t.id === this._tab);
+    if (activeTabDef?.type === "library" && !this._libLoadedTabs.has(this._tab)) this._loadLibrary();
   }
 
   _updateNavButtons(card) {
@@ -3022,20 +3045,33 @@ class MyMusicLibraryCard extends HTMLElement {
     let results = null;
 
     {
-      const strategies = ["HA proxy"];
-      const candidates = [this._searchViaHaProxy(query)];
-      if (this._maEntryId) { candidates.push(this._searchViaMaWs(query)); strategies.push("MA WS"); }
+      const strategies = ["HA proxy", "HA proxy (library)"];
+      const candidates = [
+        this._searchViaHaProxy(query),
+        this._searchViaHaProxy(query, { libraryOnly: true }),
+      ];
+      if (this._maEntryId) {
+        candidates.push(this._searchViaMaWs(query));
+        strategies.push("MA WS");
+        candidates.push(this._searchViaMaWs(query, { libraryOnly: true }));
+        strategies.push("MA WS (library)");
+      }
       this._debugLog("Search strategies:", strategies.join(", "));
-      results = await new Promise(resolve => {
-        let pending = candidates.length;
-        candidates.forEach((p, i) => p.then(v => {
-          if (v) { this._debugLog(`Search strategy ${strategies[i]}: fulfilled, has results`); resolve(v); }
-          else { this._debugLog(`Search strategy ${strategies[i]}: fulfilled, null`); if (--pending === 0) resolve(null); }
-        }).catch(e => {
-          this._debugLog(`Search strategy ${strategies[i]}: rejected`, e);
-          if (--pending === 0) resolve(null);
-        }));
+
+      const settled = await Promise.allSettled(candidates);
+      const buckets = settled.map((s, i) => {
+        if (s.status === "fulfilled" && s.value) {
+          this._debugLog(`Search strategy ${strategies[i]}: has results`);
+          return s.value;
+        }
+        this._debugLog(`Search strategy ${strategies[i]}: ${s.status === "rejected" ? "rejected" : "null"}`);
+        return null;
       });
+
+      for (const b of buckets) {
+        if (!b) continue;
+        results = results ? this._mergeSearchResults(results, b) : b;
+      }
     }
 
     if (!results) {
@@ -3064,39 +3100,37 @@ class MyMusicLibraryCard extends HTMLElement {
 
   /* Search via HA proxy endpoint /my_music_library/search
      The HA backend calls MA server-side → no CORS, works from HTTPS. */
-  async _searchViaHaProxy(query) {
+  async _searchViaHaProxy(query, { libraryOnly = false } = {}) {
     try {
       const encodedQuery = encodeURIComponent(query);
+      const extra = libraryOnly ? "&library_only=true" : "";
       const data = await this._callIntegration(
         "GET",
-        `search?query=${encodedQuery}&limit=25`
+        `search?query=${encodedQuery}&limit=25${extra}`
       );
       if (!data) return null;
       const results = this._parseMaWsSearchResults(data);
-      // Search via HA proxy done
       return results;
     } catch (e) {
-      // HA proxy search failed
       return null;
     }
   }
 
   /* Search via music_assistant/search WebSocket command (registered by MA integration).
      Passes through HA — no CORS, works from HTTPS. */
-  async _searchViaMaWs(query) {
-    // MA 2.x registers "music_assistant/search" with entry_id + search_query
-    // Older versions may use different param names — try both shapes.
+  async _searchViaMaWs(query, { libraryOnly = false } = {}) {
+    const base = { entry_id: this._maEntryId, limit: 25 };
+    if (libraryOnly) base.library_only = true;
     const attempts = [
-      { type: "music_assistant/search", entry_id: this._maEntryId, search_query: query, limit: 25 },
-      { type: "music_assistant/search", entry_id: this._maEntryId, name: query, limit: 25 },
-      { type: "music_assistant/search_media_items", entry_id: this._maEntryId, search_query: query, limit: 25 },
+      { type: "music_assistant/search", ...base, search_query: query },
+      { type: "music_assistant/search", ...base, name: query },
+      { type: "music_assistant/search_media_items", ...base, search_query: query },
     ];
 
     for (const msg of attempts) {
       try {
         const result = await this._hass.callWS(msg);
         if (result) {
-          // MA WS search succeeded
           return this._parseMaWsSearchResults(result);
         }
       } catch (e) {
@@ -3129,6 +3163,20 @@ class MyMusicLibraryCard extends HTMLElement {
     // Return null if all buckets empty (probably wrong format, try next strategy)
     const total = Object.values(out).reduce((s, a) => s + a.length, 0);
     return total > 0 ? out : null;
+  }
+
+  _mergeSearchResults(a, b) {
+    const merged = { tracks: [], artists: [], albums: [], playlists: [] };
+    for (const key of Object.keys(merged)) {
+      const items = [...(a[key] || [])];
+      const seen = new Set(items.map(i => `${(i.id || "").toLowerCase()}|${(i.title || "").toLowerCase()}`));
+      for (const item of b[key] || []) {
+        const k = `${(item.id || "").toLowerCase()}|${(item.title || "").toLowerCase()}`;
+        if (!seen.has(k)) { seen.add(k); items.push(item); }
+      }
+      merged[key] = items;
+    }
+    return merged;
   }
 
   /* Search via HA browse_media WebSocket on an MA media_player entity */
@@ -3273,11 +3321,13 @@ class MyMusicLibraryCard extends HTMLElement {
   _filterLibItems(items) {
     let result = items;
 
+    const _itemUri = (item) => item.media_content_id || item.uri || "";
+
     if (this._libSourceFilter !== "all") {
       result = result.filter(item => {
         const provs = item.providers || [];
         if (provs.length === 0) {
-          const uri = item.media_content_id || "";
+          const uri = _itemUri(item);
           const scheme = uri.includes("://") ? uri.split("://")[0] : "";
           if (this._libSourceFilter === "local") return this._isLocalProvider(scheme);
           return scheme && !this._isLocalProvider(scheme);
@@ -3288,24 +3338,22 @@ class MyMusicLibraryCard extends HTMLElement {
     }
 
     if (this._enabledProviders !== null && this._enabledProviders.size > 0) {
+      const _matchesAnyProvider = (key) => {
+        if (this._enabledProviders.has(key)) return true;
+        return [...this._enabledProviders].some(ep => ep.startsWith(key + "_") || ep === key);
+      };
       const before = result.length;
       result = result.filter(item => {
         const keys = (item.provider_instances?.length ? item.provider_instances : item.providers) || [];
         const filtered = keys.filter(k => k !== "builtin");
         if (filtered.length === 0) {
-          const scheme = (item.media_content_id || "").split("://")[0];
-          return scheme !== "builtin" && this._enabledProviders.has(scheme);
+          const scheme = _itemUri(item).split("://")[0];
+          if (!scheme || scheme === "library" || scheme === "builtin") return true;
+          return _matchesAnyProvider(scheme);
         }
-        return filtered.some(k => this._enabledProviders.has(k));
+        return filtered.some(k => this._enabledProviders.has(k) || _matchesAnyProvider(k));
       });
-      this._debugLog("Provider filter:", before, "→", result.length,
-        "| enabled:", [...this._enabledProviders],
-        "| sample keys:", items.slice(0, 3).map(i => ({
-          title: i.title,
-          pi: i.provider_instances,
-          p: i.providers,
-          uri: (i.media_content_id || "").split("://")[0]
-        })));
+      this._debugLog("Provider filter:", before, "→", result.length);
     }
 
     return result;
@@ -3347,7 +3395,8 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   _resolveLibLayout() {
-    const libTab = this._resolvedTabs.find(t => t.type === "library");
+    const libTab = this._resolvedTabs.find(t => t.id === this._tab && t.type === "library")
+      || this._resolvedTabs.find(t => t.type === "library");
     const configLayout = libTab?.layout || "lanes";
     const sectionCount = (libTab?.sections || []).length;
     if (configLayout === "grid" && sectionCount > 1) return "lanes";
@@ -3359,7 +3408,7 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   _reloadLibrary() {
-    this._libLoaded = false;
+    this._libLoadedTabs.clear();
     // Update filter bar in-place (no outerHTML replacement — preserves display state)
     const card = this.shadowRoot.querySelector(".card-root");
     if (card) {
@@ -3384,10 +3433,11 @@ class MyMusicLibraryCard extends HTMLElement {
     if (!this._hass) return;
 
     const card = this.shadowRoot.querySelector(".card-root");
-    const libEl = card?.querySelector("#lib-content-inner");
+    const activePanel = card?.querySelector(`.tab-panel[data-panel="${this._tab}"]`);
+    const libEl = (activePanel || card)?.querySelector("#lib-content-inner");
     if (!libEl) return;
 
-    this._libLoaded = true;
+    this._libLoadedTabs.add(this._tab);
     this._debugLog("Library load start, browseMode:", this._libBrowseMode, "sourceFilter:", this._libSourceFilter, "favFilter:", this._libFavFilter);
 
     if (this._libBrowseMode) {
@@ -3401,13 +3451,25 @@ class MyMusicLibraryCard extends HTMLElement {
     const activeProviders = this._activeProviderFilter();
 
     const SECTION_META = {
-      artists:   { icon: "artist" },
-      albums:    { icon: "album" },
-      playlists: { icon: "playlist" },
-      tracks:    { icon: "music" },
-      radios:    { icon: "radio" },
+      artists:          { icon: "artist" },
+      albums:           { icon: "album" },
+      playlists:        { icon: "playlist" },
+      tracks:           { icon: "music" },
+      radios:           { icon: "radio" },
+      recently_played:  { icon: "history" },
+      recently_added:   { icon: "newBox" },
+      recommended:      { icon: "sparkle" },
+      flows:            { icon: "wave" },
     };
-    const libTab = this._resolvedTabs.find(t => t.type === "library");
+    const DISCOVER_SECTIONS = ["recently_played", "recently_added", "recommended", "flows"];
+    const DISCOVER_FOLDER_MAP = {
+      recently_played: ["recently_played"],
+      recently_added: ["recently_added_tracks", "recently_added_albums"],
+      flows: null,
+      recommended: null,
+    };
+    const libTab = this._resolvedTabs.find(t => t.id === this._tab && t.type === "library")
+      || this._resolvedTabs.find(t => t.type === "library");
     const sectionKeys = libTab?.sections || ["artists", "albums", "playlists", "tracks"];
     const SECTIONS = sectionKeys.map(key => ({
       type: key,
@@ -3425,12 +3487,34 @@ class MyMusicLibraryCard extends HTMLElement {
     libEl.classList.toggle("lib-layout-columns", layout === "columns");
     this._libSections = {};
 
+    const allDiscover = sectionKeys.every(k => DISCOVER_SECTIONS.includes(k));
+    const filterBar = (activePanel || card)?.querySelector("#lib-filters");
+    if (filterBar) {
+      filterBar.style.display = "";
+      const browseToggle = filterBar.querySelector("#lib-browse-toggle");
+      if (browseToggle && allDiscover) browseToggle.style.display = "none";
+    }
+
+    // Helper: resolve per-item icon for mixed-type discover sections
+    const _itemIcon = (item) => {
+      const t = (item.media_content_type || "").toLowerCase();
+      if (t.includes("artist")) return "artist";
+      if (t.includes("album")) return "album";
+      if (t.includes("playlist")) return "playlist";
+      if (t.includes("radio")) return "radio";
+      if (t === "track") return "music";
+      return "music";
+    };
+
     // Helper: build section HTML (layout-aware)
+    const isDiscoverSection = (type) => DISCOVER_SECTIONS.includes(type);
     const sectionHtml = (type, label, iconName, items) => {
       const isTrackList = iconName === "music";
       const itemsHtml = isTrackList
         ? items.map(i => this._renderLibListItem(i)).join("")
-        : items.map(i => this._renderLibCard(i, iconName)).join("");
+        : isDiscoverSection(type)
+          ? items.map(i => this._renderLibCard(i, _itemIcon(i))).join("")
+          : items.map(i => this._renderLibCard(i, iconName)).join("");
       const sentinel = isTrackList
         ? `<div class="lib-sentinel-v" id="lib-sentinel-${type}"></div>`
         : `<div class="lib-sentinel" id="lib-sentinel-${type}"></div>`;
@@ -3481,9 +3565,87 @@ class MyMusicLibraryCard extends HTMLElement {
       if (layout === "lanes") this._attachLaneArrows(sec);
     };
 
+    // Lazy-load recommendations: fetched once on first discover section, shared by all
+    let _recPromise = null;
+    const _getRecommendations = () => {
+      if (_recPromise) return _recPromise;
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 8000));
+      const fetcher = this._callIntegration("GET", "recommendations").then(d => d?.folders || []);
+      _recPromise = Promise.race([fetcher, timeout]).catch(err => {
+        this._debugLog("Recommendations fetch failed:", err);
+        return [];
+      });
+      return _recPromise;
+    };
+
+    const _isProviderFolder = (f) => {
+      const p = f.provider_instance || f.provider_domain || "";
+      return p && p !== "library" && p !== "builtin";
+    };
+    const _isFolderEnabled = (f) => {
+      if (!_isProviderFolder(f)) return true;
+      if (this._enabledProviders === null) return true;
+      const inst = f.provider_instance || f.provider_domain || "";
+      return this._enabledProviders.has(inst);
+    };
+
+    const _extractDiscoverItems = async (sectionType) => {
+      const recFolders = await _getRecommendations();
+      if (!recFolders || recFolders.length === 0) return [];
+      const folders = recFolders.filter(_isFolderEnabled);
+      const mapping = DISCOVER_FOLDER_MAP[sectionType];
+      if (Array.isArray(mapping)) {
+        return folders
+          .filter(f => mapping.includes(f.folder_id))
+          .flatMap(f => f.items || []);
+      }
+      if (sectionType === "flows") {
+        return folders
+          .filter(f => {
+            const id = (f.folder_id || "").toLowerCase();
+            const name = (f.name || "").toLowerCase();
+            return id.includes("flow") || name.includes("flow");
+          })
+          .flatMap(f => f.items || []);
+      }
+      const claimedIds = new Set();
+      for (const [key, val] of Object.entries(DISCOVER_FOLDER_MAP)) {
+        if (key === "recommended") continue;
+        if (Array.isArray(val)) val.forEach(id => claimedIds.add(id));
+      }
+      return folders
+        .filter(f => {
+          if (claimedIds.has(f.folder_id)) return false;
+          const id = (f.folder_id || "").toLowerCase();
+          const name = (f.name || "").toLowerCase();
+          if (id.includes("flow") || name.includes("flow")) return false;
+          if (["random_artists", "random_albums", "recent_favorite_tracks", "favorite_playlists", "favorite_radio", "in_progress"].includes(f.folder_id)) return false;
+          return true;
+        })
+        .flatMap(f => f.items || []);
+    };
+
     // Fetch one section: first page in parallel, then lazy-paginate if source filter needs more
     const multiProvider = activeProviders && activeProviders.length > 1;
     const fetchSection = async (s) => {
+      // Discover sections fetch recommendations lazily (with timeout, non-blocking for other sections)
+      if (DISCOVER_SECTIONS.includes(s.type)) {
+        try {
+          const raw = await _extractDiscoverItems(s.type);
+          if (loadId !== this._libLoadId) return;
+          const items = this._filterLibItems(raw);
+          if (items.length > 0) {
+            this._libSections[s.type] = { offset: items.length, loading: false, exhausted: true, favorite: false, iconName: s.icon };
+            appendSection(s.type, s.label, s.icon, items);
+          } else {
+            this._libSections[s.type] = { offset: 0, loading: false, exhausted: true, favorite: false, iconName: s.icon };
+          }
+        } catch (err) {
+          this._debugLog("Discover section failed:", s.type, err);
+          this._libSections[s.type] = { offset: 0, loading: false, exhausted: true, favorite: false, iconName: s.icon };
+        }
+        return;
+      }
       let offset = 0;
       let exhausted = false;
       let pages = 0;
@@ -3910,11 +4072,16 @@ class MyMusicLibraryCard extends HTMLElement {
     dd.innerHTML = `
       <div class="queue-dropdown-item" data-mode="next">${this._t("queue.play_next")}</div>
       <div class="queue-dropdown-item" data-mode="end">${this._t("queue.add_to_end")}</div>
+      <div class="queue-dropdown-item queue-dropdown-mix" data-mode="radio">${ICONS.shuffle} ${this._t("queue.start_mix")}</div>
     `;
     dd.querySelectorAll(".queue-dropdown-item").forEach(item => {
       item.addEventListener("click", (e) => {
         e.stopPropagation();
-        this._addItemToQueue(id, type, item.dataset.mode);
+        if (item.dataset.mode === "radio") {
+          this._startRadioMode(id, type);
+        } else {
+          this._addItemToQueue(id, type, item.dataset.mode);
+        }
         this._closeQueueDropdown();
       });
     });
@@ -3944,6 +4111,24 @@ class MyMusicLibraryCard extends HTMLElement {
     const existing = this.shadowRoot?.querySelector("#mml-queue-dropdown");
     if (existing) existing.remove();
     if (this._queueDropdownCleanup) { this._queueDropdownCleanup(); this._queueDropdownCleanup = null; }
+  }
+
+  async _startRadioMode(id, type) {
+    if (!this._hass || !this._activePlayer) return;
+    try {
+      await this._callServiceSilent("music_assistant", "play_media", {
+        entity_id: this._activePlayer,
+        media_id: id,
+        enqueue: "replace",
+        radio_mode: true,
+      });
+      this._showToast(this._t("queue.mix_started"));
+      const card = this.shadowRoot.querySelector(".card-root");
+      if (card) this._setActiveTab("player", card);
+      this._refreshQueueSoon(1500);
+    } catch (err) {
+      this._debugLog("startRadioMode failed:", err);
+    }
   }
 
   async _jumpToQueueIndex(index) {
@@ -3979,7 +4164,7 @@ class MyMusicLibraryCard extends HTMLElement {
       const idx = parseInt(btn.dataset.crumbIdx, 10);
       // idx 0 = root → empty stack; idx N → keep first N-1 entries
       this._browseStack = idx === 0 ? [] : this._browseStack.slice(0, idx);
-      this._libLoaded = false;
+      this._libLoadedTabs.delete(this._tab);
       this._loadLibrary();
     });
   }
@@ -3987,7 +4172,8 @@ class MyMusicLibraryCard extends HTMLElement {
   async _loadBrowse(uri, libEl) {
     if (!libEl) {
       const card = this.shadowRoot.querySelector(".card-root");
-      libEl = card?.querySelector("#lib-content-inner");
+      const activePanel = card?.querySelector(`.tab-panel[data-panel="${this._tab}"]`);
+      libEl = (activePanel || card)?.querySelector("#lib-content-inner");
     }
     if (!libEl) return;
 
@@ -4030,11 +4216,11 @@ class MyMusicLibraryCard extends HTMLElement {
         if (row.dataset.back === "true") {
           // MA virtual back item — navigate up one level
           if (this._browseStack.length > 0) this._browseStack.pop();
-          this._libLoaded = false;
+          this._libLoadedTabs.delete(this._tab);
           this._loadLibrary();
         } else if (folder === "true") {
           this._browseStack.push({ uri: itemUri, label: title });
-          this._libLoaded = false;
+          this._libLoadedTabs.delete(this._tab);
           this._loadLibrary();
         } else {
           this._playItem(itemUri, type || "music");
@@ -4103,13 +4289,15 @@ class MyMusicLibraryCard extends HTMLElement {
     const action = iconName === "artist" ? "browse" : (iconName === "music" ? "play" : "play-queue");
     const extra = iconName === "artist" ? `data-title="${this._esc(item.title)}" data-thumb="${this._esc(this._resolveImageUrl(item.thumbnail) || "")}"` : "";
     const type = iconName === "artist" ? "artist" : (item.media_content_type || iconName);
+    const id = item.media_content_id || item.uri || "";
+    const artist = item.media_artist || item.subtitle || "";
     const canQueue = ["album", "playlist", "track"].includes(type);
     return `
-      <div class="lib-card" data-action="${action}" data-id="${this._esc(item.media_content_id)}" data-type="${this._esc(type)}" ${extra}>
+      <div class="lib-card" data-action="${action}" data-id="${this._esc(id)}" data-type="${this._esc(type)}" ${extra}>
         ${thumb}
         <div class="lib-card-name">${this._esc(item.title)}</div>
-        ${item.media_artist ? `<div class="lib-card-sub">${this._esc(item.media_artist)}</div>` : ""}
-        ${canQueue ? `<button class="add-queue-btn" data-queue-id="${this._esc(item.media_content_id)}" data-queue-type="${this._esc(type)}" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>` : ""}
+        ${artist ? `<div class="lib-card-sub">${this._esc(artist)}</div>` : ""}
+        ${canQueue ? `<button class="add-queue-btn" data-queue-id="${this._esc(id)}" data-queue-type="${this._esc(type)}" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>` : ""}
       </div>`;
   }
 
@@ -4443,7 +4631,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
   }
 
   _renderSectionsEditor(tab, index) {
-    const ALL_SECTIONS = ["artists", "albums", "playlists", "tracks", "radios"];
+    const ALL_SECTIONS = ["artists", "albums", "playlists", "tracks", "radios", "recently_played", "recently_added", "recommended", "flows"];
     const current = tab.sections || ["artists", "albums", "playlists", "tracks"];
     const ordered = [...current, ...ALL_SECTIONS.filter(s => !current.includes(s))];
     const currentLayout = tab.layout || "lanes";

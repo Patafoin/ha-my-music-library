@@ -102,13 +102,17 @@ async def _search_via_rest(
     ma_url: str,
     query: str,
     limit: int,
+    *,
+    library_only: bool = False,
 ) -> dict | None:
     """Call MA's REST search API directly over HTTP."""
     from aiohttp import ClientTimeout  # noqa: PLC0415
 
     session = async_get_clientsession(hass)
     timeout = ClientTimeout(total=10)
-    params = {"query": query, "limit": str(limit)}
+    params: dict[str, str] = {"query": query, "limit": str(limit)}
+    if library_only:
+        params["library_only"] = "true"
 
     for path in ["/api/search", "/api/music/search"]:
         url = f"{ma_url}{path}"
@@ -131,6 +135,8 @@ async def _search_via_ma_client(
     hass: HomeAssistant,
     query: str,
     limit: int,
+    *,
+    library_only: bool = False,
 ) -> dict | None:
     """Use the MA Python client to search."""
     mass = _get_mass_client(hass)
@@ -144,7 +150,14 @@ async def _search_via_ma_client(
         _LOGGER.warning("No search() method on MA client (type=%s)", type(mass).__name__)
         return None
 
-    for kwargs in [{"media_types": None, "limit": limit}, {"limit": limit}, {}]:
+    kwarg_variants: list[dict[str, Any]] = [
+        {"media_types": None, "limit": limit, "library_only": library_only},
+        {"media_types": None, "limit": limit},
+        {"limit": limit, "library_only": library_only},
+        {"limit": limit},
+        {},
+    ]
+    for kwargs in kwarg_variants:
         try:
             results = await search_fn(query, **kwargs)
             return _serialize_search_results(results)
@@ -155,6 +168,28 @@ async def _search_via_ma_client(
             return None
 
     return None
+
+
+def _merge_search_results(primary: dict, secondary: dict) -> dict:
+    """Merge two search result dicts, deduplicating by item id."""
+    merged: dict[str, list] = {}
+    for key in ("tracks", "artists", "albums", "playlists"):
+        items = list(primary.get(key) or [])
+        seen = {_item_dedup_key(i) for i in items}
+        for item in secondary.get(key) or []:
+            k = _item_dedup_key(item)
+            if k not in seen:
+                seen.add(k)
+                items.append(item)
+        merged[key] = items
+    return merged
+
+
+def _item_dedup_key(item: dict) -> str:
+    """Return a dedup key for a search result item."""
+    uri = item.get("uri") or item.get("item_id") or item.get("media_content_id") or ""
+    name = item.get("name") or item.get("title") or ""
+    return f"{uri}|{name}".lower()
 
 
 
@@ -293,15 +328,8 @@ async def _get_library_via_ma_client(
         try:
             result = await fn(**kwargs)
             items = list(result) if not isinstance(result, list) else result
-            _LOGGER.debug("Library %s: %d items (kwargs=%s, requested_provider=%s)", media_type, len(items), kwargs, provider_instance)
+            _LOGGER.debug("Library %s: %d items", media_type, len(items))
             normalized = [_normalize_library_item(_to_json_safe(i)) for i in items[:limit]]
-            if normalized:
-                sample = normalized[0]
-                _LOGGER.debug(
-                    "Library %s sample: providers=%s provider_instances=%s uri=%s",
-                    media_type, sample.get("providers"), sample.get("provider_instances"),
-                    sample.get("media_content_id", "")[:60],
-                )
             return normalized
         except TypeError:
             continue
@@ -310,6 +338,130 @@ async def _get_library_via_ma_client(
             break
 
     return None
+
+
+# ── Recommendations ──────────────────────────────────────────────────────────
+
+def _normalize_recommendation_item(item: dict) -> dict:
+    """Normalize a single item from a MA recommendation folder."""
+    media_type = item.get("media_type", "")
+    if isinstance(media_type, dict):
+        media_type = media_type.get("value", "")
+    media_type = str(media_type).lower() if media_type else ""
+
+    if media_type in ("track", "album", "artist", "playlist", "radio"):
+        return _normalize_library_item(item)
+    return _normalize_browse_item(item)
+
+
+async def _get_recommendations_via_ma_client(
+    hass: HomeAssistant,
+) -> list[dict] | None:
+    """Fetch recommendations via the MA Python client."""
+    mass = _get_mass_client(hass)
+    if mass is None:
+        _LOGGER.warning("No Music Assistant (mass) client available for recommendations")
+        return None
+
+    music = getattr(mass, "music", None)
+    if music is None:
+        _LOGGER.warning("mass.music module not available for recommendations")
+        return None
+
+    rec_fn = None
+    for name in ("recommendations", "get_recommendations"):
+        fn = getattr(music, name, None)
+        if fn is not None and callable(fn):
+            rec_fn = fn
+            _LOGGER.debug("Using MA recommendations method: music.%s()", name)
+            break
+
+    if rec_fn is None:
+        _LOGGER.warning("No recommendations() method on music module (%s)", type(music).__name__)
+        return None
+
+    for kwargs in [{}, {"limit": 50}]:
+        try:
+            result = await asyncio.wait_for(rec_fn(**kwargs), timeout=10)
+            folders = list(result) if not isinstance(result, list) else result
+            _LOGGER.debug("Recommendations: %d folders", len(folders))
+            normalized: list[dict] = []
+            for folder in folders:
+                f = _to_json_safe(folder)
+                folder_domain = str(f.get("provider_domain") or f.get("provider", "") or "")
+                folder_instance = str(
+                    f.get("provider_instance_id_or_domain")
+                    or f.get("provider_instance")
+                    or f.get("provider_instance_id")
+                    or folder_domain
+                )
+                is_library_folder = folder_domain in ("library", "builtin", "")
+                items_raw = f.get("items") or []
+                items_norm = []
+                for i in items_raw:
+                    i_safe = _to_json_safe(i)
+                    if is_library_folder:
+                        pm = i_safe.get("provider_mappings") or []
+                        if pm:
+                            i_safe["provider_mappings"] = [
+                                m for m in pm
+                                if (m.get("in_library") is True if isinstance(m, dict) else getattr(m, "in_library", True))
+                            ] or pm
+                    item = _normalize_recommendation_item(i_safe)
+                    if not is_library_folder:
+                        if folder_instance and not item.get("provider_instances"):
+                            item["provider_instances"] = [folder_instance]
+                        if folder_domain and not item.get("providers"):
+                            item["providers"] = [folder_domain]
+                    items_norm.append(item)
+                normalized.append({
+                    "folder_id": f.get("item_id") or f.get("path") or "",
+                    "name": f.get("name") or f.get("label") or "",
+                    "icon": f.get("icon") or "",
+                    "provider_domain": folder_domain,
+                    "provider_instance": folder_instance,
+                    "items": items_norm,
+                })
+            return normalized
+        except asyncio.TimeoutError:
+            _LOGGER.warning("Recommendations fetch timed out")
+            return None
+        except TypeError:
+            continue
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Recommendations fetch failed: %s", err)
+            return None
+
+    return None
+
+
+async def _enrich_radios_from_recommendations(
+    hass: HomeAssistant,
+    library_radios: list[dict],
+) -> list[dict]:
+    """Merge provider radios from recommendations into library radios."""
+    try:
+        folders = await asyncio.wait_for(
+            _get_recommendations_via_ma_client(hass), timeout=10,
+        )
+        if not folders:
+            return library_radios
+
+        existing_ids = {r.get("media_content_id") for r in library_radios if r.get("media_content_id")}
+        extra: list[dict] = []
+        for folder in folders:
+            for item in folder.get("items", []):
+                mtype = (item.get("media_content_type") or "").lower()
+                mid = item.get("media_content_id") or item.get("uri") or ""
+                if mtype == "radio" and mid and mid not in existing_ids:
+                    existing_ids.add(mid)
+                    extra.append(item)
+        if extra:
+            _LOGGER.debug("Enriched radios: %d provider radios added", len(extra))
+        return library_radios + extra
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.debug("Radio enrichment failed (non-critical): %s", err)
+        return library_radios
 
 
 # ── Browse ────────────────────────────────────────────────────────────────────
@@ -688,7 +840,7 @@ async def _queue_jump_via_ma_client(
 class MusicAssistantSearchView(HomeAssistantView):
     """Proxy search requests to Music Assistant.
 
-    GET /my_music_library/search?query=<q>&limit=<n>
+    GET /my_music_library/search?query=<q>&limit=<n>&library_only=true
     """
 
     url = "/my_music_library/search"
@@ -704,10 +856,11 @@ class MusicAssistantSearchView(HomeAssistantView):
             return self.json_message("Missing 'query' parameter.", HTTPStatus.BAD_REQUEST)
 
         limit = min(int(request.query.get("limit", 25)), 100)
-        _LOGGER.info("Search request: query=%r limit=%d", query, limit)
+        library_only = request.query.get("library_only", "").lower() in ("1", "true", "yes")
+        _LOGGER.info("Search request: query=%r limit=%d library_only=%s", query, limit, library_only)
 
         # 1 — MA integration client (primary: authenticated, typed, no duplicate connection)
-        result = await _search_via_ma_client(hass, query, limit)
+        result = await _search_via_ma_client(hass, query, limit, library_only=library_only)
         if result is not None:
             return web.json_response(result)
 
@@ -715,7 +868,7 @@ class MusicAssistantSearchView(HomeAssistantView):
         ma_url = _get_mass_url(hass)
         if ma_url:
             _LOGGER.info("MA client unavailable, trying REST at %s", ma_url)
-            result = await _search_via_rest(hass, ma_url, query, limit)
+            result = await _search_via_rest(hass, ma_url, query, limit, library_only=library_only)
             if result is not None:
                 return web.json_response(result)
 
@@ -759,6 +912,9 @@ class MusicAssistantLibraryView(HomeAssistantView):
                 HTTPStatus.BAD_GATEWAY,
             )
 
+        if media_type == "radios" and offset == 0:
+            items = await _enrich_radios_from_recommendations(hass, items)
+
         return web.json_response({"type": media_type, "items": items})
 
 
@@ -787,6 +943,29 @@ class MusicAssistantBrowseView(HomeAssistantView):
                 HTTPStatus.BAD_GATEWAY,
             )
         return web.json_response({"uri": uri or "", "items": items})
+
+
+class MusicAssistantRecommendationsView(HomeAssistantView):
+    """Return recommendation folders from Music Assistant.
+
+    GET /my_music_library/recommendations
+        → {"folders": [{folder_id, name, icon, items: [...]}]}
+    """
+
+    url = "/my_music_library/recommendations"
+    name = "my_music_library:recommendations"
+    requires_auth = True
+
+    async def get(self, request: web.Request) -> web.Response:
+        """Handle recommendations request."""
+        hass: HomeAssistant = request.app["hass"]
+        folders = await _get_recommendations_via_ma_client(hass)
+        if folders is None:
+            return self.json_message(
+                "Could not get recommendations from Music Assistant. Check HA logs.",
+                HTTPStatus.BAD_GATEWAY,
+            )
+        return web.json_response({"folders": folders})
 
 
 class MusicAssistantSubitemsView(HomeAssistantView):
