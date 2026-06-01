@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.6.3-blue)
+![Version](https://img.shields.io/badge/version-3.9.1-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -13,7 +13,7 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 - **Now Playing** — album art, track title, artist, progress bar, volume control
 - **Playback controls** — play/pause, previous, next, shuffle, repeat (off / all / one)
 - **Queue** — live queue display alongside the player, persisted server-side per player across page reloads and devices
-- **Search** — full-text search across artists, albums, tracks and playlists via Music Assistant
+- **Search** — full-text search across artists, albums, tracks and playlists via Music Assistant; also searches local library (filenames) for more complete results
 - **Library** — browse artists, albums, playlists, tracks and radios with source filter (All / Local / Streaming) and favorites toggle; **Browse mode** to navigate the filesystem directory tree and play folders
 - **Multi-player** — device picker to select and switch between any media player; supports grouping (attach / detach players)
 - **Player exclusion** — hide specific players from the device picker via integration options; supports wildcard patterns (`media_player.browser_mod_*`)
@@ -133,7 +133,7 @@ tabs:
 
 When `type: library`, the optional `sections` array controls which media types appear and in what order.
 
-Valid values: `artists`, `albums`, `playlists`, `tracks`, `radios`.
+Valid values: `artists`, `albums`, `playlists`, `tracks`, `radios`, `recently_played`, `recently_added`, `recommended`, `flows`.
 
 Defaults to `[artists, albums, playlists, tracks]` when omitted.
 
@@ -297,6 +297,13 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 3.9.1
+- **Fix** — **search now finds local files by filename**: search runs both a normal query and a `library_only` query in parallel, then merges and deduplicates results. Tracks whose filename contains the search term (but whose metadata does not) now appear in results, matching Music Assistant's own search behavior.
+
+### 3.9.0
+- **Feature** — **discover sections in library**: new `recently_played`, `recently_added`, `recommended`, and `flows` sections available in the library tab. Powered by Music Assistant's recommendations API.
+- **Feature** — **radios enriched with recommendations**: radio section now includes MA-recommended radios alongside library radios.
 
 ### 3.8.1
 - **Fix** — **mobile touch targets**: device modal attach/detach buttons now have visible circle backgrounds and 38×38 px hit zones on Companion mobile.

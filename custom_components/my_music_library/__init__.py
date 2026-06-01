@@ -19,7 +19,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.loader import async_get_integration
 
-from .api import ImageProxyView, MAQueueView, MusicAssistantBrowseView, MusicAssistantLibraryView, MusicAssistantProvidersView, MusicAssistantSearchView, MusicAssistantSubitemsView, PlayerGroupView, PlayerQueueJumpView, PlayerQueueView
+from .api import ImageProxyView, MAQueueView, MusicAssistantBrowseView, MusicAssistantLibraryView, MusicAssistantProvidersView, MusicAssistantRecommendationsView, MusicAssistantSearchView, MusicAssistantSubitemsView, PlayerGroupView, PlayerQueueJumpView, PlayerQueueView
 from .const import CARD_JS_FILENAME, CARD_URL, CONF_DEBUG_MODE, CONF_EXCLUDED_PLAYERS, CONF_MA_URL, DOMAIN, ICON_URL, MUSIC_ASSISTANT_DOMAIN, WS_CONFIG_COMMAND
 
 _LOGGER = logging.getLogger(__name__)
@@ -107,6 +107,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.http.register_view(MAQueueView)
     hass.http.register_view(PlayerGroupView)
     hass.http.register_view(MusicAssistantBrowseView)
+    hass.http.register_view(MusicAssistantRecommendationsView)
     hass.http.register_view(MusicAssistantProvidersView)
     hass.http.register_view(ImageProxyView)
 
