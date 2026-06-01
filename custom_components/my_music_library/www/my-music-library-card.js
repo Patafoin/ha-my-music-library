@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.9.1";
+const CARD_VERSION = "3.9.2";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -3345,15 +3345,16 @@ class MyMusicLibraryCard extends HTMLElement {
       const before = result.length;
       result = result.filter(item => {
         const keys = (item.provider_instances?.length ? item.provider_instances : item.providers) || [];
-        const filtered = keys.filter(k => k !== "builtin");
+        const filtered = keys.filter(k => k !== "builtin" && k !== "library");
         if (filtered.length === 0) {
           const scheme = _itemUri(item).split("://")[0];
-          if (!scheme || scheme === "library" || scheme === "builtin") return true;
+          if (!scheme || scheme === "builtin" || scheme === "library") return true;
           return _matchesAnyProvider(scheme);
         }
         return filtered.some(k => this._enabledProviders.has(k) || _matchesAnyProvider(k));
       });
-      this._debugLog("Provider filter:", before, "→", result.length);
+      this._debugLog("Provider filter:", before, "→", result.length,
+        "| enabled:", [...this._enabledProviders]);
     }
 
     return result;

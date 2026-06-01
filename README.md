@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.9.1-blue)
+![Version](https://img.shields.io/badge/version-3.9.2-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -297,6 +297,9 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 3.9.2
+- **Fix** — **library provider filter restored**: the per-source filter (Deezer account A vs B, TuneIn, etc.) was broken — items from all providers were shown regardless of checkbox state. Root cause: items with a `library://` URI scheme or `library` provider tag were unconditionally bypassing the filter. Now only items with truly no identifiable provider pass through; all others are correctly checked against the enabled providers list.
 
 ### 3.9.1
 - **Fix** — **search now finds local files by filename**: search runs both a normal query and a `library_only` query in parallel, then merges and deduplicates results. Tracks whose filename contains the search term (but whose metadata does not) now appear in results, matching Music Assistant's own search behavior.
