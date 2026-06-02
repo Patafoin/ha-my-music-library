@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.9.4-blue)
+![Version](https://img.shields.io/badge/version-3.10.0-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -297,6 +297,15 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 3.10.0
+- **Feature** — **per-tab library filter state**: when using multiple library tabs (e.g., one for catalogue, one for discover/recommendations), each tab now has its own independent source filter (All / Local / Streaming), favorites toggle, and browse mode state. Switching filters in one tab no longer affects the other. Preferences are saved per tab in localStorage.
+- **Feature** — **search lazy loading**: search results now fetch up to 100 items (was 25) and render progressively — initial batch on screen, then more items load on scroll (15 cards / 20 list items initially, 30 per scroll batch).
+- **Fix** — **browse back navigation**: clicking ".." in filesystem and radio browsers now correctly navigates back. The back-item detector now handles `title == ".."` and `root`-level URIs.
+- **Fix** — **browse empty titles**: provider sub-items (Deezer, Music Assistant builtin, TuneIn) that returned empty `name` now fall back to `display_name`, `translation_key`, or `item_id` for a readable title.
+- **Fix** — **browse recommendations sub-folders**: navigating into recommendation folders (e.g., Deezer "Made for you") no longer fails with "Invalid subpath". URIs are now reconstructed from parent URI + `item_id` instead of relying on MA's auto-generated `folder/`-prefixed URIs.
+- **Fix** — **browse path priority**: `BrowseFolder` items now use the `path` field (navigation path) over `uri` (semantic identifier), matching what Music Assistant expects.
+- **Improvement** — **discover tabs hide filters**: library tabs that only contain discover sections (recently_played, recently_added, recommended, flows) now automatically hide the source/favorites filter bar since those filters don't apply.
 
 ### 3.9.4
 - **Fix** — **discover section thumbnails**: items returned by Music Assistant with image data in the `image` field (e.g., "Recently played" flows) were missing their cover art. The backend now reads `image.path` / `image.url` in addition to `metadata.images`.
