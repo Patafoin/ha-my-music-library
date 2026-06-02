@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.10.1-blue)
+![Version](https://img.shields.io/badge/version-3.10.2-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -297,6 +297,9 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 3.10.2
+- **Fix** — **provider filter server-side post-filter**: MA's library API silently ignores the `provider` parameter (absorbed by `**kwargs`), returning all items instead of filtering by provider instance. Added a server-side post-filter that verifies each returned item's `provider_instances` contains the requested provider, ensuring items from disabled providers (e.g., a second Deezer account) are excluded.
 
 ### 3.10.1
 - **Fix** — **provider filter race condition**: library could load before providers were fetched, causing `_activeProviderFilter()` to always return `null` and bypassing server-side per-provider queries. Provider fetch is now awaited before proceeding, and library tabs are invalidated when providers arrive late.
