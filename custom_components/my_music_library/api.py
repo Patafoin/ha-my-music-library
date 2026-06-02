@@ -497,8 +497,17 @@ def _normalize_browse_item(item: dict) -> dict:
         "path" in item and media_type in ("", "folder", "directory")
     ) or media_type in ("folder", "directory")
 
-    title = item.get("name") or item.get("label") or item.get("title") or ""
-    uri = item.get("uri") or item.get("media_content_id") or ""
+    title = (
+        item.get("name") or item.get("display_name") or item.get("label")
+        or item.get("title") or ""
+    )
+    if not title:
+        title = item.get("translation_key") or item.get("item_id") or ""
+        if title:
+            title = title.replace("_", " ").capitalize()
+    # For BrowseFolder items, prefer `path` (the navigation path MA expects)
+    # over `uri` (an auto-generated semantic identifier).
+    uri = item.get("path") or item.get("uri") or item.get("media_content_id") or ""
 
     # MA sometimes returns URIs like "provider://folder/Deftones" where "folder/"
     # is an internal prefix, not a real directory. Strip it so navigation works.
@@ -516,9 +525,9 @@ def _normalize_browse_item(item: dict) -> dict:
         metadata = item.get("metadata") or {}
         images = metadata.get("images") or []
         for img in images:
-            path = img.get("path", "") if isinstance(img, dict) else ""
-            if path and path.startswith("http"):
-                thumbnail = path
+            imgpath = img.get("path", "") if isinstance(img, dict) else ""
+            if imgpath and imgpath.startswith("http"):
+                thumbnail = imgpath
                 break
 
     artist = item.get("media_artist") or ""
@@ -541,11 +550,14 @@ def _normalize_browse_item(item: dict) -> dict:
 
 
 def _is_ma_back_item(item: dict) -> bool:
-    """Return True for MA virtual 'back' navigation items (uri ends with ://back or ://..)."""
+    """Return True for MA virtual 'back' navigation items."""
+    name = item.get("title", "") or item.get("name", "")
+    if name == "..":
+        return True
     uri = item.get("uri", "")
     if "://" in uri:
-        path = uri.split("://", 1)[1].lower().rstrip("/")
-        if path in ("back", ".."):
+        tail = uri.split("://", 1)[1].lower().rstrip("/")
+        if tail in ("back", "..", "root"):
             return True
     return False
 
@@ -586,10 +598,26 @@ async def _browse_via_ma_client(
                 result = await browse_fn(*call_args, **call_kwargs)
                 items = list(result) if not isinstance(result, list) else result
                 _LOGGER.debug("%s(%r) → %d items", fn_name, uri, len(items))
-                normalized = [_normalize_browse_item(_to_json_safe(i)) for i in items]
-                for n in normalized:
+                for raw in items[:5]:
+                    safe = _to_json_safe(raw)
+                    _LOGGER.debug(
+                        "Browse raw item: name=%r path=%r uri=%r media_type=%r keys=%s",
+                        safe.get("name"), safe.get("path"), safe.get("uri"),
+                        safe.get("media_type"), list(safe.keys()) if isinstance(safe, dict) else "?",
+                    )
+                normalized = []
+                for raw_item in items:
+                    safe = _to_json_safe(raw_item)
+                    n = _normalize_browse_item(safe)
                     if _is_ma_back_item(n):
                         n["is_back"] = True
+                    elif n.get("is_folder") and uri:
+                        item_id = safe.get("item_id", "")
+                        if item_id:
+                            scheme = uri.split("://")[0] if "://" in uri else uri
+                            parent_sub = uri.split("://", 1)[1].rstrip("/") if "://" in uri else ""
+                            n["uri"] = f"{scheme}://{parent_sub}/{item_id}" if parent_sub else f"{scheme}://{item_id}"
+                    normalized.append(n)
                 return normalized[:limit]
             except TypeError:
                 continue

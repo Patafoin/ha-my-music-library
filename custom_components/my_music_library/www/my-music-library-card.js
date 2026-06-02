@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.9.4";
+const CARD_VERSION = "3.10.0";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -1645,8 +1645,7 @@ class MyMusicLibraryCard extends HTMLElement {
     this._libLoading = false;
     this._libLoadedTabs = new Set();
     this._libSections = {}; // type → { offset, loading, exhausted, favorite, iconName }
-    this._libSourceFilter = this._loadPref("mml_lib_source") || "all";
-    this._libFavFilter = this._loadPref("mml_lib_fav") === "true";
+    this._libTabState = {}; // tabId → { source, fav, browse, browseStack }
     this._maProviders = [];
     this._enabledProviders = (() => {
       try {
@@ -1672,8 +1671,7 @@ class MyMusicLibraryCard extends HTMLElement {
     this._groupMembers = [];       // entity_ids attached to _activePlayer as group
     this._deviceVolDragging = new Set();
     this._excludedPlayers = [];    // entity_ids hidden from the device picker (HA options)
-    this._libBrowseMode = false;   // true = browse filesystem mode
-    this._browseStack = [];        // [{uri, label}] — navigation stack for browse mode
+    // Per-tab library filter state is in this._libTabState[tabId]
     this._rendered = false;
     this._isMobile = this._detectMobile();
     // MA config fetched from backend via WebSocket
@@ -2208,23 +2206,24 @@ class MyMusicLibraryCard extends HTMLElement {
 
   _renderLibraryTab(tabDef) {
     const panelId = tabDef?.id || "library";
-    const src = this._libSourceFilter;
-    const fav = this._libFavFilter;
-    const browse = this._libBrowseMode;
+    const st = this._getLibTabState(panelId);
+    const src = st.source;
+    const fav = st.fav;
+    const browse = st.browse;
     return `
       <div class="tab-panel" data-panel="${panelId}">
-        <div class="library-panel" id="library-content">
-          <div class="lib-filters" id="lib-filters">
-            <div class="lib-filter-group" id="lib-source-filter">
+        <div class="library-panel">
+          <div class="lib-filters">
+            <div class="lib-filter-group">
               <button class="lib-filter-btn ${src === "all" ? "active" : ""}" data-source="all">${this._t("lib.filter_all")}</button>
               <button class="lib-filter-btn ${src === "local" ? "active" : ""}" data-source="local">${this._t("lib.filter_local")}</button>
               <button class="lib-filter-btn ${src === "streaming" ? "active" : ""}" data-source="streaming">${this._t("lib.filter_streaming")}</button>
             </div>
-            <div class="browse-mode-toggle" id="lib-browse-toggle" style="${src !== "local" ? "display:none" : ""}">
+            <div class="browse-mode-toggle" style="${src !== "local" ? "display:none" : ""}">
               <button class="browse-mode-btn ${!browse ? "active" : ""}" data-browse="false">${this._t("lib.mode_catalogue")}</button>
               <button class="browse-mode-btn ${browse ? "active" : ""}" data-browse="true">${this._t("lib.mode_browse")}</button>
             </div>
-            <button class="lib-filter-fav ${fav ? "active" : ""}" id="lib-fav-filter" style="${browse ? "display:none" : ""}">
+            <button class="lib-filter-fav ${fav ? "active" : ""}" style="${browse ? "display:none" : ""}">
               ${fav ? ICONS.heart : ICONS.heartOutline}<span>${this._t("lib.filter_favorites")}</span>
             </button>
           </div>
@@ -2292,37 +2291,46 @@ class MyMusicLibraryCard extends HTMLElement {
       requestAnimationFrame(updateFades);
     }
 
-    // Library source filter (All / Local / Streaming)
-    card.querySelector("#lib-source-filter")?.addEventListener("click", (e) => {
-      const btn = e.target.closest(".lib-filter-btn");
-      if (!btn || btn.classList.contains("active")) return;
-      const source = btn.dataset.source;
-      this._libSourceFilter = source;
-      this._savePref("mml_lib_source", source);
-      // Reset browse mode when switching away from local
-      if (source !== "local") this._libBrowseMode = false;
-      card.querySelectorAll("#lib-source-filter .lib-filter-btn").forEach(b => b.classList.toggle("active", b.dataset.source === source));
-      this._reloadLibrary();
-    });
+    // Library filters — attach per panel so multi-library-tab setups work independently
+    for (const libPanel of card.querySelectorAll('.tab-panel')) {
+      const tabId = libPanel.dataset.panel;
+      const tabDef = this._resolvedTabs.find(t => t.id === tabId);
+      if (tabDef?.type !== "library") continue;
+      const ts = this._getLibTabState(tabId);
 
-    // Browse mode toggle (Catalogue / Browse) — only visible in local mode
-    card.querySelector("#lib-browse-toggle")?.addEventListener("click", (e) => {
-      const btn = e.target.closest(".browse-mode-btn");
-      if (!btn || btn.classList.contains("active")) return;
-      this._libBrowseMode = btn.dataset.browse === "true";
-      this._browseStack = [];
-      this._reloadLibrary();
-    });
+      libPanel.querySelector(".lib-filter-group")?.addEventListener("click", (e) => {
+        const btn = e.target.closest(".lib-filter-btn");
+        if (!btn || btn.classList.contains("active")) return;
+        const source = btn.dataset.source;
+        ts.source = source;
+        this._savePref(`mml_lib_source_${tabId}`, source);
+        if (source !== "local") ts.browse = false;
+        libPanel.querySelectorAll(".lib-filter-btn").forEach(b => b.classList.toggle("active", b.dataset.source === source));
+        this._libLoadedTabs.delete(tabId);
+        if (this._tab === tabId) this._reloadLibrary();
+      });
 
-    // Library favorites filter
-    card.querySelector("#lib-fav-filter")?.addEventListener("click", () => {
-      this._libFavFilter = !this._libFavFilter;
-      this._savePref("mml_lib_fav", String(this._libFavFilter));
-      const btn = card.querySelector("#lib-fav-filter");
-      btn.classList.toggle("active", this._libFavFilter);
-      btn.querySelector("svg").outerHTML = this._libFavFilter ? ICONS.heart : ICONS.heartOutline;
-      this._reloadLibrary();
-    });
+      libPanel.querySelector(".browse-mode-toggle")?.addEventListener("click", (e) => {
+        const btn = e.target.closest(".browse-mode-btn");
+        if (!btn || btn.classList.contains("active")) return;
+        ts.browse = btn.dataset.browse === "true";
+        ts.browseStack = [];
+        this._libLoadedTabs.delete(tabId);
+        if (this._tab === tabId) this._reloadLibrary();
+      });
+
+      libPanel.querySelector(".lib-filter-fav")?.addEventListener("click", () => {
+        ts.fav = !ts.fav;
+        this._savePref(`mml_lib_fav_${tabId}`, String(ts.fav));
+        const favEl = libPanel.querySelector(".lib-filter-fav");
+        if (favEl) {
+          favEl.classList.toggle("active", ts.fav);
+          favEl.querySelector("svg").outerHTML = ts.fav ? ICONS.heart : ICONS.heartOutline;
+        }
+        this._libLoadedTabs.delete(tabId);
+        if (this._tab === tabId) this._reloadLibrary();
+      });
+    }
 
     const hasPanel = (type) => this._resolvedTabs.some(t => t.type === type);
 
@@ -3106,7 +3114,7 @@ class MyMusicLibraryCard extends HTMLElement {
       const extra = libraryOnly ? "&library_only=true" : "";
       const data = await this._callIntegration(
         "GET",
-        `search?query=${encodedQuery}&limit=25${extra}`
+        `search?query=${encodedQuery}&limit=100${extra}`
       );
       if (!data) return null;
       const results = this._parseMaWsSearchResults(data);
@@ -3119,7 +3127,7 @@ class MyMusicLibraryCard extends HTMLElement {
   /* Search via music_assistant/search WebSocket command (registered by MA integration).
      Passes through HA — no CORS, works from HTTPS. */
   async _searchViaMaWs(query, { libraryOnly = false } = {}) {
-    const base = { entry_id: this._maEntryId, limit: 25 };
+    const base = { entry_id: this._maEntryId, limit: 100 };
     if (libraryOnly) base.library_only = true;
     const attempts = [
       { type: "music_assistant/search", ...base, search_query: query },
@@ -3242,11 +3250,15 @@ class MyMusicLibraryCard extends HTMLElement {
     const searchTab = this._resolvedTabs.find(t => t.type === "search");
     const useColumns = searchTab?.search_layout === "columns";
 
+    const INITIAL_CARDS = 15;
+    const INITIAL_LIST = 20;
+    const LAZY_BATCH = 30;
+
     const sections = [
-      { key: "artists",   label: this._t("search.artists"),   icon: "artist",   card: true,  limit: 15 },
-      { key: "albums",    label: this._t("search.albums"),    icon: "album",    card: true,  limit: 15 },
-      { key: "tracks",    label: this._t("search.tracks"),    icon: "music",    card: false, limit: 10 },
-      { key: "playlists", label: this._t("search.playlists"), icon: "playlist", card: true,  limit: 15 },
+      { key: "artists",   label: this._t("search.artists"),   icon: "artist",   card: true },
+      { key: "albums",    label: this._t("search.albums"),    icon: "album",    card: true },
+      { key: "tracks",    label: this._t("search.tracks"),    icon: "music",    card: false },
+      { key: "playlists", label: this._t("search.playlists"), icon: "playlist", card: true },
     ];
 
     const populated = sections.filter(s => (results[s.key] || []).length > 0);
@@ -3260,8 +3272,8 @@ class MyMusicLibraryCard extends HTMLElement {
     if (useColumns) {
       const wrapper = document.createElement("div");
       wrapper.className = "search-columns";
-      for (const { key, label, icon: iconName, limit } of populated) {
-        const items = (results[key] || []).slice(0, limit);
+      for (const { key, label, icon: iconName } of populated) {
+        const items = results[key] || [];
         const col = document.createElement("div");
         col.className = "search-column";
         col.innerHTML = `<div class="search-section-title">${label}</div>`
@@ -3271,23 +3283,52 @@ class MyMusicLibraryCard extends HTMLElement {
       el.appendChild(wrapper);
       this._attachItemActions(el);
     } else {
-      for (const { key, label, icon: iconName, card: isCard, limit } of populated) {
-        const items = (results[key] || []).slice(0, limit);
-        queueMicrotask(() => {
-          const secHtml = isCard
-            ? `<div class="search-section">
-                 <div class="search-section-title">${label}</div>
-                 <div class="lib-scroll">${items.map(i => this._renderSearchCard(i, iconName)).join("")}</div>
-               </div>`
-            : `<div class="search-section">
-                 <div class="search-section-title">${label}</div>
-                 ${items.map(i => this._renderResultItem(i, iconName)).join("")}
-               </div>`;
-          const tmp = document.createElement("div");
-          tmp.innerHTML = secHtml;
-          while (tmp.firstChild) el.appendChild(tmp.firstChild);
-          this._attachItemActions(el);
-        });
+      const lazyState = [];
+      for (const { key, label, icon: iconName, card: isCard } of populated) {
+        const allItems = results[key] || [];
+        const initial = isCard ? INITIAL_CARDS : INITIAL_LIST;
+        const shown = allItems.slice(0, initial);
+        const remaining = allItems.slice(initial);
+        const secEl = document.createElement("div");
+        secEl.className = "search-section";
+        if (isCard) {
+          secEl.innerHTML = `<div class="search-section-title">${label}</div>
+            <div class="lib-scroll">${shown.map(i => this._renderSearchCard(i, iconName)).join("")}</div>`;
+        } else {
+          secEl.innerHTML = `<div class="search-section-title">${label}</div>`
+            + shown.map(i => this._renderResultItem(i, iconName)).join("");
+        }
+        el.appendChild(secEl);
+        if (remaining.length > 0) {
+          lazyState.push({ el: secEl, items: remaining, iconName, isCard, loaded: 0 });
+        }
+      }
+      this._attachItemActions(el);
+
+      if (lazyState.length > 0) {
+        const scrollContainer = el.closest(".tab-panel") || el.parentElement;
+        const onScroll = () => {
+          let allDone = true;
+          for (const st of lazyState) {
+            if (st.loaded >= st.items.length) continue;
+            const rect = st.el.getBoundingClientRect();
+            const containerRect = scrollContainer.getBoundingClientRect();
+            if (rect.bottom < containerRect.bottom + 200) {
+              const batch = st.items.slice(st.loaded, st.loaded + LAZY_BATCH);
+              st.loaded += batch.length;
+              if (st.isCard) {
+                const scroll = st.el.querySelector(".lib-scroll");
+                if (scroll) scroll.insertAdjacentHTML("beforeend", batch.map(i => this._renderSearchCard(i, st.iconName)).join(""));
+              } else {
+                st.el.insertAdjacentHTML("beforeend", batch.map(i => this._renderResultItem(i, st.iconName)).join(""));
+              }
+              this._attachItemActions(st.el);
+            }
+            if (st.loaded < st.items.length) allDone = false;
+          }
+          if (allDone) scrollContainer.removeEventListener("scroll", onScroll);
+        };
+        scrollContainer.addEventListener("scroll", onScroll, { passive: true });
       }
     }
   }
@@ -3311,6 +3352,28 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   /* ── Library ── */
+
+  _getLibTabState(tabId) {
+    const id = tabId || this._tab;
+    if (!this._libTabState[id]) {
+      this._libTabState[id] = {
+        source: this._loadPref(`mml_lib_source_${id}`) || this._loadPref("mml_lib_source") || "all",
+        fav: this._loadPref(`mml_lib_fav_${id}`) === "true",
+        browse: false,
+        browseStack: [],
+      };
+    }
+    return this._libTabState[id];
+  }
+
+  get _libSourceFilter() { return this._getLibTabState()?.source || "all"; }
+  set _libSourceFilter(v) { this._getLibTabState().source = v; }
+  get _libFavFilter() { return this._getLibTabState()?.fav || false; }
+  set _libFavFilter(v) { this._getLibTabState().fav = v; }
+  get _libBrowseMode() { return this._getLibTabState()?.browse || false; }
+  set _libBrowseMode(v) { this._getLibTabState().browse = v; }
+  get _browseStack() { return this._getLibTabState()?.browseStack || []; }
+  set _browseStack(v) { this._getLibTabState().browseStack = v; }
 
   static _LOCAL_PROVIDERS = ["filesystem_local", "filesystem_smb", "filesystem_nfs", "plex"];
 
@@ -3410,22 +3473,21 @@ class MyMusicLibraryCard extends HTMLElement {
 
   _reloadLibrary() {
     this._libLoadedTabs.clear();
-    // Update filter bar in-place (no outerHTML replacement — preserves display state)
     const card = this.shadowRoot.querySelector(".card-root");
     if (card) {
-      // Source filter active state
-      card.querySelectorAll("#lib-source-filter .lib-filter-btn").forEach(b =>
-        b.classList.toggle("active", b.dataset.source === this._libSourceFilter));
-      // Browse toggle visibility
-      const toggle = card.querySelector("#lib-browse-toggle");
-      if (toggle) {
-        toggle.style.display = this._libSourceFilter === "local" ? "" : "none";
-        toggle.querySelectorAll(".browse-mode-btn").forEach(b =>
-          b.classList.toggle("active", (b.dataset.browse === "true") === this._libBrowseMode));
+      const panel = card.querySelector(`.tab-panel[data-panel="${this._tab}"]`);
+      if (panel) {
+        panel.querySelectorAll(".lib-filter-btn").forEach(b =>
+          b.classList.toggle("active", b.dataset.source === this._libSourceFilter));
+        const toggle = panel.querySelector(".browse-mode-toggle");
+        if (toggle) {
+          toggle.style.display = this._libSourceFilter === "local" ? "" : "none";
+          toggle.querySelectorAll(".browse-mode-btn").forEach(b =>
+            b.classList.toggle("active", (b.dataset.browse === "true") === this._libBrowseMode));
+        }
+        const favBtn = panel.querySelector(".lib-filter-fav");
+        if (favBtn) favBtn.style.display = this._libBrowseMode ? "none" : "";
       }
-      // Fav button visibility
-      const favBtn = card.querySelector("#lib-fav-filter");
-      if (favBtn) favBtn.style.display = this._libBrowseMode ? "none" : "";
     }
     this._loadLibrary();
   }
@@ -3489,11 +3551,9 @@ class MyMusicLibraryCard extends HTMLElement {
     this._libSections = {};
 
     const allDiscover = sectionKeys.every(k => DISCOVER_SECTIONS.includes(k));
-    const filterBar = (activePanel || card)?.querySelector("#lib-filters");
+    const filterBar = (activePanel || card)?.querySelector(".lib-filters");
     if (filterBar) {
-      filterBar.style.display = "";
-      const browseToggle = filterBar.querySelector("#lib-browse-toggle");
-      if (browseToggle && allDiscover) browseToggle.style.display = "none";
+      filterBar.style.display = allDiscover ? "none" : "";
     }
 
     // Helper: resolve per-item icon for mixed-type discover sections
