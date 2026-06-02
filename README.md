@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.10.0-blue)
+![Version](https://img.shields.io/badge/version-3.10.1-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -297,6 +297,11 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 3.10.1
+- **Fix** — **provider filter race condition**: library could load before providers were fetched, causing `_activeProviderFilter()` to always return `null` and bypassing server-side per-provider queries. Provider fetch is now awaited before proceeding, and library tabs are invalidated when providers arrive late.
+- **Fix** — **provider validation by domain**: stored provider filter keys are now validated against both `instance_id` and `domain`, preventing a full filter reset when MA provider instance IDs change across restarts.
+- **Improvement** — **alphabetical sort in library lanes**: artists sorted by name, albums by album name, tracks by title, etc. Uses locale-aware case-insensitive comparison.
 
 ### 3.10.0
 - **Feature** — **per-tab library filter state**: when using multiple library tabs (e.g., one for catalogue, one for discover/recommendations), each tab now has its own independent source filter (All / Local / Streaming), favorites toggle, and browse mode state. Switching filters in one tab no longer affects the other. Preferences are saved per tab in localStorage.

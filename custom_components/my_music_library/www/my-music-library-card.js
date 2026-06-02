@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.10.0";
+const CARD_VERSION = "3.10.1";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -1931,7 +1931,7 @@ class MyMusicLibraryCard extends HTMLElement {
       if (cfg?.ma_entry_id) {
         this._maEntryId = cfg.ma_entry_id;
       }
-      this._fetchProviders();
+      await this._fetchProviders();
       if (cfg?.ma_url) {
         this._maUrl = cfg.ma_url.replace(/\/$/, "");
       }
@@ -1950,15 +1950,18 @@ class MyMusicLibraryCard extends HTMLElement {
     try {
       const data = await this._callIntegration("GET", "providers");
       this._maProviders = (data?.providers || []).filter(p => (p.domain || p.instance_id) !== "builtin");
-      // Validate stored filter: if none of the saved keys match current providers, reset
       if (this._enabledProviders !== null && this._maProviders.length > 0) {
-        const validKeys = new Set(this._maProviders.map(p => p.instance_id || p.domain));
+        const validKeys = new Set(this._maProviders.flatMap(p => [p.instance_id, p.domain].filter(Boolean)));
         const hasAnyValid = [...this._enabledProviders].some(k => validKeys.has(k));
         if (!hasAnyValid) {
           this._enabledProviders = null;
           this._savePref("mml_providers", "");
-          const card = this.shadowRoot?.querySelector(".card-root");
         }
+      }
+      if (this._libLoadedTabs.size > 0) {
+        this._libLoadedTabs.clear();
+        const activeTabDef = this._resolvedTabs?.find(t => t.id === this._tab);
+        if (activeTabDef?.type === "library") this._loadLibrary();
       }
     } catch (_) {
       this._maProviders = [];
@@ -3420,6 +3423,7 @@ class MyMusicLibraryCard extends HTMLElement {
         "| enabled:", [...this._enabledProviders]);
     }
 
+    result.sort((a, b) => (a.title || "").localeCompare(b.title || "", undefined, { sensitivity: "base" }));
     return result;
   }
 
