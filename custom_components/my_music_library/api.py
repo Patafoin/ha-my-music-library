@@ -332,8 +332,20 @@ async def _get_library_via_ma_client(
         try:
             result = await fn(**kwargs)
             items = list(result) if not isinstance(result, list) else result
-            _LOGGER.debug("Library %s: %d items", media_type, len(items))
+            _LOGGER.debug("Library %s: %d items (kwargs=%s)", media_type, len(items), list(kwargs.keys()))
             normalized = [_normalize_library_item(_to_json_safe(i)) for i in items[:limit]]
+            if provider_instance:
+                before = len(normalized)
+                normalized = [
+                    item for item in normalized
+                    if provider_instance in (item.get("provider_instances") or [])
+                    or provider_instance in (item.get("providers") or [])
+                ]
+                if before != len(normalized):
+                    _LOGGER.debug(
+                        "Library %s post-filter by %s: %d → %d",
+                        media_type, provider_instance, before, len(normalized),
+                    )
             return normalized
         except TypeError:
             continue
