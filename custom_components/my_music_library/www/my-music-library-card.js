@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.10.2";
+const CARD_VERSION = "3.10.3";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -103,6 +103,7 @@ const TRANSLATIONS = {
     errors: { media_not_found: "Media not found on source" },
     nav: { back: "← Back" },
     group: {
+      title: "Choose a device",
       section_master: "Active",
       section_members: "Group members",
       section_available: "Available",
@@ -161,9 +162,13 @@ const TRANSLATIONS = {
       type_settings: "Settings",
       type_button: "Button",
       confirm_delete: "Remove this tab?",
+      move_up: "Move up",
+      move_down: "Move down",
+      delete: "Delete",
       search_layout: "Layout",
       search_layout_rows: "Rows",
       search_layout_columns: "Columns",
+      show_device_select: "Show device selection",
     },
   },
   fr: {
@@ -219,6 +224,7 @@ const TRANSLATIONS = {
     errors: { media_not_found: "Média introuvable sur la source" },
     nav: { back: "← Retour" },
     group: {
+      title: "Choisir un appareil",
       section_master: "Actif",
       section_members: "Membres du groupe",
       section_available: "Disponible",
@@ -277,9 +283,13 @@ const TRANSLATIONS = {
       type_settings: "Paramètres",
       type_button: "Bouton",
       confirm_delete: "Supprimer cet onglet ?",
+      move_up: "Monter",
+      move_down: "Descendre",
+      delete: "Supprimer",
       search_layout: "Disposition",
       search_layout_rows: "Lignes",
       search_layout_columns: "Colonnes",
+      show_device_select: "Afficher la sélection de l'appareil",
     },
   },
   de: {
@@ -335,6 +345,7 @@ const TRANSLATIONS = {
     errors: { media_not_found: "Medium auf der Quelle nicht gefunden" },
     nav: { back: "← Zurück" },
     group: {
+      title: "Gerät auswählen",
       section_master: "Aktiv",
       section_members: "Gruppenmitglieder",
       section_available: "Verfügbar",
@@ -393,9 +404,13 @@ const TRANSLATIONS = {
       type_settings: "Einstellungen",
       type_button: "Schaltfläche",
       confirm_delete: "Diesen Tab entfernen?",
+      move_up: "Nach oben",
+      move_down: "Nach unten",
+      delete: "Löschen",
       search_layout: "Layout",
       search_layout_rows: "Zeilen",
       search_layout_columns: "Spalten",
+      show_device_select: "Geräteauswahl anzeigen",
     },
   },
 };
@@ -2164,7 +2179,7 @@ class MyMusicLibraryCard extends HTMLElement {
                 <button class="ctrl-btn" id="btn-mute" title="${this._t("btns.mute")}">${ICONS.volumeHigh}</button>
                 <input type="range" id="volume-slider" min="0" max="100" value="50">
               </div>
-              <div class="device-row" id="device-row">
+              <div class="device-row" id="device-row"${this._config.show_device_select === false ? ' style="display:none"' : ''}>
                 <span id="device-icon-wrap">${ICONS.device}</span>
                 <span class="device-name" id="device-name">${this._t("player.no_player")}</span>
                 ${ICONS.chevronRight}
@@ -2242,7 +2257,7 @@ class MyMusicLibraryCard extends HTMLElement {
       <div class="modal-overlay" id="device-modal">
         <div class="modal-sheet">
           <div class="modal-title">
-            <span>Choose a device</span>
+            <span>${this._t("group.title")}</span>
             <button id="modal-close">${ICONS.close}</button>
           </div>
           <div id="device-list"></div>
@@ -3350,7 +3365,7 @@ class MyMusicLibraryCard extends HTMLElement {
           ${item.subtitle ? `<div class="result-sub">${this._esc(item.subtitle)}</div>` : ""}
         </div>
         ${canQueue ? `<button class="add-queue-btn" data-queue-id="${this._esc(item.id)}" data-queue-type="${this._esc(queueType)}" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>` : ""}
-        ${item.can_play ? `<button class="result-play" data-action="play" data-id="${this._esc(item.id)}" data-type="${this._esc(item.type)}" title="Play">${ICONS.play}</button>` : ""}
+        ${item.can_play ? `<button class="result-play" data-action="play" data-id="${this._esc(item.id)}" data-type="${this._esc(item.type)}" title="${this._t("btns.play")}">${ICONS.play}</button>` : ""}
       </div>`;
   }
 
@@ -4388,7 +4403,7 @@ class MyMusicLibraryCard extends HTMLElement {
           ${item.media_artist ? `<div class="lib-list-sub">${this._esc(item.media_artist)}</div>` : ""}
         </div>
         <button class="add-queue-btn" data-queue-id="${this._esc(item.media_content_id)}" data-queue-type="track" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>
-        <button class="result-play" data-action="play" data-id="${this._esc(item.media_content_id)}" data-type="${this._esc(item.media_content_type)}" title="Play">${ICONS.play}</button>
+        <button class="result-play" data-action="play" data-id="${this._esc(item.media_content_id)}" data-type="${this._esc(item.media_content_type)}" title="${this._t("btns.play")}">${ICONS.play}</button>
       </div>`;
   }
 
@@ -4471,6 +4486,7 @@ const EDITOR_STYLES = `
     border-radius: 4px; font-size: 14px; background: var(--card-background-color, #fff);
     color: var(--primary-text-color, #212121); min-width: 0;
   }
+  .editor-row input[type="checkbox"] { flex: none; width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary-color, #03a9f4); }
   .editor-row input:focus, .editor-row select:focus {
     outline: none; border-color: var(--primary-color, #03a9f4);
   }
@@ -4665,6 +4681,10 @@ class MyMusicLibraryCardEditor extends HTMLElement {
           <label>${this._t("editor.height")}</label>
           <input id="ed-height" type="text" value="${cfg.height || ""}" placeholder="${this._t("editor.height_hint")}">
         </div>
+        <div class="editor-row">
+          <label>${this._t("editor.show_device_select")}</label>
+          <input id="ed-show-device" type="checkbox" ${cfg.show_device_select !== false ? "checked" : ""}>
+        </div>
       </div>`;
   }
 
@@ -4678,9 +4698,9 @@ class MyMusicLibraryCardEditor extends HTMLElement {
           <span class="tab-item-type${typeClass}">${this._tabTypeLabel(tab.type)}</span>
           <span class="tab-item-label">${this._esc(this._tabDisplayLabel(tab))}</span>
           <div class="tab-item-actions">
-            <button data-move="up" data-idx="${index}" ${index === 0 ? "disabled" : ""} title="Move up">▲</button>
-            <button data-move="down" data-idx="${index}" ${index === total - 1 ? "disabled" : ""} title="Move down">▼</button>
-            <button class="delete" data-delete="${index}" title="Delete">✕</button>
+            <button data-move="up" data-idx="${index}" ${index === 0 ? "disabled" : ""} title="${this._t("editor.move_up")}">▲</button>
+            <button data-move="down" data-idx="${index}" ${index === total - 1 ? "disabled" : ""} title="${this._t("editor.move_down")}">▼</button>
+            <button class="delete" data-delete="${index}" title="${this._t("editor.delete")}">✕</button>
           </div>
         </div>
         ${isExpanded ? this._renderTabBody(tab, index) : ""}
@@ -4827,6 +4847,10 @@ class MyMusicLibraryCardEditor extends HTMLElement {
       } else {
         delete this._config.height;
       }
+      this._fireChanged();
+    });
+    wrap.querySelector("#ed-show-device")?.addEventListener("change", (e) => {
+      this._config = { ...this._config, show_device_select: e.target.checked };
       this._fireChanged();
     });
 

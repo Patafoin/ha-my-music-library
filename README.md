@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.10.2-blue)
+![Version](https://img.shields.io/badge/version-3.10.3-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -169,6 +169,7 @@ nav_buttons_right:
 | `default_tab` | `string` | `player` | Tab shown on load: `player`, `search`, or `library` |
 | `height` | `number` or `string` | auto | Fixed card height (e.g. `600`, `"600px"`, `"80vh"`). Omit to fill the container. |
 | `entity` | `string` | — | Pre-select a media_player entity. User's runtime choice is saved in localStorage. |
+| `show_device_select` | `boolean` | `true` | Show the device picker row at the bottom of the player tab. Set to `false` to hide it. |
 
 ---
 
@@ -297,6 +298,11 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 3.10.3
+- **Feature** — **hide device picker**: new `show_device_select` option (default: `true`) and matching checkbox in the visual card editor. When unchecked, the device selection row at the bottom of the player tab is hidden.
+- **Fix** — **i18n: hardcoded strings**: the device modal title ("Choose a device"), play button tooltips, and editor move/delete tooltips were hardcoded in English. All are now translated (EN / FR / DE).
+- **Fix** — **FR translation**: corrected anglicism "sélection du device" → "sélection de l'appareil".
 
 ### 3.10.2
 - **Fix** — **provider filter server-side post-filter**: MA's library API silently ignores the `provider` parameter (absorbed by `**kwargs`), returning all items instead of filtering by provider instance. Added a server-side post-filter that verifies each returned item's `provider_instances` contains the requested provider, ensuring items from disabled providers (e.g., a second Deezer account) are excluded.
