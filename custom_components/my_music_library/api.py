@@ -29,12 +29,44 @@ def _to_json_safe(obj: Any) -> Any:
     if isinstance(obj, enum.Enum):
         return obj.value
     if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
-        return {f.name: _to_json_safe(getattr(obj, f.name)) for f in dataclasses.fields(obj)}
+        d = {f.name: _to_json_safe(getattr(obj, f.name)) for f in dataclasses.fields(obj)}
+        if "image" not in d:
+            img = getattr(obj, "image", None)
+            if img is not None:
+                d["image"] = _to_json_safe(img)
+        return d
     if isinstance(obj, dict):
         return {k: _to_json_safe(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple, set, frozenset)):
         return [_to_json_safe(i) for i in obj]
     return str(obj)
+
+
+def _extract_thumbnail(item: dict) -> str:
+    """Extract thumbnail URL from a serialised MA item dict.
+
+    Looks in multiple locations where MA stores image paths,
+    returns the first non-empty path found.
+    """
+    thumb = item.get("thumbnail") or ""
+    if thumb:
+        return thumb
+
+    image = item.get("image")
+    if isinstance(image, dict):
+        thumb = image.get("path") or image.get("url") or ""
+    elif isinstance(image, str) and image:
+        thumb = image
+    if thumb:
+        return thumb
+
+    metadata = item.get("metadata") or {}
+    for img in metadata.get("images") or []:
+        path = img.get("path", "") if isinstance(img, dict) else ""
+        if path:
+            return path
+
+    return ""
 
 
 def _serialize_search_results(results: Any) -> dict:
@@ -43,6 +75,12 @@ def _serialize_search_results(results: Any) -> dict:
         return {"tracks": [], "artists": [], "albums": [], "playlists": []}
     safe = _to_json_safe(results)
     if isinstance(safe, dict):
+        for key in ("tracks", "artists", "albums", "playlists", "radios"):
+            for item in safe.get(key) or []:
+                if isinstance(item, dict) and not item.get("thumbnail"):
+                    thumb = _extract_thumbnail(item)
+                    if thumb:
+                        item["thumbnail"] = thumb
         return safe
     return {"tracks": [], "artists": [], "albums": [], "playlists": [], "raw": str(safe)}
 
@@ -204,19 +242,7 @@ def _normalize_library_item(item: dict) -> dict:
     if isinstance(media_type, dict):
         media_type = media_type.get("value", "")
 
-    thumbnail = item.get("thumbnail") or ""
-    if not thumbnail:
-        image = item.get("image") or {}
-        if isinstance(image, dict):
-            thumbnail = image.get("path") or image.get("url") or ""
-    if not thumbnail:
-        metadata = item.get("metadata") or {}
-        images = metadata.get("images") or []
-        for img in images:
-            path = img.get("path", "") if isinstance(img, dict) else ""
-            if path and path.startswith("http"):
-                thumbnail = path
-                break
+    thumbnail = _extract_thumbnail(item)
 
     artist = item.get("media_artist") or ""
     if not artist:
@@ -528,19 +554,7 @@ def _normalize_browse_item(item: dict) -> dict:
         if _path.startswith("folder/"):
             uri = f"{_scheme}://{_path[len('folder/'):]}"
 
-    thumbnail = item.get("thumbnail") or ""
-    if not thumbnail:
-        image = item.get("image") or {}
-        if isinstance(image, dict):
-            thumbnail = image.get("path") or image.get("url") or ""
-    if not thumbnail:
-        metadata = item.get("metadata") or {}
-        images = metadata.get("images") or []
-        for img in images:
-            imgpath = img.get("path", "") if isinstance(img, dict) else ""
-            if imgpath and imgpath.startswith("http"):
-                thumbnail = imgpath
-                break
+    thumbnail = _extract_thumbnail(item)
 
     artist = item.get("media_artist") or ""
     if not artist:
@@ -839,19 +853,9 @@ def _normalize_queue_item(item: dict) -> dict:
     queue_item_id = item.get("queue_item_id") or ""
     duration = item.get("duration") or 0
 
-    thumbnail = ""
-    image = item.get("image") or {}
-    if isinstance(image, dict):
-        thumbnail = image.get("path") or image.get("url") or ""
+    thumbnail = _extract_thumbnail(item)
     if not thumbnail:
-        media_item = item.get("media_item") or {}
-        metadata = media_item.get("metadata") or {}
-        images = metadata.get("images") or []
-        for img in images:
-            path = img.get("path", "") if isinstance(img, dict) else ""
-            if path and path.startswith("http"):
-                thumbnail = path
-                break
+        thumbnail = _extract_thumbnail(item.get("media_item") or {})
 
     media_item = item.get("media_item") or {}
     uri = media_item.get("uri") or ""

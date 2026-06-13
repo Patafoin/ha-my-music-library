@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.10.3";
+const CARD_VERSION = "3.10.4";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -1341,6 +1341,8 @@ const STYLES = `
   }
   .lib-list-item:hover { background: rgba(255,255,255,.04); }
   .lib-list-thumb { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; background: var(--bg2); flex-shrink: 0; }
+  .lib-list-thumb-placeholder { width: 40px; height: 40px; border-radius: 4px; background: var(--bg2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .lib-list-thumb-placeholder svg { width: 20px; height: 20px; fill: var(--text2); opacity: .4; }
   .lib-list-info { flex: 1; min-width: 0; }
   .lib-list-title { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .lib-list-sub { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -2084,6 +2086,21 @@ class MyMusicLibraryCard extends HTMLElement {
       <div class="mml-toast" id="mml-toast"></div>
     `;
     root.appendChild(card);
+
+    if (!this._imgErrorBound) {
+      this._imgErrorBound = true;
+      root.addEventListener("error", (e) => {
+        const img = e.target;
+        if (!(img instanceof HTMLImageElement) || img.classList.contains("art")) return;
+        const classes = img.className.split(" ").filter(Boolean);
+        const primary = classes[0] || "result-thumb";
+        const isRound = classes.includes("round");
+        const ph = document.createElement("div");
+        ph.className = [primary + "-placeholder", ...classes.slice(1)].join(" ");
+        ph.innerHTML = isRound ? ICONS.artist : ICONS.music;
+        img.replaceWith(ph);
+      }, true);
+    }
 
     this._attachListeners(card);
     this._setActiveTab(this._tab, card);
@@ -3181,7 +3198,7 @@ class MyMusicLibraryCard extends HTMLElement {
           type,
           title: item.name || item.title || "",
           subtitle: item.artists?.[0]?.name || item.artist?.name || item.owner_name || "",
-          thumbnail: item.metadata?.images?.[0]?.path || item.image?.path || null,
+          thumbnail: item.thumbnail || item.metadata?.images?.[0]?.path || item.image?.path || (typeof item.image === "string" ? item.image : null) || null,
           can_play: true,
         });
       }
