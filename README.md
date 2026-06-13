@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.10.3-blue)
+![Version](https://img.shields.io/badge/version-3.10.4-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -298,6 +298,12 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 3.10.4
+- **Fix** — **cover images missing in Library, Search and Browse tabs** ([#12](https://github.com/Patafoin/ha-my-music-library/issues/12)): thumbnails were not displayed because the backend only accepted image paths starting with `http://`, rejecting relative or proxy paths from Music Assistant. A new centralized `_extract_thumbnail()` helper now searches all known MA image locations (`thumbnail`, `image.path`, `metadata.images[].path`) without protocol restriction. Also fixes thumbnails in search results and MA queue items.
+- **Fix** — **`image` property lost during serialization**: Music Assistant exposes `image` as a `@property` on media items, which `dataclasses.fields()` does not include. The serializer now explicitly captures this property so cover art is preserved even when it's the only image source.
+- **Fix** — **search results missing thumbnails server-side**: `_serialize_search_results()` now injects a `thumbnail` field into each search result item, so the frontend no longer has to guess where MA stores image paths.
+- **Improvement** — **image error fallback on all tabs**: a delegated error handler on the shadow root automatically replaces broken `<img>` elements with SVG placeholder icons, matching the player tab's existing fallback behavior.
 
 ### 3.10.3
 - **Feature** — **hide device picker**: new `show_device_select` option (default: `true`) and matching checkbox in the visual card editor. When unchecked, the device selection row at the bottom of the player tab is hidden.
