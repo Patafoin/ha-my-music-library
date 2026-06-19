@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.10.4-blue)
+![Version](https://img.shields.io/badge/version-3.11.2-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -298,6 +298,16 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 3.11.2
+- **Fix** — **library scroll conflict on mobile (iPhone)** ([#13](https://github.com/Patafoin/ha-my-music-library/issues/13)): scrolling vertically through library sections was blocked when the touch gesture started on a horizontal lane (albums, artists). A direction-lock mechanism now detects the dominant gesture direction on the first touch move — if vertical, horizontal scroll on all lanes is temporarily disabled so the page scrolls smoothly. Horizontal lane scrolling remains fully functional when the gesture is clearly horizontal.
+
+### 3.11.1
+- **Fix** — **library tab not scrollable on iOS Safari** ([#13](https://github.com/Patafoin/ha-my-music-library/issues/13)): both `.library-panel` and `.lib-content` had `overflow-y: auto`, creating nested scroll containers that iOS Safari cannot handle. Changed `.library-panel` to `overflow: hidden` (matching the search panel pattern) so only `.lib-content` scrolls. Added `min-height: 0` and `-webkit-overflow-scrolling: touch` for proper flex shrinking and older iOS compatibility.
+
+### 3.11.0
+- **Fix** — **cover images missing in library, search, browse & queue** ([#12](https://github.com/Patafoin/ha-my-music-library/issues/12)): raw image paths from Music Assistant (Plex URLs requiring auth, internal MA references) were exposed directly to the browser, which couldn't load them. All thumbnails are now routed through a new server-side proxy endpoint (`/my_music_library/thumb`) that resolves images via the MA server — handling provider authentication (Plex tokens), internal paths, and mixed-content issues transparently. Both backend normalization and frontend WebSocket search results wrap thumbnails in this proxy.
+- **Fix** — **clicking artist in library shows empty results** ([#12](https://github.com/Patafoin/ha-my-music-library/issues/12)): `get_artist_albums` calls via the MA Python client could fail silently (logged at DEBUG). Added a REST API fallback (`/api/music/artists/{id}/albums`) that kicks in when all client attempts fail. Upgraded failure logging from DEBUG to WARNING for diagnosability.
 
 ### 3.10.4
 - **Fix** — **cover images missing in Library, Search and Browse tabs** ([#12](https://github.com/Patafoin/ha-my-music-library/issues/12)): thumbnails were not displayed because the backend only accepted image paths starting with `http://`, rejecting relative or proxy paths from Music Assistant. A new centralized `_extract_thumbnail()` helper now searches all known MA image locations (`thumbnail`, `image.path`, `metadata.images[].path`) without protocol restriction. Also fixes thumbnails in search results and MA queue items.

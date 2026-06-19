@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.10.4";
+const CARD_VERSION = "3.11.2";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -1146,7 +1146,7 @@ const STYLES = `
   /* ══════════════════════════════════════════
      LIBRARY TAB
   ══════════════════════════════════════════ */
-  .library-panel { flex: 1; overflow-y: auto; padding: 0 0 16px; display: flex; flex-direction: column; }
+  .library-panel { flex: 1; overflow: hidden; padding: 0 0 16px; display: flex; flex-direction: column; }
 
   .lib-filters {
     display: flex;
@@ -1197,7 +1197,7 @@ const STYLES = `
   .lib-filter-fav.active { background: var(--accent); color: #000; border-color: var(--accent); }
   .lib-filter-fav svg { width: 14px; height: 14px; fill: currentColor; }
 
-  .lib-content { flex: 1; overflow-y: auto; }
+  .lib-content { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
   .lib-section { margin-bottom: 8px; }
   .lib-section-header {
@@ -1219,6 +1219,7 @@ const STYLES = `
     scrollbar-width: none;
     position: relative;
   }
+  .lib-scroll.scroll-locked { overflow-x: hidden !important; }
   .lib-scroll::-webkit-scrollbar { display: none; }
   @media (hover: hover) and (pointer: fine) {
     .lib-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.2) transparent; }
@@ -3183,6 +3184,12 @@ class MyMusicLibraryCard extends HTMLElement {
     return null;
   }
 
+  _makeThumbUrl(rawPath) {
+    if (!rawPath) return null;
+    if (rawPath.startsWith("/my_music_library/thumb")) return rawPath;
+    return `/my_music_library/thumb?path=${encodeURIComponent(rawPath)}`;
+  }
+
   /* Parse the result of music_assistant/search WebSocket command.
      MA returns either a flat {tracks,artists,albums,playlists} or
      a nested {results: {tracks,...}}. */
@@ -3193,12 +3200,13 @@ class MyMusicLibraryCard extends HTMLElement {
     for (const [key, type] of Object.entries(map)) {
       const items = root[key] || [];
       for (const item of items) {
+        const rawThumb = item.thumbnail || item.metadata?.images?.[0]?.path || item.image?.path || (typeof item.image === "string" ? item.image : null) || null;
         out[key].push({
           id: item.uri || item.item_id || "",
           type,
           title: item.name || item.title || "",
           subtitle: item.artists?.[0]?.name || item.artist?.name || item.owner_name || "",
-          thumbnail: item.thumbnail || item.metadata?.images?.[0]?.path || item.image?.path || (typeof item.image === "string" ? item.image : null) || null,
+          thumbnail: this._makeThumbUrl(rawThumb),
           can_play: true,
         });
       }
@@ -3831,6 +3839,38 @@ class MyMusicLibraryCard extends HTMLElement {
     }
 
     this._attachLibInfiniteScroll(libEl);
+    this._attachLibDirectionLock(libEl);
+  }
+
+  _attachLibDirectionLock(libEl) {
+    if (!libEl || libEl._dirLockBound) return;
+    libEl._dirLockBound = true;
+    const THRESHOLD = 8;
+    let startX = 0, startY = 0, locked = null;
+
+    libEl.addEventListener("touchstart", (e) => {
+      startX = e.touches[0].pageX;
+      startY = e.touches[0].pageY;
+      locked = null;
+    }, { passive: true });
+
+    libEl.addEventListener("touchmove", (e) => {
+      if (locked) return;
+      const dx = Math.abs(e.touches[0].pageX - startX);
+      const dy = Math.abs(e.touches[0].pageY - startY);
+      if (dx < THRESHOLD && dy < THRESHOLD) return;
+      locked = dy >= dx ? "v" : "h";
+      if (locked === "v") {
+        libEl.querySelectorAll(".lib-scroll").forEach(el => el.classList.add("scroll-locked"));
+      }
+    }, { passive: true });
+
+    libEl.addEventListener("touchend", () => {
+      if (locked === "v") {
+        libEl.querySelectorAll(".lib-scroll").forEach(el => el.classList.remove("scroll-locked"));
+      }
+      locked = null;
+    }, { passive: true });
   }
 
   _attachLibInfiniteScroll(libEl) {

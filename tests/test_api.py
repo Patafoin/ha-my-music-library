@@ -63,7 +63,7 @@ class TestNormalizeLibraryItem:
             "metadata": {"images": [{"path": "http://img.example.com/cover.jpg"}]},
         }
         result = _normalize_library_item(item)
-        assert result["thumbnail"] == "http://img.example.com/cover.jpg"
+        assert result["thumbnail"] == "/my_music_library/thumb?path=http%3A%2F%2Fimg.example.com%2Fcover.jpg"
 
     def test_empty_item(self):
         result = _normalize_library_item({})

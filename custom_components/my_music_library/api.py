@@ -7,6 +7,7 @@ import enum
 import logging
 from http import HTTPStatus
 from typing import Any
+from urllib.parse import quote
 
 import aiohttp
 from aiohttp import web
@@ -69,6 +70,18 @@ def _extract_thumbnail(item: dict) -> str:
     return ""
 
 
+def _make_thumb_url(raw_path: str) -> str:
+    """Wrap a raw image path in our thumbnail proxy endpoint.
+
+    Instead of exposing raw image URLs (which may require provider auth
+    or be unreachable from the browser), route everything through our
+    server-side proxy that resolves via the MA server.
+    """
+    if not raw_path:
+        return ""
+    return f"/my_music_library/thumb?path={quote(raw_path, safe='')}"
+
+
 def _serialize_search_results(results: Any) -> dict:
     """Convert a MA SearchResults object (or dict) to a plain dict."""
     if results is None:
@@ -77,10 +90,9 @@ def _serialize_search_results(results: Any) -> dict:
     if isinstance(safe, dict):
         for key in ("tracks", "artists", "albums", "playlists", "radios"):
             for item in safe.get(key) or []:
-                if isinstance(item, dict) and not item.get("thumbnail"):
-                    thumb = _extract_thumbnail(item)
-                    if thumb:
-                        item["thumbnail"] = thumb
+                if isinstance(item, dict):
+                    raw = item.get("thumbnail") or _extract_thumbnail(item)
+                    item["thumbnail"] = _make_thumb_url(raw)
         return safe
     return {"tracks": [], "artists": [], "albums": [], "playlists": [], "raw": str(safe)}
 
@@ -242,7 +254,7 @@ def _normalize_library_item(item: dict) -> dict:
     if isinstance(media_type, dict):
         media_type = media_type.get("value", "")
 
-    thumbnail = _extract_thumbnail(item)
+    thumbnail = _make_thumb_url(_extract_thumbnail(item))
 
     artist = item.get("media_artist") or ""
     if not artist:
@@ -554,7 +566,7 @@ def _normalize_browse_item(item: dict) -> dict:
         if _path.startswith("folder/"):
             uri = f"{_scheme}://{_path[len('folder/'):]}"
 
-    thumbnail = _extract_thumbnail(item)
+    thumbnail = _make_thumb_url(_extract_thumbnail(item))
 
     artist = item.get("media_artist") or ""
     if not artist:
@@ -680,6 +692,45 @@ def _parse_ma_uri(uri: str) -> tuple[str, str]:
     return item_id, scheme
 
 
+_SUBITEM_REST_PATHS: dict[str, list[str]] = {
+    "artist_albums": ["/api/music/artists/{id}/albums", "/api/artists/{id}/albums"],
+    "album_tracks":  ["/api/music/albums/{id}/tracks",  "/api/albums/{id}/tracks"],
+    "playlist_tracks": ["/api/music/playlists/{id}/tracks", "/api/playlists/{id}/tracks"],
+}
+
+
+async def _get_subitems_via_rest(
+    hass: HomeAssistant,
+    action: str,
+    item_id: str,
+    limit: int,
+) -> list | None:
+    """Fallback: fetch sub-items via MA REST API."""
+    ma_url = _get_mass_url(hass)
+    if not ma_url:
+        return None
+
+    session = async_get_clientsession(hass)
+    paths = _SUBITEM_REST_PATHS.get(action, [])
+    for path_tpl in paths:
+        url = f"{ma_url}{path_tpl.format(id=item_id)}"
+        try:
+            async with session.get(
+                url,
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                if resp.status != 200:
+                    _LOGGER.debug("Subitems REST %s → HTTP %s", url, resp.status)
+                    continue
+                data = await resp.json(content_type=None)
+                items_raw = data if isinstance(data, list) else (data.get("items") or [])
+                _LOGGER.info("Subitems REST %s → %d items", url, len(items_raw))
+                return [_normalize_library_item(i) for i in items_raw[:limit]]
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Subitems REST %s failed: %s", url, err)
+    return None
+
+
 async def _get_subitems(
     hass: HomeAssistant,
     action: str,
@@ -690,11 +741,11 @@ async def _get_subitems(
     mass = _get_mass_client(hass)
     if mass is None:
         _LOGGER.warning("No Music Assistant (mass) client available for subitems")
-        return None
+        return await _get_subitems_via_rest(hass, action, uri, limit)
 
     music = getattr(mass, "music", None)
     if not music:
-        return None
+        return await _get_subitems_via_rest(hass, action, uri, limit)
 
     methods = _SUBITEM_METHODS.get(action, [])
     if not methods:
@@ -723,10 +774,11 @@ async def _get_subitems(
                 _LOGGER.info("Subitems %s: %d items (args=%s kwargs=%s)", action, len(items), call_args, call_kwargs)
                 return [_normalize_library_item(_to_json_safe(i)) for i in items[:limit]]
             except Exception as err:  # noqa: BLE001
-                _LOGGER.debug("Subitems %s args=%s kwargs=%s → %s: %s", method_name, call_args, call_kwargs, type(err).__name__, err)
+                _LOGGER.warning("Subitems %s args=%s kwargs=%s → %s: %s", method_name, call_args, call_kwargs, type(err).__name__, err)
                 continue
 
-    return None
+    _LOGGER.warning("Subitems %s: all MA client attempts failed for %r, trying REST fallback", action, uri)
+    return await _get_subitems_via_rest(hass, action, item_id, limit)
 
 
 # ── Providers ─────────────────────────────────────────────────────────────────
@@ -853,9 +905,10 @@ def _normalize_queue_item(item: dict) -> dict:
     queue_item_id = item.get("queue_item_id") or ""
     duration = item.get("duration") or 0
 
-    thumbnail = _extract_thumbnail(item)
-    if not thumbnail:
-        thumbnail = _extract_thumbnail(item.get("media_item") or {})
+    raw_thumb = _extract_thumbnail(item)
+    if not raw_thumb:
+        raw_thumb = _extract_thumbnail(item.get("media_item") or {})
+    thumbnail = _make_thumb_url(raw_thumb)
 
     media_item = item.get("media_item") or {}
     uri = media_item.get("uri") or ""
@@ -1361,3 +1414,64 @@ class ImageProxyView(HomeAssistantView):
                 )
         except Exception:  # noqa: BLE001
             return web.Response(status=HTTPStatus.BAD_GATEWAY)
+
+
+class MAThumbnailView(HomeAssistantView):
+    """Proxy thumbnail requests through the MA server.
+
+    GET /my_music_library/thumb?path=<raw_image_path>
+
+    Resolves image paths server-side via the Music Assistant server,
+    handling provider-specific auth (Plex tokens, etc.) and internal
+    MA references that browsers cannot access directly.
+    """
+
+    url = "/my_music_library/thumb"
+    name = "my_music_library:thumb"
+    requires_auth = False
+
+    async def get(self, request: web.Request) -> web.Response:
+        """Resolve an image path via MA and return the image bytes."""
+        hass: HomeAssistant = request.app["hass"]
+        raw_path = request.query.get("path", "").strip()
+        if not raw_path:
+            return web.Response(status=HTTPStatus.BAD_REQUEST)
+
+        ma_url = _get_mass_url(hass)
+        session = async_get_clientsession(hass)
+
+        urls_to_try: list[str] = []
+        if raw_path.startswith("http"):
+            urls_to_try.append(raw_path)
+            if ma_url:
+                urls_to_try.append(
+                    f"{ma_url}/api/image/{quote(raw_path, safe='')}"
+                )
+        elif ma_url:
+            urls_to_try.append(
+                f"{ma_url}/api/image/{quote(raw_path, safe='')}"
+            )
+            if raw_path.startswith("/"):
+                urls_to_try.append(f"{ma_url}{raw_path}")
+
+        for image_url in urls_to_try:
+            try:
+                async with session.get(
+                    image_url,
+                    timeout=aiohttp.ClientTimeout(total=10),
+                ) as resp:
+                    if resp.status != 200:
+                        continue
+                    ct = resp.content_type or "image/jpeg"
+                    if not ct.startswith("image"):
+                        continue
+                    body = await resp.read()
+                    return web.Response(
+                        body=body,
+                        content_type=ct,
+                        headers={"Cache-Control": "public, max-age=3600"},
+                    )
+            except Exception:  # noqa: BLE001
+                continue
+
+        return web.Response(status=HTTPStatus.NOT_FOUND)
