@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.11.2";
+const CARD_VERSION = "3.12.4";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -169,6 +169,32 @@ const TRANSLATIONS = {
       search_layout_rows: "Rows",
       search_layout_columns: "Columns",
       show_device_select: "Show device selection",
+      type_custom_element: "Custom element",
+      btn_element_name: "Element tag",
+      btn_element_config: "Config (JSON)",
+      action_mml_navigate_tab: "Show tab (MML)",
+      action_mml_navigate_section: "Show section (MML)",
+      action_mml_control: "Player control (MML)",
+      btn_mml_tab: "Tab",
+      btn_mml_section: "Section",
+      btn_mml_command: "Command",
+      mml_cmd_play_pause: "Play / Pause",
+      mml_cmd_next: "Next",
+      mml_cmd_prev: "Previous",
+      mml_cmd_shuffle: "Shuffle",
+      mml_cmd_repeat: "Repeat",
+      mml_cmd_mute: "Mute",
+      nav_bar_section: "Navigation bar",
+      nav_bar_position: "Position",
+      nav_bar_pos_top: "Top",
+      nav_bar_pos_bottom: "Bottom",
+      nav_bar_pos_left: "Left",
+      nav_bar_pos_right: "Right",
+      nav_bar_align: "Alignment",
+      nav_bar_align_start: "Start",
+      nav_bar_align_center: "Center",
+      nav_bar_align_end: "End",
+      nav_bar_align_space_between: "Space between",
     },
   },
   fr: {
@@ -290,6 +316,32 @@ const TRANSLATIONS = {
       search_layout_rows: "Lignes",
       search_layout_columns: "Colonnes",
       show_device_select: "Afficher la sélection de l'appareil",
+      type_custom_element: "Élément custom",
+      btn_element_name: "Balise élément",
+      btn_element_config: "Config (JSON)",
+      action_mml_navigate_tab: "Afficher un onglet (MML)",
+      action_mml_navigate_section: "Afficher une section (MML)",
+      action_mml_control: "Contrôle lecteur (MML)",
+      btn_mml_tab: "Onglet",
+      btn_mml_section: "Section",
+      btn_mml_command: "Commande",
+      mml_cmd_play_pause: "Lecture / Pause",
+      mml_cmd_next: "Suivant",
+      mml_cmd_prev: "Précédent",
+      mml_cmd_shuffle: "Aléatoire",
+      mml_cmd_repeat: "Répéter",
+      mml_cmd_mute: "Muet",
+      nav_bar_section: "Barre de navigation",
+      nav_bar_position: "Position",
+      nav_bar_pos_top: "Haut",
+      nav_bar_pos_bottom: "Bas",
+      nav_bar_pos_left: "Gauche",
+      nav_bar_pos_right: "Droite",
+      nav_bar_align: "Alignement",
+      nav_bar_align_start: "Début",
+      nav_bar_align_center: "Centre",
+      nav_bar_align_end: "Fin",
+      nav_bar_align_space_between: "Réparti",
     },
   },
   de: {
@@ -411,9 +463,119 @@ const TRANSLATIONS = {
       search_layout_rows: "Zeilen",
       search_layout_columns: "Spalten",
       show_device_select: "Geräteauswahl anzeigen",
+      type_custom_element: "Benutzerelement",
+      btn_element_name: "Element-Tag",
+      btn_element_config: "Konfiguration (JSON)",
+      action_mml_navigate_tab: "Tab anzeigen (MML)",
+      action_mml_navigate_section: "Abschnitt anzeigen (MML)",
+      action_mml_control: "Player-Steuerung (MML)",
+      btn_mml_tab: "Tab",
+      btn_mml_section: "Abschnitt",
+      btn_mml_command: "Befehl",
+      mml_cmd_play_pause: "Wiedergabe / Pause",
+      mml_cmd_next: "Weiter",
+      mml_cmd_prev: "Zurück",
+      mml_cmd_shuffle: "Zufällig",
+      mml_cmd_repeat: "Wiederholen",
+      mml_cmd_mute: "Stummschalten",
+      nav_bar_section: "Navigationsleiste",
+      nav_bar_position: "Position",
+      nav_bar_pos_top: "Oben",
+      nav_bar_pos_bottom: "Unten",
+      nav_bar_pos_left: "Links",
+      nav_bar_pos_right: "Rechts",
+      nav_bar_align: "Ausrichtung",
+      nav_bar_align_start: "Anfang",
+      nav_bar_align_center: "Mitte",
+      nav_bar_align_end: "Ende",
+      nav_bar_align_space_between: "Verteilt",
     },
   },
 };
+
+/* ─── YAML utilities (no external deps) ──────────────────── */
+function _yamlDump(obj, indent = 0) {
+  if (obj === null || obj === undefined) return "null";
+  if (typeof obj === "boolean" || typeof obj === "number") return String(obj);
+  if (typeof obj === "string") {
+    if (!obj || /[\r\n:#\[\]{},&*?|<>=!%@`"']/.test(obj) || /^\s|\s$/.test(obj) ||
+        /^(true|false|yes|no|on|off|null|~)$/i.test(obj) || /^\d/.test(obj)) {
+      return `"${obj.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n")}"`;
+    }
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    if (!obj.length) return "[]";
+    const pad = " ".repeat(indent);
+    return obj.map(v => `${pad}- ${_yamlDump(v, indent + 2)}`).join("\n");
+  }
+  if (typeof obj === "object") {
+    const keys = Object.keys(obj);
+    if (!keys.length) return "";
+    const pad = " ".repeat(indent);
+    return keys.map(k => {
+      const v = obj[k];
+      if (v !== null && typeof v === "object") {
+        const nested = _yamlDump(v, indent + 2);
+        return nested ? `${pad}${k}:\n${nested}` : `${pad}${k}: {}`;
+      }
+      return `${pad}${k}: ${_yamlDump(v, indent)}`;
+    }).join("\n");
+  }
+  return String(obj);
+}
+
+function _parseYamlScalar(v) {
+  if (v === "true" || v === "yes" || v === "on") return true;
+  if (v === "false" || v === "no" || v === "off") return false;
+  if (v === "null" || v === "~" || v === "") return null;
+  if (/^-?\d+$/.test(v)) return parseInt(v, 10);
+  if (/^-?\d+\.\d+$/.test(v)) return parseFloat(v);
+  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+    return v.slice(1, -1).replace(/\\n/g, "\n").replace(/\\"/g, '"');
+  }
+  return v;
+}
+
+function _yamlLoad(text) {
+  if (window.jsyaml?.load) return window.jsyaml.load(text);
+  const t = text.trim();
+  if (!t || t === "{}") return {};
+  // Basic line-by-line parser for HA card config subset
+  const lines = t.split("\n");
+  const stack = [{ obj: {}, indent: -1 }];
+  const arrKeys = new Map(); // tracks which keys hold arrays
+  for (const raw of lines) {
+    const trimEnd = raw.trimEnd();
+    if (!trimEnd || trimEnd.trimStart().startsWith("#")) continue;
+    const il = trimEnd.length - trimEnd.trimStart().length;
+    const content = trimEnd.trimStart();
+    while (stack.length > 1 && stack[stack.length - 1].indent >= il) stack.pop();
+    const top = stack[stack.length - 1];
+    if (content.startsWith("- ")) {
+      const val = _parseYamlScalar(content.slice(2).trim());
+      const arrKey = arrKeys.get(top);
+      if (arrKey !== undefined && Array.isArray(top.obj[arrKey])) top.obj[arrKey].push(val);
+      continue;
+    }
+    const ci = content.indexOf(": ");
+    const colonEnd = content === content.replace(/:$/, "") ? -1 : content.length - 1;
+    if (ci === -1 && colonEnd === -1) continue;
+    const key = ci >= 0 ? content.slice(0, ci).trim() : content.slice(0, colonEnd).trim();
+    const val = ci >= 0 ? content.slice(ci + 2).trim() : "";
+    if (!val) {
+      const newObj = {};
+      top.obj[key] = newObj;
+      stack.push({ obj: newObj, indent: il });
+    } else if (val === "[]") {
+      top.obj[key] = [];
+      arrKeys.set(stack[stack.length - 1], key);
+    } else {
+      top.obj[key] = _parseYamlScalar(val);
+    }
+  }
+  return stack[0].obj;
+}
 
 /* ─── CSS ─────────────────────────────────────────────────── */
 const STYLES = `
@@ -545,6 +707,56 @@ const STYLES = `
   .nav-btn ha-icon { --mdc-icon-size: 20px; display: block; pointer-events: none; }
   .nav-btn svg { width: 20px; height: 20px; fill: currentColor; flex-shrink: 0; }
   .nav-btn-label { font-size: 10px; font-weight: 500; line-height: 1; pointer-events: none; }
+
+  /* ── CUSTOM ELEMENT SLOT ── */
+  .nav-btn-custom { padding: 0; min-width: 36px; min-height: 44px; overflow: hidden; flex-shrink: 0; }
+  .nav-btn-custom > * { pointer-events: none; display: block; width: 100%; height: 100%; }
+
+  /* ── NAV BAR POSITION VARIANTS ── */
+  .card-root[data-nav-pos="bottom"] { flex-direction: column-reverse; }
+  .card-root[data-nav-pos="left"],
+  .card-root[data-nav-pos="right"] { flex-direction: row; }
+  .card-root[data-nav-pos="right"] { flex-direction: row-reverse; }
+
+  .card-root[data-nav-pos="left"] .nav,
+  .card-root[data-nav-pos="right"] .nav {
+    flex-direction: column;
+    overflow-y: auto; overflow-x: hidden;
+    border-bottom: none; border-right: 1px solid var(--border);
+    scroll-snap-type: y mandatory;
+    width: auto; height: 100%;
+  }
+  .card-root[data-nav-pos="right"] .nav { border-right: none; border-left: 1px solid var(--border); }
+
+  .card-root[data-nav-pos="left"] .nav-tabs,
+  .card-root[data-nav-pos="right"] .nav-tabs { flex-direction: column; flex: none; width: 100%; }
+
+  .card-root[data-nav-pos="left"] .nav-tab,
+  .card-root[data-nav-pos="right"] .nav-tab {
+    border-right: none; border-bottom: none;
+    justify-content: flex-start; padding: 10px 14px;
+    border-left: 3px solid transparent; flex: none;
+  }
+  .card-root[data-nav-pos="right"] .nav-tab { border-left: none; border-right: 3px solid transparent; }
+
+  .card-root[data-nav-pos="left"] .nav-tab.active {
+    border-left-color: var(--accent); border-bottom: none;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+  .card-root[data-nav-pos="right"] .nav-tab.active {
+    border-right-color: var(--accent); border-bottom: none;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+  .card-root[data-nav-pos="left"] .nav-fade-left,
+  .card-root[data-nav-pos="left"] .nav-fade-right,
+  .card-root[data-nav-pos="right"] .nav-fade-left,
+  .card-root[data-nav-pos="right"] .nav-fade-right { display: none; }
+
+  /* ── NAV TABS ALIGNMENT ── */
+  .nav-tabs[data-align="center"] { justify-content: center; }
+  .nav-tabs[data-align="end"] { justify-content: flex-end; }
+  .nav-tabs[data-align="space-between"] { justify-content: space-between; }
+
   /* ── CONTENT AREA ── */
   /* position:relative + inset:0 on children is the most reliable way to
      give tab panels a definite pixel height without relying on flex cross-axis
@@ -1816,6 +2028,12 @@ class MyMusicLibraryCard extends HTMLElement {
       const typeCounts = {};
       return config.tabs.map(t => {
         const type = t.type || "button";
+        if (type === "custom_element") {
+          return { type: "custom_element", id: `ce-${idx++}`, element: t.element || "",
+            element_config: t.element_config || {}, name: t.name || "",
+            tap_action: t.tap_action, hold_action: t.hold_action, double_tap_action: t.double_tap_action,
+            width: t.width, height: t.height };
+        }
         if (type === "button") {
           return { type: "button", id: `btn-${idx++}`, icon: t.icon, name: t.name || "", entity: t.entity,
             tap_action: t.tap_action, hold_action: t.hold_action, double_tap_action: t.double_tap_action,
@@ -1824,7 +2042,7 @@ class MyMusicLibraryCard extends HTMLElement {
         typeCounts[type] = (typeCounts[type] || 0) + 1;
         const id = type === "settings" ? "settings" : (typeCounts[type] > 1 ? `${type}-${typeCounts[type] - 1}` : type);
         const tab = { type, id, label: t.label || null, iconOverride: t.icon || null,
-          defaultIcon: TAB_ICONS[type] || null };
+          defaultIcon: TAB_ICONS[type] || null, show_in_nav: t.show_in_nav !== false };
         if (type === "library") {
           const sections = Array.isArray(t.sections) ? t.sections.filter(s => VALID_SECTIONS.includes(s)) : null;
           tab.sections = sections && sections.length ? sections : DEFAULT_SECTIONS;
@@ -2069,8 +2287,10 @@ class MyMusicLibraryCard extends HTMLElement {
 
     const card = document.createElement("div");
     card.className = `card-root${this._isMobile ? " mml-mobile" : ""}`;
+    const navPos = this._config.nav_bar?.position || "top";
+    if (navPos !== "top") card.dataset.navPos = navPos;
 
-    const panels = this._resolvedTabs.filter(t => t.type !== "button");
+    const panels = this._resolvedTabs.filter(t => t.type !== "button" && t.type !== "custom_element");
     const panelRenderers = {
       player: (t) => this._renderPlayerTab(),
       search: (t) => this._renderSearchTab(),
@@ -2108,8 +2328,20 @@ class MyMusicLibraryCard extends HTMLElement {
     this._updatePlayerContent(card);
   }
 
+  _renderCustomElementSlot(tab) {
+    const sizeParts = [];
+    if (tab.width)  sizeParts.push(`width:${typeof tab.width  === "number" ? tab.width  + "px" : tab.width}`);
+    if (tab.height) sizeParts.push(`height:${typeof tab.height === "number" ? tab.height + "px" : tab.height}`);
+    const sizeStyle = sizeParts.length ? ` style="${sizeParts.join(";")}"` : "";
+    return `<div class="nav-btn nav-btn-custom" data-tab-btn="${tab.id}" data-ce-slot="${tab.id}"${sizeStyle}></div>`;
+  }
+
   _renderNav() {
-    const items = this._resolvedTabs.map(t => {
+    const align = this._config.nav_bar?.align || "start";
+    const items = this._resolvedTabs.filter(t => t.show_in_nav !== false).map(t => {
+      if (t.type === "custom_element") {
+        return this._renderCustomElementSlot(t);
+      }
       if (t.type === "button") {
         return this._renderNavButton(t);
       }
@@ -2132,12 +2364,14 @@ class MyMusicLibraryCard extends HTMLElement {
       </button>`;
     }).join("");
 
+    const alignAttr = align !== "start" ? ` data-align="${align}"` : "";
+    const navStyle = this._config.nav_bar?.style ? ` style="${this._esc(this._config.nav_bar.style)}"` : "";
     return `
       <div class="nav-wrapper">
         <div class="nav-fade-left"></div>
         <div class="nav-fade-right"></div>
-        <nav class="nav">
-          <div class="nav-tabs">${items}</div>
+        <nav class="nav"${navStyle}>
+          <div class="nav-tabs"${alignAttr}>${items}</div>
         </nav>
       </div>`;
   }
@@ -2512,6 +2746,27 @@ class MyMusicLibraryCard extends HTMLElement {
       });
     });
 
+    this._mountCustomElements(card);
+  }
+
+  _mountCustomElements(card) {
+    card.querySelectorAll("[data-ce-slot]").forEach(slot => {
+      if (slot._ceMounted) return;
+      const id = slot.dataset.ceSlot;
+      const tab = this._resolvedTabs.find(t => t.id === id);
+      if (!tab?.element) return;
+      // Strip Lovelace "custom:" prefix — the actual DOM tag name never has it
+      const tagName = tab.element.replace(/^custom:/, "");
+      const el = document.createElement(tagName);
+      if (typeof el.setConfig === "function") {
+        try { el.setConfig(tab.element_config || {}); } catch(e) {
+          console.warn(`[mml] custom_element "${tagName}" setConfig error:`, e);
+        }
+      }
+      if (this._hass) el.hass = this._hass;
+      slot.appendChild(el);
+      slot._ceMounted = true;
+    });
   }
 
   /* ── Nav button action handler ── */
@@ -2578,6 +2833,75 @@ class MyMusicLibraryCard extends HTMLElement {
         }));
         break;
       }
+      case "mml_navigate_tab": {
+        const tabTypeOrId = action.tab;
+        if (!tabTypeOrId) break;
+        const card = this.shadowRoot?.querySelector(".card-root");
+        if (!card) break;
+        const tabDef = this._resolvedTabs.find(t => t.id === tabTypeOrId) ||
+                       this._resolvedTabs.find(t => t.type === tabTypeOrId);
+        if (!tabDef) break;
+        if (tabDef.type === "settings") {
+          this._openSettings(card);
+        } else {
+          this._setActiveTab(tabDef.id, card);
+          if (tabDef.type === "library" && !this._libLoadedTabs.has(tabDef.id)) this._loadLibrary();
+        }
+        break;
+      }
+      case "mml_navigate_section": {
+        const section = action.section;
+        if (!section) break;
+        const card = this.shadowRoot?.querySelector(".card-root");
+        if (!card) break;
+        const libTab = this._resolvedTabs.find(t => t.type === "library" && t.sections?.includes(section)) ||
+                       this._resolvedTabs.find(t => t.type === "library");
+        if (!libTab) break;
+        const alreadyLoaded = this._libLoadedTabs.has(libTab.id);
+        this._setActiveTab(libTab.id, card);
+        if (!alreadyLoaded) this._loadLibrary();
+        setTimeout(() => {
+          const panel = card.querySelector(`[data-panel="${libTab.id}"]`);
+          const secEl = panel?.querySelector(`#lib-sec-${section}`);
+          if (secEl) secEl.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, alreadyLoaded ? 50 : 600);
+        break;
+      }
+      case "mml_control": {
+        const cmd = action.command;
+        const player = this._activePlayer;
+        if (!cmd || !player) break;
+        switch (cmd) {
+          case "play_pause": {
+            const state = this._hass?.states[player]?.state;
+            this._hass?.callService("media_player", state === "playing" ? "media_pause" : "media_play", {}, { entity_id: player });
+            break;
+          }
+          case "next":
+            this._hass?.callService("media_player", "media_next_track", {}, { entity_id: player });
+            break;
+          case "prev":
+            this._hass?.callService("media_player", "media_previous_track", {}, { entity_id: player });
+            break;
+          case "shuffle": {
+            const shuffleOn = this._hass?.states[player]?.attributes?.shuffle;
+            this._hass?.callService("media_player", "shuffle_set", { shuffle: !shuffleOn }, { entity_id: player });
+            break;
+          }
+          case "repeat": {
+            const cur = this._hass?.states[player]?.attributes?.repeat || "off";
+            const next = cur === "off" ? "all" : cur === "all" ? "one" : "off";
+            this._hass?.callService("media_player", "repeat_set", { repeat: next }, { entity_id: player });
+            break;
+          }
+          case "mute": {
+            const isMuted = this._hass?.states[player]?.attributes?.is_volume_muted;
+            this._hass?.callService("media_player", "volume_mute", { is_volume_muted: !isMuted }, { entity_id: player });
+            break;
+          }
+        }
+        break;
+      }
       default:
         break;
     }
@@ -2602,12 +2926,17 @@ class MyMusicLibraryCard extends HTMLElement {
 
   _updateNavButtons(card) {
     for (const tab of this._resolvedTabs) {
-      if (tab.type !== "button" || !tab.entity) continue;
-      const st = this._hass?.states[tab.entity];
-      const isActive = st ? ["on", "playing", "active", "home"].includes(st.state) : false;
-      const el = card.querySelector(`[data-tab-btn="${tab.id}"]`);
-      if (el) el.classList.toggle("active", isActive);
+      if (tab.type === "button" && tab.entity) {
+        const st = this._hass?.states[tab.entity];
+        const isActive = st ? ["on", "playing", "active", "home"].includes(st.state) : false;
+        const el = card.querySelector(`[data-tab-btn="${tab.id}"]`);
+        if (el) el.classList.toggle("active", isActive);
+      }
     }
+    // Propagate hass updates to mounted custom elements
+    card.querySelectorAll("[data-ce-slot] > *").forEach(el => {
+      if (this._hass) el.hass = this._hass;
+    });
   }
 
   _resolveImageUrl(url) {
@@ -4613,6 +4942,14 @@ const EDITOR_STYLES = `
   .add-tab-menu button:hover { border-color: var(--primary-color, #03a9f4); background: rgba(3,169,244,0.04); }
   .expand-chevron { transition: transform 0.2s; font-size: 12px; }
   .expand-chevron.open { transform: rotate(90deg); }
+  .tab-item-type.custom_element { background: #9c27b0; }
+  .editor-row textarea {
+    flex: 1; padding: 8px; border: 1px solid var(--divider-color, #e0e0e0);
+    border-radius: 4px; font-size: 12px; font-family: monospace;
+    background: var(--card-background-color, #fff);
+    color: var(--primary-text-color, #212121); min-width: 0; resize: vertical;
+  }
+  .editor-row textarea:focus { outline: none; border-color: var(--primary-color, #03a9f4); }
 `;
 
 class MyMusicLibraryCardEditor extends HTMLElement {
@@ -4680,6 +5017,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
   _tabDisplayLabel(tab) {
     if (tab.label) return tab.label;
     if (tab.name) return tab.name;
+    if (tab.type === "custom_element") return tab.element || this._t("editor.type_custom_element");
     if (tab.type === "button") return tab.icon || "Button";
     return this._t(`tabs.${tab.type}`) || tab.type;
   }
@@ -4707,7 +5045,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
         </div>
         ${this._showAddMenu ? `
           <div class="add-tab-menu">
-            ${["player","search","library","settings","button"].map(type => `
+            ${["player","search","library","settings","button","custom_element"].map(type => `
               <button data-add-type="${type}">${this._tabTypeLabel(type)}</button>
             `).join("")}
           </div>` : `
@@ -4722,6 +5060,8 @@ class MyMusicLibraryCardEditor extends HTMLElement {
 
   _renderBasicFields(defaultTabOptions) {
     const cfg = this._config;
+    const navPos = cfg.nav_bar?.position || "top";
+    const navAlign = cfg.nav_bar?.align || "start";
     return `
       <div class="editor-section">
         <div class="editor-row">
@@ -4742,12 +5082,31 @@ class MyMusicLibraryCardEditor extends HTMLElement {
           <label>${this._t("editor.show_device_select")}</label>
           <input id="ed-show-device" type="checkbox" ${cfg.show_device_select !== false ? "checked" : ""}>
         </div>
+      </div>
+      <div class="editor-section">
+        <div class="editor-section-title">${this._t("editor.nav_bar_section")}</div>
+        <div class="editor-row">
+          <label>${this._t("editor.nav_bar_position")}</label>
+          <select id="ed-nav-pos">
+            ${["top","bottom","left","right"].map(p =>
+              `<option value="${p}" ${navPos === p ? "selected" : ""}>${this._t(`editor.nav_bar_pos_${p}`)}</option>`
+            ).join("")}
+          </select>
+        </div>
+        <div class="editor-row">
+          <label>${this._t("editor.nav_bar_align")}</label>
+          <select id="ed-nav-align">
+            ${["start","center","end","space-between"].map(a =>
+              `<option value="${a}" ${navAlign === a ? "selected" : ""}>${this._t(`editor.nav_bar_align_${a.replace("-","_")}`)}</option>`
+            ).join("")}
+          </select>
+        </div>
       </div>`;
   }
 
   _renderTabItem(tab, index, total) {
     const isExpanded = this._expandedTab === index;
-    const typeClass = tab.type === "button" ? " button" : "";
+    const typeClass = tab.type === "button" ? " button" : tab.type === "custom_element" ? " custom_element" : "";
     return `
       <div class="tab-item" data-tab-idx="${index}">
         <div class="tab-item-header" data-toggle-idx="${index}">
@@ -4764,8 +5123,55 @@ class MyMusicLibraryCardEditor extends HTMLElement {
       </div>`;
   }
 
+  _renderActionSelect(tab, index) {
+    const actionType = tab.tap_action?.action || "none";
+    const allActions = ["none","toggle","more-info","navigate","url","call-service","assist",
+                        "mml_navigate_tab","mml_navigate_section","mml_control"];
+    let actionFields = "";
+    if (actionType === "navigate") {
+      actionFields = `<div class="editor-row"><label>${this._t("editor.btn_nav_path")}</label><input data-btn-field="navigation_path" data-idx="${index}" type="text" value="${this._esc(tab.tap_action?.navigation_path || "")}"></div>`;
+    } else if (actionType === "url") {
+      actionFields = `<div class="editor-row"><label>${this._t("editor.btn_url")}</label><input data-btn-field="url_path" data-idx="${index}" type="text" value="${this._esc(tab.tap_action?.url_path || "")}"></div>`;
+    } else if (actionType === "call-service" || actionType === "perform-action") {
+      actionFields = `<div class="editor-row"><label>${this._t("editor.btn_service")}</label><input data-btn-field="perform_action" data-idx="${index}" type="text" value="${this._esc(tab.tap_action?.perform_action || tab.tap_action?.service || "")}"></div>`;
+    } else if (actionType === "mml_navigate_tab") {
+      const panelTabs = this._getResolvedTabs().filter(t => t.type && !["button","custom_element"].includes(t.type));
+      actionFields = `<div class="editor-row"><label>${this._t("editor.btn_mml_tab")}</label><select data-btn-field="tab" data-idx="${index}">${panelTabs.map(t => `<option value="${t.type}" ${tab.tap_action?.tab === t.type ? "selected" : ""}>${this._t(`tabs.${t.type}`) || t.type}</option>`).join("")}</select></div>`;
+    } else if (actionType === "mml_navigate_section") {
+      const sections = ["artists","albums","playlists","tracks","radios","recently_played","recently_added","recommended","flows"];
+      actionFields = `<div class="editor-row"><label>${this._t("editor.btn_mml_section")}</label><select data-btn-field="section" data-idx="${index}">${sections.map(s => `<option value="${s}" ${tab.tap_action?.section === s ? "selected" : ""}>${this._t(`lib.${s}`) || s}</option>`).join("")}</select></div>`;
+    } else if (actionType === "mml_control") {
+      const cmds = ["play_pause","next","prev","shuffle","repeat","mute"];
+      actionFields = `<div class="editor-row"><label>${this._t("editor.btn_mml_command")}</label><select data-btn-field="command" data-idx="${index}">${cmds.map(c => `<option value="${c}" ${tab.tap_action?.command === c ? "selected" : ""}>${this._t(`editor.mml_cmd_${c}`) || c}</option>`).join("")}</select></div>`;
+    }
+    return `
+      <div class="editor-row">
+        <label>${this._t("editor.btn_action_type")}</label>
+        <select data-btn-action-type data-idx="${index}">
+          ${allActions.map(a => `<option value="${a}" ${actionType === a ? "selected" : ""}>${this._t(`editor.action_${a.replace(/-/g,"_")}`) || a}</option>`).join("")}
+        </select>
+      </div>
+      ${actionFields}`;
+  }
+
+  _renderCustomElementBody(tab, index) {
+    return `
+      <div class="tab-item-body">
+        <div class="editor-row">
+          <label>${this._t("editor.btn_element_name")}</label>
+          <input data-field="element" data-idx="${index}" type="text" value="${this._esc(tab.element || "")}" placeholder="button-card">
+        </div>
+        <div class="editor-row" style="align-items:flex-start">
+          <label style="padding-top:6px">${this._t("editor.btn_element_config")}</label>
+          <textarea data-ce-config data-idx="${index}" rows="4">${this._esc(_yamlDump(tab.element_config || {}))}</textarea>
+        </div>
+        ${this._renderActionSelect(tab, index)}
+      </div>`;
+  }
+
   _renderTabBody(tab, index) {
     if (tab.type === "button") return this._renderButtonBody(tab, index);
+    if (tab.type === "custom_element") return this._renderCustomElementBody(tab, index);
     let body = `
       <div class="tab-item-body">
         <div class="editor-row">
@@ -4837,27 +5243,6 @@ class MyMusicLibraryCardEditor extends HTMLElement {
   }
 
   _renderButtonBody(tab, index) {
-    const actionType = tab.tap_action?.action || "none";
-    let actionFields = "";
-    if (actionType === "navigate") {
-      actionFields = `
-        <div class="editor-row">
-          <label>${this._t("editor.btn_nav_path")}</label>
-          <input data-btn-field="navigation_path" data-idx="${index}" type="text" value="${this._esc(tab.tap_action?.navigation_path || "")}">
-        </div>`;
-    } else if (actionType === "url") {
-      actionFields = `
-        <div class="editor-row">
-          <label>${this._t("editor.btn_url")}</label>
-          <input data-btn-field="url_path" data-idx="${index}" type="text" value="${this._esc(tab.tap_action?.url_path || "")}">
-        </div>`;
-    } else if (actionType === "call-service" || actionType === "perform-action") {
-      actionFields = `
-        <div class="editor-row">
-          <label>${this._t("editor.btn_service")}</label>
-          <input data-btn-field="perform_action" data-idx="${index}" type="text" value="${this._esc(tab.tap_action?.perform_action || tab.tap_action?.service || "")}">
-        </div>`;
-    }
     return `
       <div class="tab-item-body">
         <div class="editor-row">
@@ -4872,15 +5257,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
           <label>${this._t("editor.btn_entity")}</label>
           <input data-field="entity" data-idx="${index}" type="text" value="${this._esc(tab.entity || "")}" placeholder="light.living_room">
         </div>
-        <div class="editor-row">
-          <label>${this._t("editor.btn_action_type")}</label>
-          <select data-btn-action-type data-idx="${index}">
-            ${["none","toggle","more-info","navigate","url","call-service","assist"].map(a =>
-              `<option value="${a}" ${actionType === a ? "selected" : ""}>${this._t(`editor.action_${a.replace("-","_").replace("-","_")}`) || a}</option>`
-            ).join("")}
-          </select>
-        </div>
-        ${actionFields}
+        ${this._renderActionSelect(tab, index)}
       </div>`;
   }
 
@@ -4910,6 +5287,17 @@ class MyMusicLibraryCardEditor extends HTMLElement {
       this._config = { ...this._config, show_device_select: e.target.checked };
       this._fireChanged();
     });
+
+    const _setNavBar = (key, val, defaultVal) => {
+      const navBar = { ...(this._config.nav_bar || {}) };
+      if (val === defaultVal) delete navBar[key]; else navBar[key] = val;
+      this._config = { ...this._config };
+      if (Object.keys(navBar).length) this._config.nav_bar = navBar;
+      else delete this._config.nav_bar;
+      this._fireChanged();
+    };
+    wrap.querySelector("#ed-nav-pos")?.addEventListener("change", (e) => _setNavBar("position", e.target.value, "top"));
+    wrap.querySelector("#ed-nav-align")?.addEventListener("change", (e) => _setNavBar("align", e.target.value, "start"));
 
     // Toggle expand
     wrap.querySelectorAll("[data-toggle-idx]").forEach(el => {
@@ -4958,6 +5346,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
         const newTab = { type };
         if (type === "library") newTab.sections = ["artists", "albums", "playlists", "tracks"];
         if (type === "button") { newTab.icon = "mdi:gesture-tap"; newTab.tap_action = { action: "none" }; }
+        if (type === "custom_element") { newTab.element = ""; newTab.element_config = {}; newTab.tap_action = { action: "none" }; }
         t.push(newTab);
         this._showAddMenu = false;
         this._expandedTab = t.length - 1;
@@ -5056,6 +5445,19 @@ class MyMusicLibraryCardEditor extends HTMLElement {
         [current[pos], current[pos + dir]] = [current[pos + dir], current[pos]];
         t[tabIdx].sections = current;
         this._updateTabs(t);
+      });
+    });
+
+    // Custom element JSON config textarea
+    wrap.querySelectorAll("[data-ce-config]").forEach(ta => {
+      ta.addEventListener("change", () => {
+        const idx = parseInt(ta.dataset.idx);
+        try {
+          const cfg = _yamlLoad(ta.value.trim() || "{}");
+          const t = [...tabs];
+          t[idx] = { ...t[idx], element_config: cfg };
+          this._updateTabs(t);
+        } catch(_) { /* invalid YAML — ignore, keep previous value */ }
       });
     });
   }

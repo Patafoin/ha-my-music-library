@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.11.2-blue)
+![Version](https://img.shields.io/badge/version-3.12.4-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -128,6 +128,9 @@ tabs:
 | `library` | Browse library with source/favorites filters |
 | `settings` | Integration settings (providers, debug indicator) |
 | `button` | Action button (supports tap/hold/double-tap actions) |
+| `custom_element` | Embed any HA custom element in the nav bar (e.g. `button-card`) |
+
+Any tab can set `show_in_nav: false` to hide it from the nav bar while keeping it reachable via `mml_navigate_tab` actions.
 
 #### Library sections
 
@@ -171,6 +174,21 @@ nav_buttons_right:
 | `entity` | `string` | — | Pre-select a media_player entity. User's runtime choice is saved in localStorage. |
 | `show_device_select` | `boolean` | `true` | Show the device picker row at the bottom of the player tab. Set to `false` to hide it. |
 
+### Nav bar layout
+
+Control the position and alignment of the navigation bar with the `nav_bar` object:
+
+| Option | Type | Default | Values | Description |
+|---|---|---|---|---|
+| `nav_bar.position` | `string` | `top` | `top` / `bottom` / `left` / `right` | Where the nav bar is rendered relative to the card content |
+| `nav_bar.align` | `string` | `start` | `start` / `center` / `end` / `space-between` | How tabs are distributed along the nav bar |
+
+```yaml
+nav_bar:
+  position: bottom    # top | bottom | left | right
+  align: center       # start | center | end | space-between
+```
+
 ---
 
 ## Button Actions
@@ -201,6 +219,9 @@ Button tabs and legacy nav buttons support `tap_action`, `hold_action`, and `dou
 | `url` | Open a URL. | `url_path: https://…`, `new_tab: true` |
 | `call-service` / `perform-action` | Call a HA service. | `perform_action: domain.service`, `data: {}`, `target: {}` |
 | `assist` | Open the Assist dialog. | — |
+| `mml_navigate_tab` | Navigate to a MML tab. | `tab: player` / `search` / `library` / `settings` |
+| `mml_navigate_section` | Scroll to a library section. | `section: artists` / `albums` / `playlists` / `tracks` / `radios` / `recently_played` / `recently_added` / `recommended` / `flows` |
+| `mml_control` | Trigger a player control. | `command: play_pause` / `next` / `prev` / `shuffle` / `repeat` / `mute` |
 
 ---
 
@@ -298,6 +319,16 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 3.12.4
+- **Feature** — **nav bar position and alignment**: new `nav_bar` configuration block with `position` (`top` / `bottom` / `left` / `right`, default `top`) and `align` (`start` / `center` / `end` / `space-between`, default `start`). Configurable in the visual editor under the new "Nav bar" section.
+- **Feature** — **`custom_element` tab type**: embed any HA custom element (e.g. `button-card`, `mini-graph-card`) directly in the nav bar. Configure `element` (custom element tag name) and `element_config` (YAML/JSON). Supports `tap_action`. Editable in the visual editor.
+- **Feature** — **`show_in_nav` property**: set `show_in_nav: false` on any tab to hide it from the nav bar while keeping it navigable via `mml_navigate_tab` actions.
+- **Feature** — **MML internal actions**: three new action types for `button` and `custom_element` tabs:
+  - `mml_navigate_tab` — navigate to a named card tab (`player`, `search`, `library`, `settings`)
+  - `mml_navigate_section` — scroll the library tab to a specific section (`artists`, `albums`, `playlists`, `tracks`, `radios`, `recently_played`, `recently_added`, `recommended`, `flows`)
+  - `mml_control` — trigger a player control without leaving the card (`play_pause`, `next`, `prev`, `shuffle`, `repeat`, `mute`)
+- **Improvement** — **visual editor**: nav bar section with position/alignment selects; `custom_element` in the add-tab menu; action selector shared between `button` and `custom_element` tabs and includes all MML actions.
 
 ### 3.11.2
 - **Fix** — **library scroll conflict on mobile (iPhone)** ([#13](https://github.com/Patafoin/ha-my-music-library/issues/13)): scrolling vertically through library sections was blocked when the touch gesture started on a horizontal lane (albums, artists). A direction-lock mechanism now detects the dominant gesture direction on the first touch move — if vertical, horizontal scroll on all lanes is temporarily disabled so the page scrolls smoothly. Horizontal lane scrolling remains fully functional when the gesture is clearly horizontal.
