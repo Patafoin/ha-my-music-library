@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.12.4-blue)
+![Version](https://img.shields.io/badge/version-3.12.5-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -319,6 +319,9 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 3.12.5
+- **Fix** — **Suggestions tab always empty**: Music Assistant's `music/recommendations` call only returns the recommendation folders' metadata (name, provider, item_id), not their content — a second call per folder (`music/recommendations/items`) is required to fetch the actual items. The integration now issues that second call in parallel for every folder, so Deezer/TuneIn/library suggestions display correctly. A folder that fails or times out is now skipped individually instead of blanking the whole tab.
 
 ### 3.12.4
 - **Feature** — **nav bar position and alignment**: new `nav_bar` configuration block with `position` (`top` / `bottom` / `left` / `right`, default `top`) and `align` (`start` / `center` / `end` / `space-between`, default `start`). Configurable in the visual editor under the new "Nav bar" section.

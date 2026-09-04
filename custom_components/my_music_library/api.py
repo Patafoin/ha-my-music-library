@@ -408,6 +408,27 @@ def _normalize_recommendation_item(item: dict) -> dict:
     return _normalize_browse_item(item)
 
 
+async def _get_recommendation_folder_items(
+    mass: Any,
+    provider: str,
+    item_id: str,
+) -> list[Any]:
+    """Fetch the concrete items of one recommendation folder.
+
+    ``music.recommendations()`` only returns the folder metadata (name,
+    provider, item_id) — MA's API works in two steps, and the actual content
+    of a folder requires a second call to "music/recommendations/items"
+    (server-side: RecommendationsController.get_recommendation_items).
+    There is no Python-client wrapper for it yet, so we call it directly via
+    ``send_command``.
+    """
+    result = await asyncio.wait_for(
+        mass.send_command("music/recommendations/items", provider=provider, item_id=item_id),
+        timeout=10,
+    )
+    return list(result) if not isinstance(result, list) else result
+
+
 async def _get_recommendations_via_ma_client(
     hass: HomeAssistant,
 ) -> list[dict] | None:
@@ -439,59 +460,88 @@ async def _get_recommendations_via_ma_client(
             result = await asyncio.wait_for(rec_fn(**kwargs), timeout=10)
             folders = list(result) if not isinstance(result, list) else result
             _LOGGER.debug("Recommendations: %d folders", len(folders))
-            normalized: list[dict] = []
-            for folder in folders:
-                f = _to_json_safe(folder)
-                folder_domain = str(f.get("provider_domain") or f.get("provider", "") or "")
-                folder_instance = str(
-                    f.get("provider_instance_id_or_domain")
-                    or f.get("provider_instance")
-                    or f.get("provider_instance_id")
-                    or folder_domain
+
+            safe_folders = [_to_json_safe(folder) for folder in folders]
+
+            # A folder from music.recommendations() only carries metadata —
+            # its actual content needs one extra call per folder. Fetch them
+            # all in parallel, isolating failures so one slow/broken tiroir
+            # doesn't blank the others.
+            fetch_tasks = [
+                _get_recommendation_folder_items(
+                    mass, str(f.get("provider") or ""), str(f.get("item_id") or ""),
                 )
-                is_library_folder = folder_domain in ("library", "builtin", "")
-                items_raw = f.get("items") or []
-                items_norm = []
-                for i in items_raw:
-                    i_safe = _to_json_safe(i)
-                    if is_library_folder:
-                        pm = i_safe.get("provider_mappings") or []
-                        if pm:
-                            i_safe["provider_mappings"] = [
-                                m for m in pm
-                                if (m.get("in_library") is True if isinstance(m, dict) else getattr(m, "in_library", True))
-                            ] or pm
-                    item = _normalize_recommendation_item(i_safe)
-                    if not is_library_folder:
-                        if folder_instance and not item.get("provider_instances"):
-                            item["provider_instances"] = [folder_instance]
-                        if folder_domain and not item.get("providers"):
-                            item["providers"] = [folder_domain]
-                    items_norm.append(item)
+                for f in safe_folders
+            ]
+            items_results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
 
-                # Infer folder provider from items when MA doesn't provide it
-                inferred_domain = folder_domain
-                inferred_instance = folder_instance
-                if is_library_folder and items_norm:
-                    instance_counts: dict[str, int] = {}
-                    for itm in items_norm:
-                        for pi in itm.get("provider_instances") or []:
-                            if pi and pi not in ("builtin", "library"):
-                                instance_counts[pi] = instance_counts.get(pi, 0) + 1
-                    if instance_counts:
-                        top_inst = max(instance_counts, key=instance_counts.get)  # type: ignore[arg-type]
-                        if instance_counts[top_inst] == len(items_norm):
-                            inferred_instance = top_inst
-                            inferred_domain = top_inst.split("--")[0] if "--" in top_inst else top_inst
+            normalized: list[dict] = []
+            for f, items_result in zip(safe_folders, items_results):
+                try:
+                    if isinstance(items_result, BaseException):
+                        _LOGGER.warning(
+                            "Recommendations: items fetch failed for folder %r (provider=%s, item_id=%s): %s",
+                            f.get("name"), f.get("provider"), f.get("item_id"), items_result,
+                        )
+                        items_raw = f.get("items") or []
+                    else:
+                        items_raw = items_result or f.get("items") or []
 
-                normalized.append({
-                    "folder_id": f.get("item_id") or f.get("path") or "",
-                    "name": f.get("name") or f.get("label") or "",
-                    "icon": f.get("icon") or "",
-                    "provider_domain": inferred_domain,
-                    "provider_instance": inferred_instance,
-                    "items": items_norm,
-                })
+                    folder_domain = str(f.get("provider_domain") or f.get("provider", "") or "")
+                    folder_instance = str(
+                        f.get("provider_instance_id_or_domain")
+                        or f.get("provider_instance")
+                        or f.get("provider_instance_id")
+                        or folder_domain
+                    )
+                    is_library_folder = folder_domain in ("library", "builtin", "")
+                    items_norm = []
+                    for i in items_raw:
+                        i_safe = _to_json_safe(i)
+                        if is_library_folder:
+                            pm = i_safe.get("provider_mappings") or []
+                            if pm:
+                                i_safe["provider_mappings"] = [
+                                    m for m in pm
+                                    if (m.get("in_library") is True if isinstance(m, dict) else getattr(m, "in_library", True))
+                                ] or pm
+                        item = _normalize_recommendation_item(i_safe)
+                        if not is_library_folder:
+                            if folder_instance and not item.get("provider_instances"):
+                                item["provider_instances"] = [folder_instance]
+                            if folder_domain and not item.get("providers"):
+                                item["providers"] = [folder_domain]
+                        items_norm.append(item)
+
+                    # Infer folder provider from items when MA doesn't provide it
+                    inferred_domain = folder_domain
+                    inferred_instance = folder_instance
+                    if is_library_folder and items_norm:
+                        instance_counts: dict[str, int] = {}
+                        for itm in items_norm:
+                            for pi in itm.get("provider_instances") or []:
+                                if pi and pi not in ("builtin", "library"):
+                                    instance_counts[pi] = instance_counts.get(pi, 0) + 1
+                        if instance_counts:
+                            top_inst = max(instance_counts, key=instance_counts.get)  # type: ignore[arg-type]
+                            if instance_counts[top_inst] == len(items_norm):
+                                inferred_instance = top_inst
+                                inferred_domain = top_inst.split("--")[0] if "--" in top_inst else top_inst
+
+                    normalized.append({
+                        "folder_id": f.get("item_id") or f.get("path") or "",
+                        "name": f.get("name") or f.get("label") or "",
+                        "icon": f.get("icon") or "",
+                        "provider_domain": inferred_domain,
+                        "provider_instance": inferred_instance,
+                        "items": items_norm,
+                    })
+                except Exception as folder_err:  # noqa: BLE001
+                    _LOGGER.warning(
+                        "Recommendations: skipping folder %r due to processing error: %s",
+                        f.get("name"), folder_err,
+                    )
+                    continue
             return normalized
         except asyncio.TimeoutError:
             _LOGGER.warning("Recommendations fetch timed out")
