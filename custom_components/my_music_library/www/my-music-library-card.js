@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.12.5";
+const CARD_VERSION = "3.14.0";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -46,16 +46,25 @@ const ICONS = {
   sparkle: `<svg viewBox="0 0 24 24"><path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>`,
   newBox: `<svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm-7.5 12H11V10.5H9.5V9h3v7zm5.5 0h-1.5v-2.5H15V16h-1.5V9H15v2.5h1.5V9H18v7z"/></svg>`,
   wave: `<svg viewBox="0 0 24 24"><path d="M21 6c-1.66 0-3 1.34-3 3 0 .55.15 1.06.41 1.5L15 14.5l-2.59-2.59c.35-.51.59-1.12.59-1.91 0-1.66-1.34-3-3-3s-3 1.34-3 3c0 .79.24 1.4.59 1.91L3 16.5 4.5 18l5-5L12 15.5l5-5 .5.5c.44.26.95.41 1.5.41 1.66 0 3-1.34 3-3s-1.34-3-3-3z"/></svg>`,
+  list: `<svg viewBox="0 0 24 24"><path d="M4 14h4v-4H4v4zm0 5h4v-4H4v4zM4 9h4V5H4v4zm5 5h12v-4H9v4zm0 5h12v-4H9v4zM9 5v4h12V5H9z"/></svg>`,
+  grid: `<svg viewBox="0 0 24 24"><path d="M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z"/></svg>`,
 };
 
 /* ─── i18n ────────────────────────────────────────────────── */
 const TRANSLATIONS = {
   en: {
-    tabs: { player: "Player", search: "Search", library: "Library", settings: "Settings" },
+    tabs: { player: "Player", search: "Search", library: "Library", playlist: "Playlist", settings: "Settings" },
     player: {
       nothing_playing: "Nothing playing",
       select_player: "Select a player",
       no_player: "No player found",
+    },
+    playlist: {
+      not_configured: "No playlist selected — choose one in the card editor.",
+      empty: "This playlist has no tracks.",
+      load_error: "Could not load playlist tracks",
+      play_all: "Play playlist",
+      toggle_view: "Toggle list/grid view",
     },
     btns: {
       shuffle: "Shuffle", prev: "Previous", play_pause: "Play/Pause",
@@ -159,8 +168,11 @@ const TRANSLATIONS = {
       type_player: "Player",
       type_search: "Search",
       type_library: "Library",
+      type_playlist: "Playlist",
       type_settings: "Settings",
       type_button: "Button",
+      playlist_select: "Playlist",
+      playlist_select_placeholder: "Choose a playlist…",
       confirm_delete: "Remove this tab?",
       move_up: "Move up",
       move_down: "Move down",
@@ -198,11 +210,18 @@ const TRANSLATIONS = {
     },
   },
   fr: {
-    tabs: { player: "Lecteur", search: "Recherche", library: "Bibliothèque", settings: "Paramètres" },
+    tabs: { player: "Lecteur", search: "Recherche", library: "Bibliothèque", playlist: "Playlist", settings: "Paramètres" },
     player: {
       nothing_playing: "Rien en cours de lecture",
       select_player: "Sélectionnez un lecteur",
       no_player: "Aucun lecteur trouvé",
+    },
+    playlist: {
+      not_configured: "Aucune playlist sélectionnée — choisissez-en une dans l'éditeur de carte.",
+      empty: "Cette playlist ne contient aucun titre.",
+      load_error: "Impossible de charger les titres de la playlist",
+      play_all: "Lire la playlist",
+      toggle_view: "Basculer affichage liste/grille",
     },
     btns: {
       shuffle: "Aléatoire", prev: "Précédent", play_pause: "Lecture / Pause",
@@ -306,8 +325,11 @@ const TRANSLATIONS = {
       type_player: "Lecteur",
       type_search: "Recherche",
       type_library: "Bibliothèque",
+      type_playlist: "Playlist",
       type_settings: "Paramètres",
       type_button: "Bouton",
+      playlist_select: "Playlist",
+      playlist_select_placeholder: "Choisir une playlist…",
       confirm_delete: "Supprimer cet onglet ?",
       move_up: "Monter",
       move_down: "Descendre",
@@ -345,11 +367,18 @@ const TRANSLATIONS = {
     },
   },
   de: {
-    tabs: { player: "Wiedergabe", search: "Suche", library: "Bibliothek", settings: "Einstellungen" },
+    tabs: { player: "Wiedergabe", search: "Suche", library: "Bibliothek", playlist: "Playlist", settings: "Einstellungen" },
     player: {
       nothing_playing: "Nichts wird abgespielt",
       select_player: "Player auswählen",
       no_player: "Kein Player gefunden",
+    },
+    playlist: {
+      not_configured: "Keine Playlist ausgewählt — wählen Sie eine im Karten-Editor.",
+      empty: "Diese Playlist enthält keine Titel.",
+      load_error: "Playlist-Titel konnten nicht geladen werden",
+      play_all: "Playlist abspielen",
+      toggle_view: "Listen-/Rasteransicht umschalten",
     },
     btns: {
       shuffle: "Zufällig", prev: "Zurück", play_pause: "Wiedergabe / Pause",
@@ -453,8 +482,11 @@ const TRANSLATIONS = {
       type_player: "Wiedergabe",
       type_search: "Suche",
       type_library: "Bibliothek",
+      type_playlist: "Playlist",
       type_settings: "Einstellungen",
       type_button: "Schaltfläche",
+      playlist_select: "Playlist",
+      playlist_select_placeholder: "Playlist auswählen…",
       confirm_delete: "Diesen Tab entfernen?",
       move_up: "Nach oben",
       move_down: "Nach unten",
@@ -1560,6 +1592,55 @@ const STYLES = `
   .lib-list-title { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .lib-list-sub { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+  /* ══════════════════════════════════════════
+     PLAYLIST TAB
+  ══════════════════════════════════════════ */
+  .playlist-tab-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .playlist-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .playlist-header-art { width: 52px; height: 52px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--bg2); }
+  .playlist-header-art-placeholder {
+    width: 52px; height: 52px; border-radius: 8px; background: var(--bg2);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .playlist-header-art-placeholder svg { width: 26px; height: 26px; fill: var(--text2); opacity: .5; }
+  .playlist-header-info { flex: 1; min-width: 0; }
+  .playlist-header-name { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .playlist-play-all { width: 44px; height: 44px; background: var(--accent); color: #000; flex-shrink: 0; }
+  .playlist-play-all svg { width: 22px; height: 22px; }
+  .playlist-play-all:hover { background: var(--accent); filter: brightness(1.1); }
+  .playlist-view-toggle { width: 40px; height: 40px; flex-shrink: 0; }
+  .playlist-track-list { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Mini player bar — minimal transport controls pinned under a playlist's track list.
+     No album art / large title, by design: the tab itself stays the focus. */
+  .mini-player-bar {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 16px 10px;
+    border-top: 1px solid var(--border);
+    background: var(--bg2);
+  }
+  .mini-player-info {
+    display: flex; align-items: baseline; gap: 6px; font-size: 12px;
+    white-space: nowrap; overflow: hidden;
+  }
+  .mini-player-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+  .mini-player-artist { color: var(--text2); overflow: hidden; text-overflow: ellipsis; flex-shrink: 2; }
+  .mini-player-progress { display: flex; flex-direction: column; gap: 6px; }
+  .mini-player-progress .progress-bar-container { height: 4px; padding: 6px 0; }
+  .mini-player-progress .progress-bar-fill { height: 4px; margin-top: 6px; }
+  .mini-player-progress .progress-times { font-size: 10px; }
+  .mini-player-controls { gap: 4px; }
+  .mini-player-controls .ctrl-btn.ctrl-nav { width: 38px; height: 38px; }
+  .mini-player-controls .ctrl-btn.ctrl-nav svg { width: 20px; height: 20px; }
+  .mini-player-controls .ctrl-btn.primary { width: 44px; height: 44px; box-shadow: none; }
+  .mini-player-controls .ctrl-btn.primary svg { width: 22px; height: 22px; }
+
   /* ── LOADING / ERROR ── */
   .loader {
     display: flex;
@@ -1874,6 +1955,7 @@ class MyMusicLibraryCard extends HTMLElement {
     this._libData = {};
     this._libLoading = false;
     this._libLoadedTabs = new Set();
+    this._plLoadedTabs = new Set();
     this._libSections = {}; // type → { offset, loading, exhausted, favorite, iconName }
     this._libTabState = {}; // tabId → { source, fav, browse, browseStack }
     this._maProviders = [];
@@ -2021,7 +2103,7 @@ class MyMusicLibraryCard extends HTMLElement {
   _buildResolvedTabs(config) {
     const DEFAULT_SECTIONS = ["artists", "albums", "playlists", "tracks"];
     const VALID_SECTIONS = ["artists", "albums", "playlists", "tracks", "radios", "recently_played", "recently_added", "recommended", "flows"];
-    const TAB_ICONS = { player: "player", search: "search", library: "library", settings: "settings" };
+    const TAB_ICONS = { player: "player", search: "search", library: "library", playlist: "playlist", settings: "settings" };
 
     if (config.tabs && Array.isArray(config.tabs)) {
       let idx = 0;
@@ -2051,6 +2133,11 @@ class MyMusicLibraryCard extends HTMLElement {
         }
         if (type === "search") {
           tab.search_layout = t.search_layout === "columns" ? "columns" : "rows";
+        }
+        if (type === "playlist") {
+          tab.playlist_uri = t.playlist_uri || "";
+          tab.playlist_label = t.playlist_label || "";
+          tab.playlist_thumbnail = t.playlist_thumbnail || "";
         }
         return tab;
       });
@@ -2295,6 +2382,7 @@ class MyMusicLibraryCard extends HTMLElement {
       player: (t) => this._renderPlayerTab(),
       search: (t) => this._renderSearchTab(),
       library: (t) => this._renderLibraryTab(t),
+      playlist: (t) => this._renderPlaylistTab(t),
     };
 
     card.innerHTML = `
@@ -2504,6 +2592,84 @@ class MyMusicLibraryCard extends HTMLElement {
       </div>`;
   }
 
+  _renderPlaylistTab(tabDef) {
+    const panelId = tabDef?.id || "playlist";
+    const name = tabDef?.playlist_label || tabDef?.label || this._t("tabs.playlist");
+    const thumb = tabDef?.playlist_thumbnail
+      ? `<img class="playlist-header-art" src="${this._resolveImageUrl(tabDef.playlist_thumbnail)}" alt="" loading="lazy">`
+      : `<div class="playlist-header-art-placeholder">${ICONS.playlist}</div>`;
+    const configured = !!tabDef?.playlist_uri;
+    const view = this._plView(panelId);
+    return `
+      <div class="tab-panel" data-panel="${panelId}">
+        <div class="playlist-tab-body">
+          <div class="playlist-header">
+            ${thumb}
+            <div class="playlist-header-info">
+              <div class="playlist-header-name">${this._esc(name)}</div>
+            </div>
+            ${configured ? `<button class="ctrl-btn playlist-view-toggle" title="${this._t("playlist.toggle_view")}">${view === "grid" ? ICONS.list : ICONS.grid}</button>` : ""}
+            ${configured ? `<button class="ctrl-btn playlist-play-all" title="${this._t("playlist.play_all")}">${ICONS.play}</button>` : ""}
+          </div>
+          <div class="playlist-track-list">
+            ${configured
+              ? `<div class="loader"><div class="spinner"></div> ${this._t("lib.loading_short")}</div>`
+              : `<div class="empty-state">${ICONS.playlist}<p>${this._t("playlist.not_configured")}</p></div>`}
+          </div>
+        </div>
+        ${this._renderMiniPlayerBar()}
+      </div>`;
+  }
+
+  /* Persisted per-tab track view mode ("list" | "grid") for playlist tabs. */
+  _plView(tabId) {
+    return this._loadPref(`mml_playlist_view_${tabId}`) || "list";
+  }
+  _setPlView(tabId, view) {
+    this._savePref(`mml_playlist_view_${tabId}`, view);
+  }
+
+  _renderPlaylistTrackList(tabDef, items) {
+    if (!items.length) return `<div class="empty-state">${ICONS.playlist}<p>${this._t("playlist.empty")}</p></div>`;
+    if (this._plView(tabDef.id) === "grid") {
+      return `<div class="lib-grid">${items.map(i => this._renderLibCard(i, "music")).join("")}</div>`;
+    }
+    return items.map(i => this._renderLibListItem(i)).join("");
+  }
+
+  _renderMiniPlayerBar() {
+    return `
+      <div class="mini-player-bar">
+        <div class="mini-player-info">
+          <span class="mini-player-title">—</span>
+          <span class="mini-player-artist"></span>
+        </div>
+        <div class="mini-player-progress">
+          <div class="progress-bar-container mini-progress-bar">
+            <div class="progress-bar-fill mini-progress-fill" style="width:0%"></div>
+          </div>
+          <div class="progress-times">
+            <span class="mini-pos-time">0:00</span>
+            <span class="mini-dur-time">0:00</span>
+          </div>
+        </div>
+        <div class="controls mini-player-controls">
+          <button class="ctrl-btn ctrl-nav mini-ctrl-prev" title="${this._t("btns.prev")}">${ICONS.prev}</button>
+          <button class="ctrl-btn primary mini-ctrl-playpause" title="${this._t("btns.play_pause")}">${ICONS.play}</button>
+          <button class="ctrl-btn ctrl-nav mini-ctrl-next" title="${this._t("btns.next")}">${ICONS.next}</button>
+        </div>
+        <div class="volume-row">
+          <button class="ctrl-btn mini-ctrl-mute" title="${this._t("btns.mute")}">${ICONS.volumeHigh}</button>
+          <input type="range" class="mini-volume-slider" min="0" max="100" value="50">
+        </div>
+        <div class="device-row mini-device-row"${this._config.show_device_select === false ? ' style="display:none"' : ''}>
+          <span class="mini-device-icon-wrap">${ICONS.device}</span>
+          <span class="device-name mini-device-name">${this._t("player.no_player")}</span>
+          ${ICONS.chevronRight}
+        </div>
+      </div>`;
+  }
+
   _renderDeviceModal() {
     return `
       <div class="modal-overlay" id="device-modal">
@@ -2544,6 +2710,7 @@ class MyMusicLibraryCard extends HTMLElement {
         this._setActiveTab(tab, card);
         const tabDef = this._resolvedTabs.find(t => t.id === tab);
         if (tabDef?.type === "library" && !this._libLoadedTabs.has(tab)) this._loadLibrary();
+        if (tabDef?.type === "playlist" && !this._plLoadedTabs.has(tab)) this._loadPlaylistTab(tabDef);
       });
     });
 
@@ -2614,59 +2781,10 @@ class MyMusicLibraryCard extends HTMLElement {
       card.querySelector("#btn-mute").addEventListener("click", () => this._toggleMute());
 
       // Volume — send command only on release (pointerup), not during drag
-      const volSlider = card.querySelector("#volume-slider");
-      volSlider.addEventListener("pointerdown", () => { this._volumeDragging = true; });
-      const endVolDrag = (e) => {
-        if (!this._volumeDragging) return;
-        this._volumeDragging = false;
-        this._callService("volume_set", { volume_level: parseInt(e.target.value) / 100 });
-      };
-      volSlider.addEventListener("pointerup", endVolDrag);
-      volSlider.addEventListener("pointercancel", () => { this._volumeDragging = false; });
+      this._bindVolumeSlider(card.querySelector("#volume-slider"));
 
       // Progress bar — seek on release only (covers both tap and drag)
-      const progressBar = card.querySelector("#progress-bar");
-      const progressFill = card.querySelector("#progress-fill");
-      const posTimeEl = card.querySelector("#pos-time");
-      const getSeekPct = (e) => {
-        const rect = progressBar.getBoundingClientRect();
-        return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-      };
-      progressBar.addEventListener("pointerdown", (e) => {
-        const state = this._getActiveState();
-        if (!state?.attributes?.media_duration) return;
-        this._seekDragging = true;
-        progressBar.setPointerCapture(e.pointerId);
-        progressFill.style.transition = "none";
-        const pct = getSeekPct(e);
-        progressFill.style.width = `${(pct * 100).toFixed(1)}%`;
-        if (posTimeEl) posTimeEl.textContent = fmt(pct * state.attributes.media_duration);
-      });
-      progressBar.addEventListener("pointermove", (e) => {
-        if (!this._seekDragging) return;
-        const state = this._getActiveState();
-        if (!state?.attributes?.media_duration) return;
-        const pct = getSeekPct(e);
-        progressFill.style.width = `${(pct * 100).toFixed(1)}%`;
-        if (posTimeEl) posTimeEl.textContent = fmt(pct * state.attributes.media_duration);
-      });
-      const endSeekDrag = (e) => {
-        if (!this._seekDragging) return;
-        this._seekDragging = false;
-        progressFill.style.transition = "";
-        const state = this._getActiveState();
-        if (!state?.attributes?.media_duration) return;
-        const pct = getSeekPct(e);
-        const pos = pct * state.attributes.media_duration;
-        this._callService("media_seek", { seek_position: Math.round(pos) });
-        this._localPosition = pos;
-        this._localPositionTime = Date.now() / 1000;
-      };
-      progressBar.addEventListener("pointerup", endSeekDrag);
-      progressBar.addEventListener("pointercancel", () => {
-        this._seekDragging = false;
-        progressFill.style.transition = "";
-      });
+      this._bindSeekBar(card.querySelector("#progress-bar"), card.querySelector("#progress-fill"), card.querySelector("#pos-time"));
 
       // Queue toggle
       card.querySelector("#btn-queue-toggle")?.addEventListener("click", (e) => {
@@ -2690,6 +2808,39 @@ class MyMusicLibraryCard extends HTMLElement {
       card.querySelector("#modal-close").addEventListener("click", () => this._closeDeviceModal(card));
       card.querySelector("#device-modal").addEventListener("click", (e) => {
         if (e.target === card.querySelector("#device-modal")) this._closeDeviceModal(card);
+      });
+    }
+
+    // Mini player bar (playlist tabs) — independent of the "player" tab being present.
+    // Same callbacks as the main player tab: _togglePlayPause / _callService / _toggleMute /
+    // _bindSeekBar / _bindVolumeSlider / _openDeviceModal — just bound to a second set of elements.
+    card.querySelectorAll(".mini-player-bar").forEach(bar => {
+      bar.querySelector(".mini-ctrl-playpause")?.addEventListener("click", () => this._togglePlayPause());
+      bar.querySelector(".mini-ctrl-prev")?.addEventListener("click", () => this._callService("media_previous_track"));
+      bar.querySelector(".mini-ctrl-next")?.addEventListener("click", () => this._callService("media_next_track"));
+      bar.querySelector(".mini-ctrl-mute")?.addEventListener("click", () => this._toggleMute());
+      this._bindSeekBar(bar.querySelector(".mini-progress-bar"), bar.querySelector(".mini-progress-fill"), bar.querySelector(".mini-pos-time"));
+      this._bindVolumeSlider(bar.querySelector(".mini-volume-slider"));
+      bar.querySelector(".mini-device-row")?.addEventListener("click", () => this._openDeviceModal(card));
+    });
+
+    // Playlist tabs — header buttons (play all, list/grid view toggle)
+    for (const plPanel of card.querySelectorAll(".tab-panel")) {
+      const tabDef = this._resolvedTabs.find(t => t.id === plPanel.dataset.panel);
+      if (tabDef?.type !== "playlist") continue;
+      plPanel.querySelector(".playlist-play-all")?.addEventListener("click", () => {
+        if (tabDef.playlist_uri) this._playItem(tabDef.playlist_uri, "playlist");
+      });
+      plPanel.querySelector(".playlist-view-toggle")?.addEventListener("click", (e) => {
+        const next = this._plView(tabDef.id) === "grid" ? "list" : "grid";
+        this._setPlView(tabDef.id, next);
+        e.currentTarget.innerHTML = next === "grid" ? ICONS.list : ICONS.grid;
+        const listEl = plPanel.querySelector(".playlist-track-list");
+        const items = (this._plTracks && this._plTracks[tabDef.id]) || [];
+        if (listEl) {
+          listEl.innerHTML = this._renderPlaylistTrackList(tabDef, items);
+          this._attachItemActions(listEl, { switchToPlayer: false });
+        }
       });
     }
 
@@ -2846,6 +2997,7 @@ class MyMusicLibraryCard extends HTMLElement {
         } else {
           this._setActiveTab(tabDef.id, card);
           if (tabDef.type === "library" && !this._libLoadedTabs.has(tabDef.id)) this._loadLibrary();
+          if (tabDef.type === "playlist" && !this._plLoadedTabs.has(tabDef.id)) this._loadPlaylistTab(tabDef);
         }
         break;
       }
@@ -2922,6 +3074,7 @@ class MyMusicLibraryCard extends HTMLElement {
     this._updateNavButtons(card);
     const activeTabDef = this._resolvedTabs.find(t => t.id === this._tab);
     if (activeTabDef?.type === "library" && !this._libLoadedTabs.has(this._tab)) this._loadLibrary();
+    if (activeTabDef?.type === "playlist" && !this._plLoadedTabs.has(this._tab)) this._loadPlaylistTab(activeTabDef);
   }
 
   _updateNavButtons(card) {
@@ -2991,9 +3144,18 @@ class MyMusicLibraryCard extends HTMLElement {
       artistEl.textContent = [attr.media_artist, attr.media_album_name].filter(Boolean).join(" · ") || this._t("player.select_player");
     }
 
-    // Play/pause button
-    const ppBtn = card.querySelector("#btn-playpause");
-    if (ppBtn) ppBtn.innerHTML = isPlaying ? ICONS.pause : ICONS.play;
+    // Mini player bar (playlist tabs) — text is the only "art" substitute, per design
+    card.querySelectorAll(".mini-player-title").forEach(el => {
+      el.textContent = attr.media_title || (state ? this._t("player.nothing_playing") : "—");
+    });
+    card.querySelectorAll(".mini-player-artist").forEach(el => {
+      el.textContent = [attr.media_artist, attr.media_album_name].filter(Boolean).join(" · ") || "";
+    });
+
+    // Play/pause button (main + any mini player bar)
+    card.querySelectorAll("#btn-playpause, .mini-ctrl-playpause").forEach(btn => {
+      btn.innerHTML = isPlaying ? ICONS.pause : ICONS.play;
+    });
 
     // Shuffle
     const shuffleBtn = card.querySelector("#btn-shuffle");
@@ -3007,18 +3169,18 @@ class MyMusicLibraryCard extends HTMLElement {
       repeatBtn.classList.toggle("active", repeat !== "off");
     }
 
-    // Volume — skip update while user is dragging to prevent snap-back
-    const volSlider = card.querySelector("#volume-slider");
-    if (volSlider && attr.volume_level !== undefined && !this._volumeDragging) {
-      volSlider.value = Math.round(attr.volume_level * 100);
+    // Volume — skip update while user is dragging to prevent snap-back (main + any mini bar)
+    if (attr.volume_level !== undefined && !this._volumeDragging) {
+      card.querySelectorAll("#volume-slider, .mini-volume-slider").forEach(sl => {
+        sl.value = Math.round(attr.volume_level * 100);
+      });
     }
 
-    // Mute
-    const muteBtn = card.querySelector("#btn-mute");
-    if (muteBtn) {
-      muteBtn.innerHTML = attr.is_volume_muted ? ICONS.volumeMute : ICONS.volumeHigh;
-      muteBtn.classList.toggle("active", !!attr.is_volume_muted);
-    }
+    // Mute (main + any mini bar)
+    card.querySelectorAll("#btn-mute, .mini-ctrl-mute").forEach(btn => {
+      btn.innerHTML = attr.is_volume_muted ? ICONS.volumeMute : ICONS.volumeHigh;
+      btn.classList.toggle("active", !!attr.is_volume_muted);
+    });
 
     // Progress
     this._updateProgress(card, state);
@@ -3063,13 +3225,13 @@ class MyMusicLibraryCard extends HTMLElement {
     pos = Math.min(pos || 0, dur);
     const pct = dur > 0 ? (pos / dur) * 100 : 0;
 
-    const fill = card.querySelector("#progress-fill");
-    const posTime = card.querySelector("#pos-time");
-    const durTime = card.querySelector("#dur-time");
-
-    if (fill && !this._seekDragging) fill.style.width = `${pct.toFixed(1)}%`;
-    if (posTime && !this._seekDragging) posTime.textContent = fmt(pos);
-    if (durTime) durTime.textContent = fmt(dur);
+    if (!this._seekDragging) {
+      card.querySelectorAll("#progress-fill, .mini-progress-fill").forEach(fill => {
+        fill.style.width = `${pct.toFixed(1)}%`;
+      });
+      card.querySelectorAll("#pos-time, .mini-pos-time").forEach(el => { el.textContent = fmt(pos); });
+    }
+    card.querySelectorAll("#dur-time, .mini-dur-time").forEach(el => { el.textContent = fmt(dur); });
   }
 
   /* ── Progress ticker ── */
@@ -3121,18 +3283,75 @@ class MyMusicLibraryCard extends HTMLElement {
     this._callService("volume_mute", { is_volume_muted: !this._getActiveState()?.attributes?.is_volume_muted });
   }
 
+  /* ── Volume slider — shared by the main player and any mini player bar ── */
+  _bindVolumeSlider(slider) {
+    if (!slider) return;
+    slider.addEventListener("pointerdown", () => { this._volumeDragging = true; });
+    const endVolDrag = (e) => {
+      if (!this._volumeDragging) return;
+      this._volumeDragging = false;
+      this._callService("volume_set", { volume_level: parseInt(e.target.value) / 100 });
+    };
+    slider.addEventListener("pointerup", endVolDrag);
+    slider.addEventListener("pointercancel", () => { this._volumeDragging = false; });
+  }
+
+  /* ── Seek bar — shared by the main player and any mini player bar ── */
+  _bindSeekBar(progressBar, progressFill, posTimeEl) {
+    if (!progressBar || !progressFill) return;
+    const getSeekPct = (e) => {
+      const rect = progressBar.getBoundingClientRect();
+      return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    };
+    progressBar.addEventListener("pointerdown", (e) => {
+      const state = this._getActiveState();
+      if (!state?.attributes?.media_duration) return;
+      this._seekDragging = true;
+      progressBar.setPointerCapture(e.pointerId);
+      progressFill.style.transition = "none";
+      const pct = getSeekPct(e);
+      progressFill.style.width = `${(pct * 100).toFixed(1)}%`;
+      if (posTimeEl) posTimeEl.textContent = fmt(pct * state.attributes.media_duration);
+    });
+    progressBar.addEventListener("pointermove", (e) => {
+      if (!this._seekDragging) return;
+      const state = this._getActiveState();
+      if (!state?.attributes?.media_duration) return;
+      const pct = getSeekPct(e);
+      progressFill.style.width = `${(pct * 100).toFixed(1)}%`;
+      if (posTimeEl) posTimeEl.textContent = fmt(pct * state.attributes.media_duration);
+    });
+    const endSeekDrag = (e) => {
+      if (!this._seekDragging) return;
+      this._seekDragging = false;
+      progressFill.style.transition = "";
+      const state = this._getActiveState();
+      if (!state?.attributes?.media_duration) return;
+      const pct = getSeekPct(e);
+      const pos = pct * state.attributes.media_duration;
+      this._callService("media_seek", { seek_position: Math.round(pos) });
+      this._localPosition = pos;
+      this._localPositionTime = Date.now() / 1000;
+    };
+    progressBar.addEventListener("pointerup", endSeekDrag);
+    progressBar.addEventListener("pointercancel", () => {
+      this._seekDragging = false;
+      progressFill.style.transition = "";
+    });
+  }
+
   /* ── Device row ── */
   _updateDeviceRow(card) {
     const state = this._getActiveState();
     const attr = state?.attributes || {};
     const name = attr.friendly_name || this._activePlayer || this._t("player.no_player");
     const count = this._groupMembers.length;
+    const displayName = count > 0 ? `${name} +${count}` : name;
 
-    const nameEl = card.querySelector("#device-name");
-    if (nameEl) nameEl.textContent = count > 0 ? `${name} +${count}` : name;
-
-    const iconWrap = card.querySelector("#device-icon-wrap");
-    if (iconWrap) iconWrap.innerHTML = count > 0 ? ICONS.group : ICONS.device;
+    card.querySelectorAll("#device-name, .mini-device-name").forEach(el => { el.textContent = displayName; });
+    card.querySelectorAll("#device-icon-wrap, .mini-device-icon-wrap").forEach(el => {
+      el.innerHTML = count > 0 ? ICONS.group : ICONS.device;
+    });
   }
 
   /* ── Device modal ── */
@@ -4340,7 +4559,8 @@ class MyMusicLibraryCard extends HTMLElement {
       </div>`;
   }
 
-  _attachItemActions(container) {
+  _attachItemActions(container, opts = {}) {
+    const switchToPlayer = opts.switchToPlayer !== false;
     container.querySelectorAll("[data-action]").forEach(el => {
       el.addEventListener("click", (e) => {
         if (e.target.closest(".add-queue-btn")) return;
@@ -4352,8 +4572,10 @@ class MyMusicLibraryCard extends HTMLElement {
           this._playAndSwitchToPlayer(id, type);
         } else {
           this._playItem(id, type);
-          const card = this.shadowRoot.querySelector(".card-root");
-          if (card) this._setActiveTab("player", card);
+          if (switchToPlayer) {
+            const card = this.shadowRoot.querySelector(".card-root");
+            if (card) this._setActiveTab("player", card);
+          }
         }
       });
     });
@@ -4793,6 +5015,31 @@ class MyMusicLibraryCard extends HTMLElement {
       </div>`;
   }
 
+  /* ── Playlist tab: load a single playlist's tracks ── */
+  async _loadPlaylistTab(tabDef) {
+    if (!this._hass || !tabDef?.playlist_uri) return;
+    const card = this.shadowRoot?.querySelector(".card-root");
+    const panel = card?.querySelector(`.tab-panel[data-panel="${tabDef.id}"]`);
+    const listEl = panel?.querySelector(".playlist-track-list");
+    if (!listEl) return;
+
+    this._plLoadedTabs.add(tabDef.id);
+    listEl.innerHTML = `<div class="loader"><div class="spinner"></div> ${this._t("lib.loading_short")}</div>`;
+
+    try {
+      const data = await this._callIntegration("GET",
+        `subitems?action=playlist_tracks&uri=${encodeURIComponent(tabDef.playlist_uri)}&limit=200`);
+      const items = data?.items || [];
+      this._plTracks = this._plTracks || {};
+      this._plTracks[tabDef.id] = items;
+      listEl.innerHTML = this._renderPlaylistTrackList(tabDef, items);
+      this._attachItemActions(listEl, { switchToPlayer: false });
+    } catch (err) {
+      this._debugLog("Playlist tracks load failed:", err);
+      listEl.innerHTML = `<div class="empty-state">${ICONS.playlist}<p>${this._t("playlist.load_error")}</p></div>`;
+    }
+  }
+
   /* ── Play an item ── */
   async _playItem(contentId, contentType) {
     if (!this._hass || !this._activePlayer) return;
@@ -4960,6 +5207,8 @@ class MyMusicLibraryCardEditor extends HTMLElement {
     this._hass = null;
     this._expandedTab = -1;
     this._showAddMenu = false;
+    this._playlistOptions = null;
+    this._playlistOptionsLoading = false;
   }
 
   _t(key) {
@@ -5019,6 +5268,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
     if (tab.name) return tab.name;
     if (tab.type === "custom_element") return tab.element || this._t("editor.type_custom_element");
     if (tab.type === "button") return tab.icon || "Button";
+    if (tab.type === "playlist" && tab.playlist_label) return tab.playlist_label;
     return this._t(`tabs.${tab.type}`) || tab.type;
   }
 
@@ -5045,7 +5295,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
         </div>
         ${this._showAddMenu ? `
           <div class="add-tab-menu">
-            ${["player","search","library","settings","button","custom_element"].map(type => `
+            ${["player","search","library","playlist","settings","button","custom_element"].map(type => `
               <button data-add-type="${type}">${this._tabTypeLabel(type)}</button>
             `).join("")}
           </div>` : `
@@ -5184,6 +5434,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
         </div>`;
     if (tab.type === "library") body += this._renderSectionsEditor(tab, index);
     if (tab.type === "search") body += this._renderSearchLayoutEditor(tab, index);
+    if (tab.type === "playlist") body += this._renderPlaylistEditor(tab, index);
     body += `</div>`;
     return body;
   }
@@ -5240,6 +5491,63 @@ class MyMusicLibraryCardEditor extends HTMLElement {
           </select>
         </div>
       </div>`;
+  }
+
+  _renderPlaylistEditor(tab, index) {
+    this._fetchPlaylistOptions();
+    const options = this._playlistOptions || [];
+    const loading = this._playlistOptionsLoading && !this._playlistOptions;
+    return `
+      <div style="margin-top:8px">
+        <div class="editor-row">
+          <label>${this._t("editor.playlist_select")}</label>
+          <select data-playlist-select data-tab-idx="${index}" ${loading ? "disabled" : ""}>
+            <option value="">${loading ? this._t("lib.loading_short") : this._t("editor.playlist_select_placeholder")}</option>
+            ${options.map(p => `<option value="${this._esc(p.media_content_id)}" ${tab.playlist_uri === p.media_content_id ? "selected" : ""}>${this._esc(p.title)}</option>`).join("")}
+          </select>
+        </div>
+      </div>`;
+  }
+
+  /** Lazily fetch the user's Music Assistant playlists once, then re-render.
+   *  Some providers (e.g. Deezer) only expose their synced playlists through MA's
+   *  "favorite" set — a plain favorite=false catalogue call returns none of them,
+   *  confirmed via direct API testing (favorite=false + provider=deezer → empty).
+   *  Fetch both favorite=false and favorite=true and merge, so coverage doesn't
+   *  depend on how a given provider happens to sync into the MA library. */
+  async _fetchPlaylistOptions() {
+    if (!this._hass || this._playlistOptions || this._playlistOptionsLoading) return;
+    this._playlistOptionsLoading = true;
+    const PAGE = 100;
+    const MAX_PAGES = 10;
+    const items = [];
+    const seen = new Set();
+    const addItems = (batch) => {
+      for (const item of batch) {
+        const key = item.media_content_id || item.title;
+        if (key && !seen.has(key)) { seen.add(key); items.push(item); }
+      }
+    };
+    const fetchPages = async (favorite) => {
+      for (let page = 0; page < MAX_PAGES; page++) {
+        const offset = page * PAGE;
+        const resp = await this._hass.fetchWithAuth(
+          `/my_music_library/library?type=playlists&limit=${PAGE}&offset=${offset}&favorite=${favorite}`);
+        const data = resp.ok ? await resp.json() : null;
+        const batch = data?.items || [];
+        addItems(batch);
+        if (batch.length < PAGE) break;
+      }
+    };
+    try {
+      await fetchPages(false);
+      await fetchPages(true);
+    } catch (_) {
+      // keep whatever was accumulated before the failure
+    }
+    this._playlistOptions = items;
+    this._playlistOptionsLoading = false;
+    this._render();
   }
 
   _renderButtonBody(tab, index) {
@@ -5406,6 +5714,21 @@ class MyMusicLibraryCardEditor extends HTMLElement {
         const tabIdx = parseInt(sel.dataset.tabIdx);
         const t = [...tabs];
         t[tabIdx] = { ...t[tabIdx], search_layout: sel.value };
+        this._updateTabs(t);
+      });
+    });
+
+    // Playlist select
+    wrap.querySelectorAll("[data-playlist-select]").forEach(sel => {
+      sel.addEventListener("change", () => {
+        const tabIdx = parseInt(sel.dataset.tabIdx);
+        const opt = (this._playlistOptions || []).find(p => p.media_content_id === sel.value);
+        const t = [...tabs];
+        t[tabIdx] = { ...t[tabIdx],
+          playlist_uri: sel.value,
+          playlist_label: opt?.title || "",
+          playlist_thumbnail: opt?.thumbnail || "",
+        };
         this._updateTabs(t);
       });
     });

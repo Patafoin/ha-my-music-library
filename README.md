@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.12.5-blue)
+![Version](https://img.shields.io/badge/version-3.14.0-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -15,6 +15,7 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 - **Queue** — live queue display alongside the player, persisted server-side per player across page reloads and devices
 - **Search** — full-text search across artists, albums, tracks and playlists via Music Assistant; also searches local library (filenames) for more complete results
 - **Library** — browse artists, albums, playlists, tracks and radios with source filter (All / Local / Streaming) and favorites toggle; **Browse mode** to navigate the filesystem directory tree and play folders
+- **Playlist tab** — a dedicated tab locked to one playlist (picked in the visual editor), showing every track with list/grid view toggle; tapping a track plays it instantly without leaving the tab, thanks to a compact player bar (transport, progress, volume, device picker) pinned at the bottom
 - **Multi-player** — device picker to select and switch between any media player; supports grouping (attach / detach players)
 - **Player exclusion** — hide specific players from the device picker via integration options; supports wildcard patterns (`media_player.browser_mod_*`)
 - **Fully configurable tabs** — reorder, rename, re-icon any tab; add action buttons in the tab bar; control which library sections appear and in what order
@@ -126,6 +127,7 @@ tabs:
 | `player` | Now playing, controls, queue |
 | `search` | Full-text search |
 | `library` | Browse library with source/favorites filters |
+| `playlist` | All tracks of one playlist, with a built-in mini player bar |
 | `settings` | Integration settings (providers, debug indicator) |
 | `button` | Action button (supports tap/hold/double-tap actions) |
 | `custom_element` | Embed any HA custom element in the nav bar (e.g. `button-card`) |
@@ -139,6 +141,19 @@ When `type: library`, the optional `sections` array controls which media types a
 Valid values: `artists`, `albums`, `playlists`, `tracks`, `radios`, `recently_played`, `recently_added`, `recommended`, `flows`.
 
 Defaults to `[artists, albums, playlists, tracks]` when omitted.
+
+#### Playlist tab
+
+When `type: playlist`, pick the playlist from the dropdown in the visual editor — it fills in `playlist_uri` (and caches `playlist_label` / `playlist_thumbnail` for display) automatically:
+
+```yaml
+- type: playlist
+  playlist_uri: "library://playlist/123"   # set via the editor's playlist picker
+  playlist_label: "Chill mix"              # cached display name (auto-filled)
+  playlist_thumbnail: "/api/..."           # cached thumbnail URL (auto-filled)
+```
+
+Tapping a track plays it immediately — the tab stays active, it never switches to the Player tab. The pinned bottom bar (previous / play‑pause / next, progress bar, volume, device picker) keeps playback controllable without leaving the playlist. Use the header button to toggle between list and grid track display; the choice is remembered per tab.
 
 ### Legacy nav buttons (still supported)
 
@@ -219,7 +234,7 @@ Button tabs and legacy nav buttons support `tap_action`, `hold_action`, and `dou
 | `url` | Open a URL. | `url_path: https://…`, `new_tab: true` |
 | `call-service` / `perform-action` | Call a HA service. | `perform_action: domain.service`, `data: {}`, `target: {}` |
 | `assist` | Open the Assist dialog. | — |
-| `mml_navigate_tab` | Navigate to a MML tab. | `tab: player` / `search` / `library` / `settings` |
+| `mml_navigate_tab` | Navigate to a MML tab. | `tab: player` / `search` / `library` / `playlist` / `settings` |
 | `mml_navigate_section` | Scroll to a library section. | `section: artists` / `albums` / `playlists` / `tracks` / `radios` / `recently_played` / `recently_added` / `recommended` / `flows` |
 | `mml_control` | Trigger a player control. | `command: play_pause` / `next` / `prev` / `shuffle` / `repeat` / `mute` |
 
@@ -251,6 +266,10 @@ tabs:
       - playlists
       - tracks
       - radios
+
+  - type: playlist
+    playlist_uri: "library://playlist/123"
+    playlist_label: "Chill mix"
 
   - type: button
     icon: mdi:lightbulb
@@ -319,6 +338,9 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+### 3.14.0
+- **Feature** — **`playlist` tab type**: a new tab locked to one playlist, picked from a dropdown in the visual editor (populated from your Music Assistant library — queries both favorited and non-favorited playlists, since some providers such as Deezer only sync their playlists as favorites). Every track is listed and tapping one plays it instantly without leaving the tab. A compact player bar (previous / play-pause / next, progress bar, volume slider, device picker — no album art) stays pinned at the bottom, reusing the exact same components and callbacks as the main Player tab. Tracks can be toggled between list and grid view via a header button, remembered per tab.
 
 ### 3.12.5
 - **Fix** — **Suggestions tab always empty**: Music Assistant's `music/recommendations` call only returns the recommendation folders' metadata (name, provider, item_id), not their content — a second call per folder (`music/recommendations/items`) is required to fetch the actual items. The integration now issues that second call in parallel for every folder, so Deezer/TuneIn/library suggestions display correctly. A folder that fails or times out is now skipped individually instead of blanking the whole tab.
