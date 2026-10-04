@@ -3,22 +3,33 @@
     "step": {
       "user": {
         "title": "Set up My Music Library",
-        "description": "Enter the URL of your Music Assistant server ({ma_url_hint}). Required for search and library browsing.",
+        "description": "Enter the URL of your Music Assistant server ({ma_url_hint}) and a long-lived API token ({token_hint}).",
         "data": {
           "ma_url": "Music Assistant server URL",
-          "default_player": "Default player device",
+          "ma_token": "Music Assistant API token",
           "default_tab": "Default tab on open"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reconnect to Music Assistant",
+        "description": "My Music Library connects to Music Assistant directly (since version 4). Enter the server URL and a long-lived API token — create one in Music Assistant under Settings → your user → API tokens. This step also shows up when the stored token was revoked.",
+        "data": {
+          "ma_url": "Music Assistant server URL",
+          "ma_token": "Music Assistant API token"
         }
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect",
+      "cannot_connect": "Failed to connect to the Music Assistant server",
+      "invalid_auth": "Authentication failed — check your API token",
+      "invalid_server_version": "This Music Assistant server version is not compatible",
       "invalid_url": "Invalid URL — must start with http:// or https://",
       "unknown": "Unexpected error"
     },
     "abort": {
       "already_configured": "My Music Library is already configured",
-      "single_instance_allowed": "Only a single instance is allowed"
+      "single_instance_allowed": "Only a single instance is allowed",
+      "reauth_successful": "Reconnected to Music Assistant successfully"
     }
   },
   "options": {
@@ -27,12 +38,73 @@
         "title": "Player settings",
         "description": "Select players to hide from the device picker. You can also type a wildcard pattern (e.g. `media_player.browser_mod_*`) and press Enter to exclude all matching players.",
         "data": {
+          "default_player": "Default player device",
           "excluded_players": "Hidden players",
           "debug_mode": "Enable debug logging"
         },
         "data_description": {
-          "debug_mode": "When enabled, detailed logs appear in HA logs (filter: my_music_library) and in the browser console (F12). Disable after debugging."
+          "debug_mode": "When enabled, detailed logs appear in HA logs (filter: my_music_library) and in the browser console (F12). When disabled, the level set by `logger:` in configuration.yaml applies (HA default: warning). Disable after debugging."
         }
+      }
+    }
+  },
+  "issues": {
+    "duplicate_entities": {
+      "title": "Duplicate Music Assistant players",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Give the original IDs to My Music Library",
+            "description": "These entities will be renamed (My Music Library entity → original ID):\n\n{entities}\n\nThe official entities get the `_music_assistant` suffix. Both renames can be undone in each entity's settings.\n\n**Automations and scripts referencing the original IDs** (they will drive the My Music Library entities from now on):\n\n{references}\n\nStandard `media_player.*` actions keep working. Actions of the official integration, such as `music_assistant.play_media`, will no longer work on these entities: replace them with `my_music_library.play_media` or `media_player.play_media`.",
+            "data": {
+              "disable_official": "Also disable the official integration's entities"
+            }
+          }
+        },
+        "abort": {
+          "no_duplicates": "No duplicate left: nothing to rename."
+        }
+      }
+    }
+  },
+  "services": {
+    "play_media": {
+      "name": "Play media",
+      "description": "Plays a Music Assistant item (URI, URL or name) on a My Music Library player.",
+      "fields": {
+        "media_id": {
+          "name": "Media",
+          "description": "URI of a Music Assistant item (e.g. library://playlist/16), a stream URL, or a name to look up."
+        },
+        "enqueue": {
+          "name": "Enqueue",
+          "description": "How to add the media to the queue. Default: play now."
+        },
+        "radio_mode": {
+          "name": "Radio mode",
+          "description": "Keep playing similar tracks once the queue is finished."
+        }
+      }
+    },
+    "transfer_queue": {
+      "name": "Transfer queue",
+      "description": "Moves what a My Music Library player is playing (same track, same position) to one or more other players. With several targets, the first one leads a group of them all; the source stops.",
+      "fields": {
+        "targets": {
+          "name": "Targets",
+          "description": "Players that take over the music."
+        }
+      }
+    }
+  },
+  "selector": {
+    "enqueue": {
+      "options": {
+        "play": "Play now",
+        "replace": "Replace the queue and play",
+        "next": "Play next",
+        "replace_next": "Replace the queue, play next",
+        "add": "Add to the queue"
       }
     }
   }

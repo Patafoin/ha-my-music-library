@@ -14,17 +14,23 @@ from homeassistant.components.websocket_api import (
     async_register_command,
     websocket_command,
 )
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
+from homeassistant.core import Event, HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.loader import async_get_integration
 
-from .api import ImageProxyView, MAThumbnailView, MAQueueView, MusicAssistantBrowseView, MusicAssistantLibraryView, MusicAssistantProvidersView, MusicAssistantRecommendationsView, MusicAssistantSearchView, MusicAssistantSubitemsView, PlayerGroupView, PlayerQueueJumpView, PlayerQueueView
-from .const import CARD_JS_FILENAME, CARD_URL, CONF_DEBUG_MODE, CONF_EXCLUDED_PLAYERS, CONF_MA_URL, DOMAIN, ICON_URL, MUSIC_ASSISTANT_DOMAIN, WS_CONFIG_COMMAND
+from .api import ImageProxyView, MAThumbnailView, MAQueueView, MusicAssistantBrowseView, MusicAssistantLibraryView, MusicAssistantProvidersView, MusicAssistantRecommendationsView, MusicAssistantSearchView, MusicAssistantSubitemsView, OutputsView, PlayerQueueJumpView, PlayerQueueView
+from .const import CARD_JS_FILENAME, CARD_URL, CONF_DEBUG_MODE, CONF_DEFAULT_PLAYER, CONF_DEFAULT_TAB, CONF_EXCLUDED_PLAYERS, CONF_MA_URL, CONFIG_ENTRY_VERSION, DEFAULT_TAB, DOMAIN, ICON_URL, WS_CONFIG_COMMAND, WS_SUBSCRIBE_QUEUE_COMMAND
+from .duplicates import ISSUE_DUPLICATE_ENTITIES, async_track_duplicates, async_update_issue
+from .mass_connection import MyMusicLibraryConfigEntry, async_connect, async_disconnect
+from .queue_push import async_relay_queue_events, ws_subscribe_queue
+from .queue_watchdog import QueueWatchdog
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[str] = []
+PLATFORMS: list[str] = ["media_player"]
 
 WWW_DIR = os.path.join(os.path.dirname(__file__), "www")
 ICON_PATH = os.path.join(os.path.dirname(__file__), "brand", "icon.png")
@@ -34,11 +40,29 @@ _QUEUE_STORE_VERSION = 1
 
 _INTEGRATION_LOGGER = logging.getLogger("custom_components.my_music_library")
 
+# Level the integration logger had before debug mode forced it to DEBUG
+# (None while debug mode is off). Restored when debug mode is turned off, so
+# the user's `logger:` configuration in configuration.yaml applies again.
+_level_before_debug: int | None = None
+
 
 def _apply_debug_mode(debug: bool) -> None:
-    """Set the integration logger level based on the debug_mode option."""
-    _INTEGRATION_LOGGER.setLevel(logging.DEBUG if debug else logging.WARNING)
-    _INTEGRATION_LOGGER.debug("Debug mode %s", "enabled" if debug else "disabled")
+    """Force DEBUG while the debug_mode option is on; otherwise leave the level alone.
+
+    Debug off never sets a level of its own: whatever `logger:` (or the
+    `logger.set_level` action) configured for custom_components.my_music_library
+    stays in effect.
+    """
+    global _level_before_debug
+    if debug:
+        if _level_before_debug is None:
+            _level_before_debug = _INTEGRATION_LOGGER.level
+        _INTEGRATION_LOGGER.setLevel(logging.DEBUG)
+        _INTEGRATION_LOGGER.debug("Debug mode enabled")
+    elif _level_before_debug is not None:
+        _INTEGRATION_LOGGER.debug("Debug mode disabled")
+        _INTEGRATION_LOGGER.setLevel(_level_before_debug)
+        _level_before_debug = None
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -49,12 +73,31 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     stored = await store.async_load() or {}
     hass.data[DOMAIN]["queue_store"] = store
     hass.data[DOMAIN]["queues"] = stored.get("queues", {})
-    hass.data[DOMAIN]["groups"] = stored.get("groups", {})
+    # "groups" (card-side copy of group members, < 4.8.0) is dropped: MA is the source of truth.
+    hass.data[DOMAIN]["presets"] = stored.get("presets", [])
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up My Music Library from a config entry."""
+async def async_save_store(hass: HomeAssistant) -> None:
+    """Persist the per-player queues and the group presets."""
+    domain_data = hass.data.get(DOMAIN, {})
+    if store := domain_data.get("queue_store"):
+        await store.async_save({
+            "queues": domain_data.get("queues", {}),
+            "presets": domain_data.get("presets", []),
+        })
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: MyMusicLibraryConfigEntry) -> bool:
+    """Set up My Music Library from a config entry.
+
+    Card serving, HTTP views and the WS config command are registered FIRST and
+    are independent of the Music Assistant connection succeeding: the card must
+    always be able to load and ask "am I connected?" — including right after a
+    failed/expired-token setup — so it can show a clear "needs reconfiguration"
+    message instead of just going blank. Only the media_player platform (which
+    needs a live client) depends on the connection below.
+    """
     hass.data.setdefault(DOMAIN, {})
 
     # Serve the card JS file from /my_music_library/<filename>
@@ -63,7 +106,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.error("Card JS file not found: %s", card_js_path)
         raise ConfigEntryNotReady(f"Missing frontend file: {card_js_path}")
 
-    # Guard against double-registration (HA may call setup_entry on reload/restart)
+    # Guard against double-registration (HA may call setup_entry on reload —
+    # including our own auto-reload-on-disconnect in mass_connection.py)
     registered_paths: set[str] = hass.data[DOMAIN].setdefault("_registered_paths", set())
 
     static_registrations: list[StaticPathConfig] = []
@@ -98,46 +142,97 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await _async_register_lovelace_resource(hass, versioned_card_url, CARD_URL)
 
-    # Register HTTP proxy views (search + library + subitems → MA server)
-    hass.http.register_view(MusicAssistantSearchView)
-    hass.http.register_view(MusicAssistantLibraryView)
-    hass.http.register_view(MusicAssistantSubitemsView)
-    hass.http.register_view(PlayerQueueView)
-    hass.http.register_view(PlayerQueueJumpView)
-    hass.http.register_view(MAQueueView)
-    hass.http.register_view(PlayerGroupView)
-    hass.http.register_view(MusicAssistantBrowseView)
-    hass.http.register_view(MusicAssistantRecommendationsView)
-    hass.http.register_view(MusicAssistantProvidersView)
-    hass.http.register_view(ImageProxyView)
-    hass.http.register_view(MAThumbnailView)
-
-    # Register WebSocket command so the card can fetch its config
-    _register_websocket_commands(hass)
-
-    hass.data[DOMAIN][entry.entry_id] = {"entry": entry}
+    # Register HTTP proxy views + WS config command once per HA process lifetime
+    # (guarded the same way as the static paths above, for the same reload reason).
+    if not hass.data[DOMAIN].get("_views_registered"):
+        hass.http.register_view(MusicAssistantSearchView)
+        hass.http.register_view(MusicAssistantLibraryView)
+        hass.http.register_view(MusicAssistantSubitemsView)
+        hass.http.register_view(PlayerQueueView)
+        hass.http.register_view(PlayerQueueJumpView)
+        hass.http.register_view(MAQueueView)
+        hass.http.register_view(OutputsView)
+        hass.http.register_view(MusicAssistantBrowseView)
+        hass.http.register_view(MusicAssistantRecommendationsView)
+        hass.http.register_view(MusicAssistantProvidersView)
+        hass.http.register_view(ImageProxyView)
+        hass.http.register_view(MAThumbnailView)
+        _register_websocket_commands(hass)
+        hass.data[DOMAIN]["_views_registered"] = True
 
     _apply_debug_mode(entry.options.get(CONF_DEBUG_MODE, False))
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
+    # From here on, failure raises ConfigEntryNotReady/ConfigEntryAuthFailed —
+    # everything registered above stays in place so the card can still load and
+    # report the "not connected" state via the WS config command.
+    entry.runtime_data = await async_connect(hass, entry)
+
+    async def _on_hass_stop(event: Event) -> None:
+        await async_disconnect(entry.runtime_data)
+
+    entry.async_on_unload(
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, _on_hass_stop)
+    )
+
+    # Push queue changes to the card (my_music_library/subscribe_queue).
+    entry.async_on_unload(async_relay_queue_events(hass, entry.runtime_data.mass))
+    # Resume queues Music Assistant leaves stopped after the first track (queue_watchdog.py).
+    entry.async_on_unload(QueueWatchdog(hass, entry.runtime_data.mass).async_start())
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Duplicates with the official Music Assistant integration's media_players:
+    # check now (the entity registry is already loaded from disk), then again on
+    # every media_player registry change.
+    async_update_issue(hass)
+    entry.async_on_unload(async_track_duplicates(hass))
+
+    return True
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: MyMusicLibraryConfigEntry) -> bool:
+    """Migrate an old config entry to the current schema.
+
+    Version 1 covers both 3.x entries (MA connection borrowed from `mass`,
+    default player chosen in the setup step, so stored in `data`) and early
+    4.x ones (URL + token in `data`, default player already in `options`).
+    Version 2 keeps the default player in `options` only. A 3.x entry has no
+    token yet: setup then raises ConfigEntryAuthFailed, which sends the user
+    through the reauth step to enter one.
+    """
+    if entry.version > CONFIG_ENTRY_VERSION:
+        # Downgrade from a newer, unknown schema.
+        return False
+
+    if entry.version == 1:
+        data = dict(entry.data)
+        options = dict(entry.options)
+        legacy_player = data.pop(CONF_DEFAULT_PLAYER, None)
+        if legacy_player and not options.get(CONF_DEFAULT_PLAYER):
+            options[CONF_DEFAULT_PLAYER] = legacy_player
+        hass.config_entries.async_update_entry(entry, data=data, options=options, version=2)
+        _LOGGER.info("Migrated config entry %s to version 2", entry.entry_id)
 
     return True
 
 
 async def _async_options_updated(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: MyMusicLibraryConfigEntry
 ) -> None:
     """React to options changes (debug toggle, excluded players, etc.)."""
     _apply_debug_mode(entry.options.get(CONF_DEBUG_MODE, False))
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: MyMusicLibraryConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id, None)
+        await async_disconnect(entry.runtime_data)
+        ir.async_delete_issue(hass, DOMAIN, ISSUE_DUPLICATE_ENTITIES)
+        # Don't leave the logger stuck at DEBUG once the integration is gone.
+        _apply_debug_mode(False)
 
     return unload_ok
 
@@ -152,28 +247,26 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
         """Return the integration config to the card."""
         entries = hass.config_entries.async_entries(DOMAIN)
         if not entries:
-            connection.send_result(msg["id"], {"ma_url": None})
+            connection.send_result(msg["id"], {"ma_url": None, "connected": False})
             return
 
         entry = entries[0]
-        # Find the Music Assistant config entry so the card can call MA's WS commands
-        ma_entries = hass.config_entries.async_entries(MUSIC_ASSISTANT_DOMAIN)
-        ma_entry_id = ma_entries[0].entry_id if ma_entries else None
 
         connection.send_result(
             msg["id"],
             {
+                "connected": entry.state == ConfigEntryState.LOADED,
                 "ma_url": entry.data.get(CONF_MA_URL) or None,
-                "ma_entry_id": ma_entry_id,
-                "default_player": entry.data.get("default_player") or None,
-                "default_tab": entry.data.get("default_tab", "player"),
+                "default_player": entry.options.get(CONF_DEFAULT_PLAYER) or None,
+                "default_tab": entry.data.get(CONF_DEFAULT_TAB, DEFAULT_TAB),
                 "excluded_players": list(entry.options.get(CONF_EXCLUDED_PLAYERS, [])),
                 "debug_mode": bool(entry.options.get(CONF_DEBUG_MODE, False)),
             },
         )
 
     async_register_command(hass, ws_get_config)
-    _LOGGER.debug("Registered WebSocket command: %s", WS_CONFIG_COMMAND)
+    async_register_command(hass, ws_subscribe_queue)
+    _LOGGER.debug("Registered WebSocket commands: %s, %s", WS_CONFIG_COMMAND, WS_SUBSCRIBE_QUEUE_COMMAND)
 
 
 async def _async_register_lovelace_resource(

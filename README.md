@@ -2,9 +2,35 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-3.14.0-blue)
-![HA](https://img.shields.io/badge/Home%20Assistant-2025.x%2B-brightgreen)
+![Version](https://img.shields.io/badge/version-4.8.2-blue)
+![HA](https://img.shields.io/badge/Home%20Assistant-2026.2%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
+
+> [!WARNING]
+> **Version 4 is a breaking update for 3.x users — read this before updating.**
+>
+> - **New connection, token required.** My Music Library now connects to Music Assistant **by itself**. After the update and a restart, Home Assistant asks you to **re-authenticate**: enter your Music Assistant URL and a **long-lived API token** created in Music Assistant (**Settings > your user > API tokens**). Until you do, the card only shows a "reconnection needed" banner.
+> - **Home Assistant 2026.2 or later** is required (3.x ran on 2025.1), with a Music Assistant server able to issue API tokens (tested with 2.10).
+> - **New `media_player` entities.** My Music Library creates its own player entities. If the official Music Assistant integration is still installed, it keeps the original entity IDs and the new ones get a suffix (`media_player.kitchen_2`): a fixable issue in **Settings > Repairs** offers to swap them, so your automations, scripts and dashboards follow.
+> - **Actions.** `music_assistant.play_media` and the other actions of the official integration do not work on My Music Library players: use **`my_music_library.play_media`** and **`my_music_library.transfer_queue`**.
+> - **Card behaviour.** The device picker is replaced by an output panel and only offers **Music Assistant players** (add `show_other_players: true` to bring back other media players); the Library tab always shows your **favorites**.
+>
+> Step-by-step guide: **[Upgrading from 3.x](#upgrading-from-3x)**.
+
+---
+
+## What's new in 4.x (since 3.14.0)
+
+- **Output panel** — see where the music plays and **switch** it to other outputs (same track, same position), **group** outputs with per-output and group volume, **control** any output from the card; favorite groups, power on from the card, a default output per device.
+- **Own Music Assistant connection and players** — no dependency on the official integration; live `media_player` entities usable in automations, with `my_music_library.play_media` and `my_music_library.transfer_queue` ("the music follows me").
+- **Instant queue** — the queue updates as soon as Music Assistant changes it (pushed, no more delays).
+- **Playback that keeps going** — works around a Music Assistant bug that sometimes stopped an album or playlist after its first track.
+- **Artist page** — favorites and full catalog split into albums, EPs, singles and live albums, reachable from search, the library or the new **Artist** button of the player.
+- **Discovery tab** — Music Assistant's recommendation folders.
+- **Safer setup** — connection test, re-authentication prompt, a clear banner when Music Assistant is unreachable, a Repairs flow for duplicate players.
+- **Fixes** — browsing sub-folders of the filesystem provider ([#17](https://github.com/Patafoin/ha-my-music-library/issues/17)) and Deezer's "Made For You", "Start a mix" feedback, logging levels.
+
+Details: [Changelog](#changelog).
 
 ---
 
@@ -12,14 +38,18 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 
 - **Now Playing** — album art, track title, artist, progress bar, volume control
 - **Playback controls** — play/pause, previous, next, shuffle, repeat (off / all / one)
-- **Queue** — live queue display alongside the player, persisted server-side per player across page reloads and devices
+- **Queue** — live queue display alongside the player, updated as soon as Music Assistant changes it (pushed, no polling), persisted server-side per player across page reloads and devices
 - **Search** — full-text search across artists, albums, tracks and playlists via Music Assistant; also searches local library (filenames) for more complete results
-- **Library** — browse artists, albums, playlists, tracks and radios with source filter (All / Local / Streaming) and favorites toggle; **Browse mode** to navigate the filesystem directory tree and play folders
-- **Playlist tab** — a dedicated tab locked to one playlist (picked in the visual editor), showing every track with list/grid view toggle; tapping a track plays it instantly without leaving the tab, thanks to a compact player bar (transport, progress, volume, device picker) pinned at the bottom
-- **Multi-player** — device picker to select and switch between any media player; supports grouping (attach / detach players)
-- **Player exclusion** — hide specific players from the device picker via integration options; supports wildcard patterns (`media_player.browser_mod_*`)
-- **Fully configurable tabs** — reorder, rename, re-icon any tab; add action buttons in the tab bar; control which library sections appear and in what order
+- **Library** — your Music Assistant favorites (artists, albums, playlists, tracks, radios…) with a source filter (All / Local / Streaming); **Browse mode** to navigate the filesystem directory tree and play folders
+- **Discovery tab** — Music Assistant's recommendation folders (recently played, recently added, suggestions…), one section per folder
+- **Artist page** — the artist's favorites from your library, plus their full album catalog, split into albums, EPs, singles and live albums; reachable from search, the library, or the "Artist" button of the player
+- **Playlist tab** — a dedicated tab locked to one playlist (picked in the visual editor), showing every track with list/grid view toggle; tapping a track plays it instantly without leaving the tab, thanks to a compact player bar (transport, progress, volume, output row) pinned at the bottom
+- **Own media players** — one `media_player` entity per Music Assistant player, updated live (push), usable in automations and scripts, plus a `my_music_library.play_media` action
+- **Output panel** — the output row under the player shows where the music plays ("Living room + Kitchen") and opens a panel over the player with three modes: **Switch** (move the music — same track, same position — to one or more outputs, which then form a group), **Group** (add outputs to the current group or remove them, with a volume slider per output and one for the whole group) and **Control** (see what plays where and pick which output the card controls). Outputs are shown as tiles with an icon, a short name (card alias → Home Assistant area → cleaned-up name; an "i" button shows the full name, entity, model and provider), their state, the group leader's crown, and outputs that can't be grouped together greyed out with the reason. Also: favorite groups ("Whole house"…) saved server-side, turn an output on from its tile, offline outputs hidden behind a link, and a per-device default output (pin)
+- **Player exclusion** — hide specific players from the card via integration options; supports wildcard patterns (`media_player.browser_mod_*`)
+- **Fully configurable tabs** — reorder, rename, re-icon any tab; add action buttons in the tab bar; control which library sections appear and in what order; style any tab's nav button with a custom element (e.g. `button-card`)
 - **Visual card editor** — WYSIWYG editor in the Lovelace UI: drag-and-drop tab reorder, live preview, no YAML needed
+- **Clear connection status** — if the Music Assistant connection is down (server unreachable, token revoked), the card shows a banner instead of going blank, and Home Assistant asks you to re-authenticate
 - **Debug logging** — toggleable from integration options; detailed logs in HA and browser console for troubleshooting
 - **Responsive layout** — stacked on mobile, side-by-side on tablet/desktop; horizontal scroll nav bar for small screens
 - **Multilingual** — English, French, German (auto-detected from HA language setting)
@@ -28,8 +58,10 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 
 ## Requirements
 
-- Home Assistant 2025.1 or later
-- [Music Assistant](https://music-assistant.io/) integration installed and configured
+- Home Assistant **2026.2** or later
+- A [Music Assistant](https://music-assistant.io/) server reachable from Home Assistant, recent enough to issue **long-lived API tokens** (tested with 2.10), and a token for it (see below)
+
+The official Music Assistant integration for Home Assistant is **not** required: My Music Library has its own connection to the server.
 
 ---
 
@@ -39,16 +71,55 @@ A custom Home Assistant integration that provides a fully-featured Lovelace musi
 
 1. Open HACS, search for **My Music Library** and install it.
 2. Restart Home Assistant.
-3. Go to **Settings > Devices & Services > Add Integration** and search for **My Music Library**.
-4. Follow the setup flow (select your default player and default tab). The Music Assistant server is discovered automatically from the `mass` integration.
+3. In the Music Assistant web UI, create a long-lived API token: **Settings > your user > API tokens**, e.g. named `my_music_library`.
+4. Go to **Settings > Devices & Services > Add Integration** and search for **My Music Library**.
+5. Enter the Music Assistant server URL (e.g. `http://192.168.1.10:8095`) and the token. The connection is tested before the entry is created.
+6. Optionally pick a **default player** in the integration options (see below) — it can only be chosen once the player entities exist.
 
 > The Lovelace card resource is registered automatically — no manual resource addition required.
+
+If the token is later revoked or the server URL changes, Home Assistant shows a **re-authentication** prompt: enter the new URL and/or token there, no need to remove the integration.
+
+---
+
+## Upgrading from 3.x
+
+Version 4 is a **breaking change**. In 3.x, My Music Library borrowed the connection of the official Music Assistant integration (`mass` / `music_assistant`) and drove its media players. Since 4.x it has its own connection, authenticated with a Music Assistant API token, and its own `media_player` entities.
+
+What happens when you update:
+
+1. **Restart Home Assistant** after the update, as for any integration update.
+2. Your configuration is migrated automatically. Since a 3.x setup has no Music Assistant token, Home Assistant then shows a **re-authentication** prompt for My Music Library: enter the server URL and a long-lived token created in Music Assistant (**Settings > your user > API tokens**). Until then, the card shows a "reconnection needed" banner.
+3. If you had chosen a default player in 3.x, it is kept and moved to the integration **options**.
+4. My Music Library creates its own `media_player` entities, one per Music Assistant player.
+
+**If the official Music Assistant integration is still installed**, it keeps the original entity IDs (e.g. `media_player.kitchen`), so the new My Music Library entities get a suffix (`media_player.kitchen_2`). Your automations, scripts and dashboards keep pointing at the official entities. My Music Library detects this and raises a fixable issue in **Settings > Repairs**:
+
+- it lists the duplicated players, and the automations and scripts that use their original IDs;
+- if you confirm, each official entity is renamed `<id>_music_assistant` (and optionally disabled), and the My Music Library entity takes the original ID — so automations, scripts and dashboards now drive My Music Library;
+- both renames can be undone from each entity's settings.
+
+After the swap, standard `media_player.*` actions (play, pause, stop, volume, shuffle, repeat, `media_player.play_media`, grouping) keep working. **Actions of the official integration** (`music_assistant.play_media`, `music_assistant.play_announcement`, `music_assistant.transfer_queue`…) only work on the official entities: replace `music_assistant.play_media` with `my_music_library.play_media` (see [Actions and entities](#actions-and-entities)).
+
+Queue transfer is available as `my_music_library.transfer_queue` (and in the card's output panel). Announcements (`music_assistant.play_announcement`) are not available in My Music Library yet (planned): keep the official integration if you rely on them. Once nothing uses the official integration anymore, you can disable it, then remove it.
+
+**Card changes to know about:**
+
+- The device picker is replaced by the **output panel** (output row under the player). Grouping now goes through Music Assistant directly; groups saved by the 3.x card are not carried over (Music Assistant already knows the real groups).
+- The card only offers **Music Assistant players**. Other Home Assistant media players (TV, smart speakers, browser_mod…) cannot play Music Assistant's queue; add `show_other_players: true` to the card to control them from the output panel anyway.
+- The Library tab always shows your **favorites** (the favorites toggle is gone): use Search or Browse mode for the full catalog.
+
+Everything else — the card YAML configuration (tabs, sections, layouts, nav buttons) and your dashboards — keeps working as is.
 
 ---
 
 ## Integration Options
 
 After installation, you can configure additional options via **Settings > Devices & Services > My Music Library > Configure**.
+
+### Default player
+
+The player the card selects when it opens (until the user picks another one, which is remembered per browser). Leave on *Auto-detect* to use the first available player.
 
 ### Hidden players
 
@@ -64,6 +135,14 @@ Enable the **"Enable debug logging"** toggle to activate detailed logging:
 - **Browser console** — press **F12**, go to the Console tab, filter by `[MML]` to see frontend activity (config loading, search strategies, player selection, library loading, playback, etc.)
 
 A pulsing orange **"Debug mode is active"** banner appears in the card's Settings panel as a reminder to disable it when you're done.
+
+When debug logging is **off**, My Music Library does not set any log level of its own: the level configured with `logger:` in `configuration.yaml` applies (Home Assistant's default is `warning`). For example:
+
+```yaml
+logger:
+  logs:
+    custom_components.my_music_library: info
+```
 
 > Changes take effect immediately — no restart or refresh needed for the backend logs. Do a hard refresh (Ctrl+Shift+R) to pick up the frontend debug flag.
 
@@ -126,7 +205,8 @@ tabs:
 |---|---|
 | `player` | Now playing, controls, queue |
 | `search` | Full-text search |
-| `library` | Browse library with source/favorites filters |
+| `library` | Your Music Assistant favorites, with a source filter (All / Local / Streaming) and Browse mode |
+| `discovery` | Music Assistant recommendation folders, one section per folder (no options) |
 | `playlist` | All tracks of one playlist, with a built-in mini player bar |
 | `settings` | Integration settings (providers, debug indicator) |
 | `button` | Action button (supports tap/hold/double-tap actions) |
@@ -134,9 +214,24 @@ tabs:
 
 Any tab can set `show_in_nav: false` to hide it from the nav bar while keeping it reachable via `mml_navigate_tab` actions.
 
+#### Styled nav button for a panel tab
+
+Any panel tab (`player`, `search`, `library`, `discovery`, `playlist`, `settings`) can render its nav button with a custom element, the same way as `custom_element`, while still opening its panel when clicked:
+
+```yaml
+tabs:
+  - type: library
+    sections: [artists, albums, playlists, radios]
+    element: custom:button-card
+    element_config: { name: Library, icon: mdi:music-box-multiple }
+    width: 90
+```
+
+In the visual editor, `element` / `element_config` are edited in the tab's **Advanced (YAML)** block.
+
 #### Library sections
 
-When `type: library`, the optional `sections` array controls which media types appear and in what order.
+When `type: library`, the optional `sections` array controls which media types appear and in what order. The library always shows your **favorites** (what you saved in Music Assistant); use Search or Browse mode for the full catalog.
 
 Valid values: `artists`, `albums`, `playlists`, `tracks`, `radios`, `recently_played`, `recently_added`, `recommended`, `flows`.
 
@@ -187,7 +282,15 @@ nav_buttons_right:
 | `default_tab` | `string` | `player` | Tab shown on load: `player`, `search`, or `library` |
 | `height` | `number` or `string` | auto | Fixed card height (e.g. `600`, `"600px"`, `"80vh"`). Omit to fill the container. |
 | `entity` | `string` | — | Pre-select a media_player entity. User's runtime choice is saved in localStorage. |
-| `show_device_select` | `boolean` | `true` | Show the device picker row at the bottom of the player tab. Set to `false` to hide it. |
+| `show_device_select` | `boolean` | `true` | Show the output row at the bottom of the player tab (and in the playlist tab's mini player). Set to `false` to hide it. |
+| `show_other_players` | `boolean` | `false` | Also offer Home Assistant media players that are not Music Assistant players (Echo, TV, browser_mod…) — in the output panel's **Control** mode only, since they can't play Music Assistant's queue or join its groups. |
+| `devices` | `map` | — | Per-output overrides, keyed by entity ID: `name` (short name shown in the card), `icon` (`mdi:…`), `hidden: true` (never offered by this card). Editable in the visual editor's **Outputs** section. |
+
+```yaml
+devices:
+  media_player.squeeze_salle_d_eau: { name: Bathroom, icon: mdi:shower }
+  media_player.web_chrome_on_linux: { hidden: true }
+```
 
 ### Nav bar layout
 
@@ -285,6 +388,51 @@ tabs:
 
 ---
 
+## Actions and entities
+
+### Media players
+
+My Music Library creates one `media_player` entity per Music Assistant player (entity ID derived from the player name). They support play / pause / stop, previous / next, seek, volume (set, step, mute), shuffle, repeat, turn on / off, `media_player.play_media` and grouping (join / unjoin, when the player supports it). Each entity exposes a `mass_player_id` attribute (the Music Assistant player ID).
+
+### `my_music_library.play_media`
+
+Plays a Music Assistant item on one of these players.
+
+| Field | Required | Description |
+|---|---|---|
+| `media_id` | yes | URI of a Music Assistant item (e.g. `library://playlist/16`), a stream URL, or a name to look up |
+| `enqueue` | no | `play` (default), `replace`, `next`, `replace_next` or `add` |
+| `radio_mode` | no | Keep playing similar tracks once the queue is finished |
+
+```yaml
+action: my_music_library.play_media
+target:
+  entity_id: media_player.living_room
+data:
+  media_id: https://stream.radiofrance.fr/fipreggae/fipreggae_hifi.m3u8
+```
+
+Replaces `music_assistant.play_media` from the official integration (no `media_type` field: Music Assistant resolves the type itself).
+
+### `my_music_library.transfer_queue`
+
+Moves what a player is playing — same track, same position — to one or more other players ("the music follows me"). With several targets, the first one leads a group of them all. The source stops. Same as the output panel's **Switch** mode.
+
+| Field | Required | Description |
+|---|---|---|
+| `targets` | yes | My Music Library players that take over the music |
+
+```yaml
+action: my_music_library.transfer_queue
+target:
+  entity_id: media_player.living_room   # the source
+data:
+  targets:
+    - media_player.office
+```
+
+---
+
 ## Troubleshooting
 
 If something isn't working as expected:
@@ -302,9 +450,12 @@ If something isn't working as expected:
 | Problem | Solution |
 |---|---|
 | Card shows "configuration error" after update | Hard refresh: Ctrl+Shift+R |
-| Search returns "unavailable" | Check that Music Assistant integration is installed and running |
-| Library is empty | Check MA connection; try toggling the source filter (All / Local / Streaming) |
-| No players found | Make sure at least one MA media player entity is enabled and not in `unavailable` state |
+| Card shows "Music Assistant reconnection needed" | The integration can't reach Music Assistant: check the server is running, then answer the re-authentication prompt (Settings > Devices & Services) with a valid URL and token |
+| Re-authentication prompt after updating from 3.x | Expected: 4.x needs a Music Assistant API token — see [Upgrading from 3.x](#upgrading-from-3x) |
+| Players have `_2` / `_3` suffixes | The official Music Assistant integration still owns the original IDs — use the fix in Settings > Repairs (see [Upgrading from 3.x](#upgrading-from-3x)) |
+| An automation using `music_assistant.play_media` fails | That action only works on the official integration's entities: use `my_music_library.play_media` |
+| Library is empty | The library only shows favorites: favorite some items in Music Assistant, or use Search / Browse mode; also try the source filter (All / Local / Streaming) |
+| No players found | Make sure at least one My Music Library media player entity is enabled and not `unavailable` |
 | Players missing from picker | Check that they're not in the hidden players list (integration options) |
 
 ---
@@ -315,13 +466,23 @@ If something isn't working as expected:
 custom_components/my_music_library/
 ├── __init__.py          # Integration setup, static paths, Lovelace resource registration,
 │                        # WebSocket command (my_music_library/config),
-│                        # per-player queue and group storage (Store),
+│                        # per-player queue and favorite-group storage (Store),
 │                        # debug mode toggle
 ├── manifest.json        # Integration metadata (version, dependencies)
-├── config_flow.py       # UI configuration flow (setup + options: excluded players, debug mode)
+├── config_flow.py       # UI configuration flow (setup: URL + token, re-authentication,
+│                        # options: default player, hidden players, debug mode)
+├── mass_connection.py   # Own Music Assistant connection (connect, listen, auto-reload)
+├── entity.py            # Base entity for Music Assistant players
+├── media_player.py      # media_player platform + play_media / transfer_queue actions
+├── queue_push.py        # Relays Music Assistant queue events to the card (WebSocket subscription)
+├── queue_watchdog.py    # Resumes queues Music Assistant leaves stopped after a track (MA bug workaround)
+├── duplicates.py        # Detects duplicates with the official integration, swaps entity IDs
+├── repairs.py           # Repairs fix flow for duplicates
+├── services.yaml        # Action descriptions
 ├── const.py             # Domain constants
-├── api.py               # HTTP views (search, library, browse, subitems, queue, groups → MA)
-├── strings.json         # Config flow translation source
+├── api.py               # HTTP views for the card (search, library, browse, subitems, queue, outputs → MA)
+├── outputs.py           # Output panel backend: outputs, transfer, group members, group volume, power, favorite groups
+├── strings.json         # UI translation source
 ├── brand/
 │   ├── icon.png         # Integration icon 256x256
 │   ├── icon@2x.png      # Integration icon 512x512
@@ -338,6 +499,69 @@ custom_components/my_music_library/
 ---
 
 ## Changelog
+
+> **4.8.2 is the first public release of the 4.x line.** Versions 4.0.0 to 4.8.1 were never published: together, the entries from 4.5.0 to 4.8.2 below describe everything 4.8.2 brings since 3.14.0.
+
+### 4.8.2 — first public 4.x release
+- **Fix** — the output panel showed **no output at all** with the oldest supported Music Assistant client (1.3.3, shipped with Home Assistant 2026.2): its "hide player" setting is a set of conditions (when off, when synced…), never empty, which was read as "hidden". Only "always" hides a player now.
+- **Fix** — the duplicate-players Repairs issue had a description both on the issue and on its fix flow, which Home Assistant's validation (hassfest) rejects; the issue keeps its title, the details stay in the fix flow.
+
+### 4.8.1
+- **Fix** — **Switch restarted the queue from its first track** when moving a group to one of its own members (e.g. "Bathroom + Living room" → "Living room"). The integration ungrouped the target itself before asking Music Assistant to transfer the queue, which made the source re-set its stream right when Music Assistant reads the current track and position. Music Assistant frees such a target itself (and waits for it): the integration no longer touches the source's group before the transfer, other targets are ungrouped afterwards. The current track and position are kept.
+- **Fix** — Switch with the source kept in the selection now gives exactly the selected outputs (outputs left out leave the group), and switching while the card controls a group member moves the whole group's music.
+
+### 4.8.0
+- **New** — **output panel**, replacing the device picker. The output row under the player shows the output(s) playing ("Bathroom + Living room") and opens a panel over the player (the queue stays visible on wide screens) with three modes:
+  - **Switch**: move the music (same track, same position) to one or more outputs; with several, the first one leads a group of them all. Confirmed with a button, since the source stops.
+  - **Group**: add outputs to the current group or remove them, immediately; a volume slider per output (with mute) and one for the whole group; ungroup all.
+  - **Control**: one row per output or group playing (artwork, title, outputs), then the idle outputs; tap one to control it with the card.
+  - Outputs are tiles: icon by type (speaker, web player, TV, Cast, AirPlay, group), short name (card alias → Home Assistant area when it is the only output there → cleaned name: `squeeze-salle-d-eau` becomes "Salle d'eau"), state, crown on the group leader, outputs that can't join the group greyed out with the reason (from Music Assistant's own compatibility list). Names cut short get an "i" button with the full name, entity, area, model and provider.
+  - **Favorite groups**: save the current group ("Whole house"…), apply it in one tap in Switch or Group mode; stored server-side, shared by all devices.
+  - **Turn on** an output that is off, from its tile.
+  - **Default output per device**: pin an output in Control mode; this browser opens on it.
+  - Offline outputs are hidden behind a "Show N offline" link.
+- **New** — card options `devices` (per-output short name, icon, hidden; **Outputs** section in the visual editor) and `show_other_players`.
+- **Change** — the card only offers Music Assistant players by default: other Home Assistant media players (Echo, TV, browser_mod…) can't play Music Assistant's queue. `show_other_players: true` brings them back, in Control mode.
+- **Change** — grouping goes through Music Assistant directly (it used `media_player.join` / `unjoin` plus a copy of the group stored by the card, which could drift). The `/my_music_library/groups` view is replaced by `/my_music_library/outputs`.
+- **New** — **`my_music_library.transfer_queue`** action, for automations ("the music follows me").
+
+### 4.7.1
+- **Fix (workaround for a Music Assistant bug)** — **playback stopped after the first track** of an album or playlist, with the rest still in the queue ("next" worked). Music Assistant (seen on 2.10.4) hands the next track to the player while the current one starts, and skips that step when the queue was empty just before — typically right after a launch that failed and emptied the queue (e.g. a Deezer "Flow" with nothing to play). Nothing retries it, so the player stops at the end of the first track. The integration now watches the queues: when one stops on a track played to its end while a next track is waiting (not at the end of the queue, not in "repeat one", not stopped by you mid-track), it waits 6 seconds, then skips to the next track — what you would do by pressing "next". Logged as a warning.
+
+### 4.7.0
+- **New** — **"Artist" button on the player tab**: opens the page of the artist of the track being played (favorite albums and full catalog). The back button returns to the player. New `track_artist` action on the `/my_music_library/subitems` view (main artist of a track, library version when the artist is in the library).
+- **Improvement** — **artist page: albums, EPs, singles and live albums in separate sections**, in both "Favorites" and "All albums" (sorting by name or date applies inside each section). Live albums (`live` type) used to be missing from the "Favorites" section.
+- **Fix** — **artist page "Favorites" showed the artist's whole streaming catalog** when the page was opened with a streaming provider's artist (a search result, or the track playing): e.g. 47 Deezer albums instead of the 4 albums in your library. "Favorites" now only lists your library's albums of that artist (none if the artist isn't in your library).
+- **Improvement** — **"Start a mix" gives immediate feedback**: Music Assistant builds the whole mix (similar-track lookups at the streaming providers) before answering, which takes several seconds. The card now switches to the player and shows "Preparing the mix…" right away, and shows an error message if the mix fails (it used to fail silently).
+
+### 4.6.2
+- **Fix** — **browsing Deezer's "Made For You" (and any folder with an explicit navigation path)** failed with a 502: the URI was rebuilt from the item ID (`…://made_for_me`) instead of Music Assistant's navigation path (`…://Made For You`). Root cause: the Music Assistant client converts browse folders into a type that has no `path` field, so the path was lost before reaching the integration. Browsing now requests the raw data from the server, and the navigation path is used whenever the provider sets one.
+
+### 4.6.1
+- **Fix** — **browsing sub-folders of the filesystem provider** ([#17](https://github.com/Patafoin/ha-my-music-library/issues/17)): opening a sub-folder repeated its parent in the path (`Disco/Disco/ABBA Gold…`), so every sub-folder failed with a 502 error. Since 3.10.0, folder URIs were rebuilt as *parent + item ID*, but the filesystem provider's item ID already contains the full path from its root. The parent is no longer repeated.
+
+### 4.6.0
+- **Improvement** — **the queue updates as soon as Music Assistant changes it**. The card used to reload the queue after fixed delays (500 ms to 1.5 s after an action, plus waiting for the action itself to finish): after starting an album or playlist, the queue showed up about 2.3 s after the click although Music Assistant had it ready after about 0.75 s. Music Assistant's queue events are now relayed to the card through a WebSocket subscription (`my_music_library/subscribe_queue`), so the queue is reloaded right when it changes — when starting media, skipping tracks, enqueuing, moving or removing items. A reload every 4 s after an action remains as a safety net; if the subscription is unavailable, the previous delays apply.
+
+### 4.5.0
+First 4.x version (never published on its own) — everything below is new since 3.14.0 (versions 4.0.0 to 4.4.4 were never published either). **Breaking change**: read [Upgrading from 3.x](#upgrading-from-3x) first.
+
+- **Breaking** — **own Music Assistant connection**: the integration connects to the Music Assistant server itself, with the server URL and a long-lived API token entered in the setup flow (connection tested). The official Music Assistant integration is no longer required or used.
+- **Breaking** — **own `media_player` entities**, one per Music Assistant player, updated live from Music Assistant events. The card now drives these entities.
+- **Breaking** — new `my_music_library.play_media` action, replacing `music_assistant.play_media` for the card and for your automations.
+- **Breaking** — the default player moved from the setup step to the integration **options**. Existing configurations are migrated automatically (config entry version 2); 3.x setups are asked to re-authenticate with a token.
+- **Breaking** — requires Home Assistant **2026.2** or later (the first release shipping a Music Assistant client ≥ 1.3.3); `music-assistant-client>=1.3.3,<2`, so Home Assistant never has to install a version conflicting with its own.
+- **Breaking** — the Library tab always shows your **favorites**; the favorites toggle is gone (use Search or Browse mode for the full catalog). Radios from recommendation folders are no longer mixed into the library's radio section.
+- **Feature** — **Repairs: duplicate players** — when the official integration still owns the original entity IDs, a fixable issue lists the duplicates and the automations/scripts using them, and on confirmation gives the original IDs to My Music Library (official entities renamed `<id>_music_assistant`, optionally disabled). The integration's own options (default player, hidden players) follow the renames.
+- **Feature** — **re-authentication flow**: a revoked token or a moved server triggers Home Assistant's re-authentication prompt instead of a broken integration.
+- **Feature** — **connection banner** in the card when Music Assistant is unreachable, instead of a blank card; the card, its resources and HTTP views are registered even when the connection fails.
+- **Feature** — **`discovery` tab**: Music Assistant recommendation folders, one section per folder, filtered by the enabled providers.
+- **Feature** — **artist page**: the artist's favorites from your library, plus their full album catalog.
+- **Feature** — **styled nav button for any panel tab** (`element` / `element_config` / `width` / `height` on `player`, `search`, `library`, `discovery`, `playlist`, `settings`).
+- **Improvement** — search, library and sub-items call the Music Assistant client directly: no more scanning of other integrations, REST fallbacks or method-signature guessing.
+- **Improvement** — a failed playback now shows an error toast with the reason, instead of failing silently.
+- **Fix** — logging: with debug mode off, the level set with `logger:` in `configuration.yaml` is respected (it used to be forced to `warning`); turning debug mode off restores it. Per-request logs of the card's HTTP views moved from `info` to `debug`.
+- **Fix** — the `play_media` action is now described (`services.yaml`, en/fr/de), which removes the "Failed to load services.yaml" error from the Home Assistant log.
 
 ### 3.14.0
 - **Feature** — **`playlist` tab type**: a new tab locked to one playlist, picked from a dropdown in the visual editor (populated from your Music Assistant library — queries both favorited and non-favorited playlists, since some providers such as Deezer only sync their playlists as favorites). Every track is listed and tapping one plays it instantly without leaving the tab. A compact player bar (previous / play-pause / next, progress bar, volume slider, device picker — no album art) stays pinned at the bottom, reusing the exact same components and callbacks as the main Player tab. Tracks can be toggled between list and grid view via a header button, remembered per tab.

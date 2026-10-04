@@ -5,10 +5,17 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "3.14.0";
+const CARD_VERSION = "4.8.2";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
+  swap: `<svg viewBox="0 0 24 24"><path d="M21 9l-4-4v3h-7v2h7v3l4-4zM7 11l-4 4 4 4v-3h7v-2H7v-3z"/></svg>`,
+  crown: `<svg viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`,
+  check: `<svg viewBox="0 0 24 24"><path d="M21 7L9 19l-5.5-5.5 1.41-1.41L9 16.17 19.59 5.59 21 7z"/></svg>`,
+  info: `<svg viewBox="0 0 24 24"><path d="M11 7h2v2h-2V7zm0 4h2v6h-2v-6z"/></svg>`,
+  power: `<svg viewBox="0 0 24 24"><path d="M16.56 5.44l-1.45 1.45A5.97 5.97 0 0 1 18 12a6 6 0 0 1-12 0c0-2.17 1.16-4.06 2.88-5.12L7.44 5.44A7.96 7.96 0 0 0 4 12a8 8 0 0 0 16 0c0-2.72-1.36-5.12-3.44-6.56zM13 3h-2v10h2V3z"/></svg>`,
+  pin: `<svg viewBox="0 0 24 24"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>`,
+  star: `<svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`,
   play: `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`,
   pause: `<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`,
   stop: `<svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>`,
@@ -48,16 +55,19 @@ const ICONS = {
   wave: `<svg viewBox="0 0 24 24"><path d="M21 6c-1.66 0-3 1.34-3 3 0 .55.15 1.06.41 1.5L15 14.5l-2.59-2.59c.35-.51.59-1.12.59-1.91 0-1.66-1.34-3-3-3s-3 1.34-3 3c0 .79.24 1.4.59 1.91L3 16.5 4.5 18l5-5L12 15.5l5-5 .5.5c.44.26.95.41 1.5.41 1.66 0 3-1.34 3-3s-1.34-3-3-3z"/></svg>`,
   list: `<svg viewBox="0 0 24 24"><path d="M4 14h4v-4H4v4zm0 5h4v-4H4v4zM4 9h4V5H4v4zm5 5h12v-4H9v4zm0 5h12v-4H9v4zM9 5v4h12V5H9z"/></svg>`,
   grid: `<svg viewBox="0 0 24 24"><path d="M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z"/></svg>`,
+  warning: `<svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>`,
 };
 
 /* ─── i18n ────────────────────────────────────────────────── */
 const TRANSLATIONS = {
   en: {
-    tabs: { player: "Player", search: "Search", library: "Library", playlist: "Playlist", settings: "Settings" },
+    tabs: { player: "Player", search: "Search", library: "Library", playlist: "Playlist", settings: "Settings", discovery: "Discovery" },
     player: {
       nothing_playing: "Nothing playing",
       select_player: "Select a player",
       no_player: "No player found",
+      goto_artist: "Artist",
+      artist_not_found: "No artist found for this track",
     },
     playlist: {
       not_configured: "No playlist selected — choose one in the card editor.",
@@ -95,12 +105,11 @@ const TRANSLATIONS = {
       filter_all: "All",
       filter_local: "Local",
       filter_streaming: "Streaming",
-      filter_favorites: "Favorites",
       empty: "Library is empty or Music Assistant is not connected.",
       empty_hint: "Make sure Music Assistant integration is installed and running.",
       no_albums: "No albums found",
       load_error: "Could not load albums",
-      album_types: { album: "Albums", ep: "EPs", single: "Singles", compilation: "Compilations" },
+      album_types: { album: "Albums", ep: "EPs", single: "Singles", live: "Live albums", compilation: "Compilations" },
       mode_catalogue: "Catalogue",
       mode_browse: "Browse",
       browse_root: "Root",
@@ -108,18 +117,51 @@ const TRANSLATIONS = {
       browse_error: "Could not load folder contents",
       browse_empty: "Empty folder",
     },
-    queue: { up_next: "Up Next", empty: "Queue is empty", play_next: "Play next", add_to_end: "Add to end", added_next: "Added after current track", added_end: "Added to end of queue", remove: "Remove", toggle: "Toggle queue", start_mix: "Start a mix", mix_started: "Mix started" },
-    errors: { media_not_found: "Media not found on source" },
+    artist: {
+      favorites: "Favorites",
+      all_albums: "All albums",
+      sort_name: "Name",
+      sort_date: "Date",
+      no_albums: "No albums found",
+      load_error: "Could not load albums",
+    },
+    discovery: {
+      empty: "No recommendations available right now",
+      load_error: "Could not load recommendations",
+    },
+    queue: { up_next: "Up Next", empty: "Queue is empty", play_next: "Play next", add_to_end: "Add to end", added_next: "Added after current track", added_end: "Added to end of queue", remove: "Remove", toggle: "Toggle queue", start_mix: "Start a mix", mix_preparing: "Preparing the mix…", mix_started: "Mix started" },
+    errors: { media_not_found: "Media not found on source", play_failed: "Playback failed" },
+    connection: {
+      title: "Music Assistant reconnection needed",
+      desc: "The connection to Music Assistant is down — search, library and playback won't work until this is fixed.",
+      action: "Reconfigure",
+    },
     nav: { back: "← Back" },
-    group: {
-      title: "Choose a device",
-      section_master: "Active",
-      section_members: "Group members",
-      section_available: "Available",
-      attach: "Add to group",
-      detach: "Remove from group",
-      no_players: "No Music Assistant players found.",
-      volume: "Volume",
+    outputs: {
+      open: "Choose output",
+      mode_switch: "Switch", mode_group: "Group", mode_control: "Control",
+      hint_switch: "Move the music to one or more outputs (same track, same position).",
+      hint_group: "Add outputs to the current group, or remove them.",
+      hint_control: "Choose which output this card controls.",
+      close: "Close", source: "Playing on", to: "Move to", current: "Current output",
+      select_hint: "Select one or more outputs",
+      switch_to_one: "Switch to {name}", switch_to_many: "Switch to {n} outputs",
+      switched: "Music moved to {name}",
+      group_of: "Group of {name}", in_group: "In the group", member_of: "With {name}",
+      cannot_group: "Can't be grouped with {name}", no_other_outputs: "No other output",
+      volumes: "Volume", group_volume: "Whole group",
+      presets: "Favorite groups", save_preset: "Save this group", preset_name: "Group name",
+      save: "Save", cancel: "Cancel", preset_saved: "Group “{name}” saved",
+      delete_preset: "Delete", delete_preset_confirm: "Delete the favorite group “{name}”?",
+      dissolve: "Ungroup all",
+      sessions: "Playing now", no_sessions: "Nothing is playing.", other_outputs: "Other outputs",
+      other_players: "Other Home Assistant players",
+      show_offline: "Show {n} offline", hide_offline: "Hide offline",
+      leader: "Leads the group", playing: "Playing", paused: "Paused", idle: "Idle", off: "Off", unavailable: "Offline",
+      power_on: "Turn on", pin: "Default output on this device", unpin: "Default output on this device — tap to unpin",
+      details: "Details", info_entity: "Entity", info_area: "Area", info_model: "Model", info_provider: "Provider", info_state: "State",
+      browser: "Browser", nothing: "Nothing playing", no_outputs: "No Music Assistant output found.",
+      action_failed: "Failed: {msg}",
     },
     settings: {
       title: "Settings",
@@ -147,6 +189,9 @@ const TRANSLATIONS = {
       tab_label_hint: "Custom label (empty = default)",
       tab_icon: "Icon",
       tab_icon_hint: "e.g. mdi:play-circle",
+      tab_show_in_nav: "Show in nav bar",
+      advanced_config: "Advanced (YAML)",
+      advanced_config_hint: "Extra properties not covered above, e.g. tap_action data/target",
       sections_title: "Library sections",
       layout_label: "Layout",
       layout_grid_disabled: "Grid is only available with a single section",
@@ -168,6 +213,7 @@ const TRANSLATIONS = {
       type_player: "Player",
       type_search: "Search",
       type_library: "Library",
+      type_discovery: "Discovery",
       type_playlist: "Playlist",
       type_settings: "Settings",
       type_button: "Button",
@@ -180,7 +226,12 @@ const TRANSLATIONS = {
       search_layout: "Layout",
       search_layout_rows: "Rows",
       search_layout_columns: "Columns",
-      show_device_select: "Show device selection",
+      show_device_select: "Show the output row",
+      show_other_players: "Offer other Home Assistant players (Control mode)",
+      outputs_title: "Outputs",
+      outputs_hint: "Short name, icon (mdi:…) and visibility of each output in the output panel.",
+      outputs_alias: "Short name",
+      outputs_hide: "Hide",
       type_custom_element: "Custom element",
       btn_element_name: "Element tag",
       btn_element_config: "Config (JSON)",
@@ -210,11 +261,13 @@ const TRANSLATIONS = {
     },
   },
   fr: {
-    tabs: { player: "Lecteur", search: "Recherche", library: "Bibliothèque", playlist: "Playlist", settings: "Paramètres" },
+    tabs: { player: "Lecteur", search: "Recherche", library: "Bibliothèque", playlist: "Playlist", settings: "Paramètres", discovery: "Découverte" },
     player: {
       nothing_playing: "Rien en cours de lecture",
       select_player: "Sélectionnez un lecteur",
       no_player: "Aucun lecteur trouvé",
+      goto_artist: "Artiste",
+      artist_not_found: "Aucun artiste trouvé pour ce titre",
     },
     playlist: {
       not_configured: "Aucune playlist sélectionnée — choisissez-en une dans l'éditeur de carte.",
@@ -252,12 +305,11 @@ const TRANSLATIONS = {
       filter_all: "Tout",
       filter_local: "Local",
       filter_streaming: "Streaming",
-      filter_favorites: "Favoris",
       empty: "La bibliothèque est vide ou Music Assistant n'est pas connecté.",
       empty_hint: "Assurez-vous que l'intégration Music Assistant est installée et en cours d'exécution.",
       no_albums: "Aucun album trouvé",
       load_error: "Impossible de charger les albums",
-      album_types: { album: "Albums", ep: "EPs", single: "Singles", compilation: "Compilations" },
+      album_types: { album: "Albums", ep: "EPs", single: "Singles", live: "Albums live", compilation: "Compilations" },
       mode_catalogue: "Catalogue",
       mode_browse: "Parcourir",
       browse_root: "Racine",
@@ -265,18 +317,51 @@ const TRANSLATIONS = {
       browse_error: "Impossible de charger le contenu du dossier",
       browse_empty: "Dossier vide",
     },
-    queue: { up_next: "À suivre", empty: "File d'attente vide", play_next: "Lire après le titre en cours", add_to_end: "Ajouter à la fin", added_next: "Ajouté après le titre en cours", added_end: "Ajouté à la fin de la file d'attente", remove: "Supprimer", toggle: "Afficher/masquer la file", start_mix: "Lancer un mix", mix_started: "Mix lancé" },
-    errors: { media_not_found: "Média introuvable sur la source" },
+    artist: {
+      favorites: "Favoris",
+      all_albums: "Tous les albums",
+      sort_name: "Nom",
+      sort_date: "Date",
+      no_albums: "Aucun album trouvé",
+      load_error: "Impossible de charger les albums",
+    },
+    discovery: {
+      empty: "Aucune recommandation disponible pour le moment",
+      load_error: "Impossible de charger les recommandations",
+    },
+    queue: { up_next: "À suivre", empty: "File d'attente vide", play_next: "Lire après le titre en cours", add_to_end: "Ajouter à la fin", added_next: "Ajouté après le titre en cours", added_end: "Ajouté à la fin de la file d'attente", remove: "Supprimer", toggle: "Afficher/masquer la file", start_mix: "Lancer un mix", mix_preparing: "Préparation du mix…", mix_started: "Mix lancé" },
+    errors: { media_not_found: "Média introuvable sur la source", play_failed: "Échec de la lecture" },
+    connection: {
+      title: "Reconnexion à Music Assistant nécessaire",
+      desc: "La connexion à Music Assistant est coupée — recherche, bibliothèque et lecture ne fonctionneront pas tant que ce n'est pas résolu.",
+      action: "Reconfigurer",
+    },
     nav: { back: "← Retour" },
-    group: {
-      title: "Choisir un appareil",
-      section_master: "Actif",
-      section_members: "Membres du groupe",
-      section_available: "Disponible",
-      attach: "Ajouter au groupe",
-      detach: "Retirer du groupe",
-      no_players: "Aucun lecteur Music Assistant trouvé.",
-      volume: "Volume",
+    outputs: {
+      open: "Choisir la sortie",
+      mode_switch: "Basculer", mode_group: "Grouper", mode_control: "Contrôler",
+      hint_switch: "Déplacer la musique vers une ou plusieurs sorties (même titre, même position).",
+      hint_group: "Ajouter des sorties au groupe en cours, ou en retirer.",
+      hint_control: "Choisir la sortie que cette carte pilote.",
+      close: "Fermer", source: "En cours sur", to: "Vers", current: "Sortie actuelle",
+      select_hint: "Sélectionnez une ou plusieurs sorties",
+      switch_to_one: "Basculer vers {name}", switch_to_many: "Basculer vers {n} sorties",
+      switched: "Musique basculée vers {name}",
+      group_of: "Groupe de {name}", in_group: "Dans le groupe", member_of: "Avec {name}",
+      cannot_group: "Ne peut pas être groupé avec {name}", no_other_outputs: "Aucune autre sortie",
+      volumes: "Volume", group_volume: "Tout le groupe",
+      presets: "Groupes favoris", save_preset: "Enregistrer ce groupe", preset_name: "Nom du groupe",
+      save: "Enregistrer", cancel: "Annuler", preset_saved: "Groupe « {name} » enregistré",
+      delete_preset: "Supprimer", delete_preset_confirm: "Supprimer le groupe favori « {name} » ?",
+      dissolve: "Dissoudre le groupe",
+      sessions: "En cours de lecture", no_sessions: "Rien n'est en cours de lecture.", other_outputs: "Autres sorties",
+      other_players: "Autres lecteurs Home Assistant",
+      show_offline: "Afficher {n} hors ligne", hide_offline: "Masquer les sorties hors ligne",
+      leader: "Mène le groupe", playing: "Lecture", paused: "Pause", idle: "Inactif", off: "Éteint", unavailable: "Hors ligne",
+      power_on: "Allumer", pin: "Sortie par défaut de cet appareil", unpin: "Sortie par défaut de cet appareil — toucher pour retirer",
+      details: "Détails", info_entity: "Entité", info_area: "Pièce", info_model: "Modèle", info_provider: "Fournisseur", info_state: "État",
+      browser: "Navigateur", nothing: "Rien en cours de lecture", no_outputs: "Aucune sortie Music Assistant trouvée.",
+      action_failed: "Échec : {msg}",
     },
     settings: {
       title: "Paramètres",
@@ -304,6 +389,9 @@ const TRANSLATIONS = {
       tab_label_hint: "Libellé personnalisé (vide = défaut)",
       tab_icon: "Icône",
       tab_icon_hint: "ex. mdi:play-circle",
+      tab_show_in_nav: "Afficher dans la barre de nav",
+      advanced_config: "Avancé (YAML)",
+      advanced_config_hint: "Propriétés supplémentaires non couvertes ci-dessus, ex. data/target de tap_action",
       sections_title: "Sections de la bibliothèque",
       layout_label: "Disposition",
       layout_grid_disabled: "La grille n'est disponible qu'avec une seule section",
@@ -325,6 +413,7 @@ const TRANSLATIONS = {
       type_player: "Lecteur",
       type_search: "Recherche",
       type_library: "Bibliothèque",
+      type_discovery: "Découverte",
       type_playlist: "Playlist",
       type_settings: "Paramètres",
       type_button: "Bouton",
@@ -337,7 +426,12 @@ const TRANSLATIONS = {
       search_layout: "Disposition",
       search_layout_rows: "Lignes",
       search_layout_columns: "Colonnes",
-      show_device_select: "Afficher la sélection de l'appareil",
+      show_device_select: "Afficher la ligne de sortie",
+      show_other_players: "Proposer les autres lecteurs Home Assistant (mode Contrôler)",
+      outputs_title: "Sorties",
+      outputs_hint: "Nom court, icône (mdi:…) et visibilité de chaque sortie dans le panneau des sorties.",
+      outputs_alias: "Nom court",
+      outputs_hide: "Masquer",
       type_custom_element: "Élément custom",
       btn_element_name: "Balise élément",
       btn_element_config: "Config (JSON)",
@@ -367,11 +461,13 @@ const TRANSLATIONS = {
     },
   },
   de: {
-    tabs: { player: "Wiedergabe", search: "Suche", library: "Bibliothek", playlist: "Playlist", settings: "Einstellungen" },
+    tabs: { player: "Wiedergabe", search: "Suche", library: "Bibliothek", playlist: "Playlist", settings: "Einstellungen", discovery: "Entdecken" },
     player: {
       nothing_playing: "Nichts wird abgespielt",
       select_player: "Player auswählen",
       no_player: "Kein Player gefunden",
+      goto_artist: "Künstler",
+      artist_not_found: "Kein Künstler für diesen Titel gefunden",
     },
     playlist: {
       not_configured: "Keine Playlist ausgewählt — wählen Sie eine im Karten-Editor.",
@@ -409,12 +505,11 @@ const TRANSLATIONS = {
       filter_all: "Alle",
       filter_local: "Lokal",
       filter_streaming: "Streaming",
-      filter_favorites: "Favoriten",
       empty: "Bibliothek ist leer oder Music Assistant ist nicht verbunden.",
       empty_hint: "Stellen Sie sicher, dass die Music Assistant Integration installiert und aktiv ist.",
       no_albums: "Keine Alben gefunden",
       load_error: "Alben konnten nicht geladen werden",
-      album_types: { album: "Alben", ep: "EPs", single: "Singles", compilation: "Kompilationen" },
+      album_types: { album: "Alben", ep: "EPs", single: "Singles", live: "Live-Alben", compilation: "Kompilationen" },
       mode_catalogue: "Katalog",
       mode_browse: "Durchsuchen",
       browse_root: "Wurzel",
@@ -422,18 +517,51 @@ const TRANSLATIONS = {
       browse_error: "Ordnerinhalt konnte nicht geladen werden",
       browse_empty: "Leerer Ordner",
     },
-    queue: { up_next: "Als Nächstes", empty: "Warteschlange ist leer", play_next: "Als Nächstes abspielen", add_to_end: "Am Ende hinzufügen", added_next: "Nach dem aktuellen Titel hinzugefügt", added_end: "Am Ende der Warteschlange hinzugefügt", remove: "Entfernen", toggle: "Warteschlange ein-/ausblenden", start_mix: "Mix starten", mix_started: "Mix gestartet" },
-    errors: { media_not_found: "Medium auf der Quelle nicht gefunden" },
+    artist: {
+      favorites: "Favoriten",
+      all_albums: "Alle Alben",
+      sort_name: "Name",
+      sort_date: "Datum",
+      no_albums: "Keine Alben gefunden",
+      load_error: "Alben konnten nicht geladen werden",
+    },
+    discovery: {
+      empty: "Momentan keine Empfehlungen verfügbar",
+      load_error: "Empfehlungen konnten nicht geladen werden",
+    },
+    queue: { up_next: "Als Nächstes", empty: "Warteschlange ist leer", play_next: "Als Nächstes abspielen", add_to_end: "Am Ende hinzufügen", added_next: "Nach dem aktuellen Titel hinzugefügt", added_end: "Am Ende der Warteschlange hinzugefügt", remove: "Entfernen", toggle: "Warteschlange ein-/ausblenden", start_mix: "Mix starten", mix_preparing: "Mix wird vorbereitet…", mix_started: "Mix gestartet" },
+    errors: { media_not_found: "Medium auf der Quelle nicht gefunden", play_failed: "Wiedergabe fehlgeschlagen" },
+    connection: {
+      title: "Erneute Verbindung zu Music Assistant erforderlich",
+      desc: "Die Verbindung zu Music Assistant ist unterbrochen — Suche, Bibliothek und Wiedergabe funktionieren erst wieder, wenn dies behoben ist.",
+      action: "Neu konfigurieren",
+    },
     nav: { back: "← Zurück" },
-    group: {
-      title: "Gerät auswählen",
-      section_master: "Aktiv",
-      section_members: "Gruppenmitglieder",
-      section_available: "Verfügbar",
-      attach: "Zur Gruppe hinzufügen",
-      detach: "Aus der Gruppe entfernen",
-      no_players: "Keine Music Assistant Player gefunden.",
-      volume: "Lautstärke",
+    outputs: {
+      open: "Ausgabe wählen",
+      mode_switch: "Wechseln", mode_group: "Gruppieren", mode_control: "Steuern",
+      hint_switch: "Die Musik auf eine oder mehrere Ausgaben verschieben (gleicher Titel, gleiche Position).",
+      hint_group: "Ausgaben zur aktuellen Gruppe hinzufügen oder entfernen.",
+      hint_control: "Wählen, welche Ausgabe diese Karte steuert.",
+      close: "Schließen", source: "Läuft auf", to: "Nach", current: "Aktuelle Ausgabe",
+      select_hint: "Eine oder mehrere Ausgaben wählen",
+      switch_to_one: "Zu {name} wechseln", switch_to_many: "Zu {n} Ausgaben wechseln",
+      switched: "Musik zu {name} verschoben",
+      group_of: "Gruppe von {name}", in_group: "In der Gruppe", member_of: "Mit {name}",
+      cannot_group: "Kann nicht mit {name} gruppiert werden", no_other_outputs: "Keine weitere Ausgabe",
+      volumes: "Lautstärke", group_volume: "Ganze Gruppe",
+      presets: "Lieblingsgruppen", save_preset: "Diese Gruppe speichern", preset_name: "Gruppenname",
+      save: "Speichern", cancel: "Abbrechen", preset_saved: "Gruppe „{name}“ gespeichert",
+      delete_preset: "Löschen", delete_preset_confirm: "Lieblingsgruppe „{name}“ löschen?",
+      dissolve: "Gruppe auflösen",
+      sessions: "Aktuelle Wiedergabe", no_sessions: "Nichts wird abgespielt.", other_outputs: "Weitere Ausgaben",
+      other_players: "Weitere Home-Assistant-Player",
+      show_offline: "{n} offline anzeigen", hide_offline: "Offline ausblenden",
+      leader: "Führt die Gruppe", playing: "Wiedergabe", paused: "Pause", idle: "Inaktiv", off: "Aus", unavailable: "Offline",
+      power_on: "Einschalten", pin: "Standardausgabe auf diesem Gerät", unpin: "Standardausgabe auf diesem Gerät — tippen zum Lösen",
+      details: "Details", info_entity: "Entität", info_area: "Bereich", info_model: "Modell", info_provider: "Anbieter", info_state: "Status",
+      browser: "Browser", nothing: "Keine Wiedergabe", no_outputs: "Keine Music-Assistant-Ausgabe gefunden.",
+      action_failed: "Fehlgeschlagen: {msg}",
     },
     settings: {
       title: "Einstellungen",
@@ -461,6 +589,9 @@ const TRANSLATIONS = {
       tab_label_hint: "Eigene Bezeichnung (leer = Standard)",
       tab_icon: "Symbol",
       tab_icon_hint: "z.B. mdi:play-circle",
+      tab_show_in_nav: "In Navigationsleiste anzeigen",
+      advanced_config: "Erweitert (YAML)",
+      advanced_config_hint: "Zusätzliche Eigenschaften, die oben nicht abgedeckt sind, z.B. tap_action data/target",
       sections_title: "Bibliotheksbereiche",
       layout_label: "Layout",
       layout_grid_disabled: "Raster ist nur mit einem einzelnen Bereich verfügbar",
@@ -482,6 +613,7 @@ const TRANSLATIONS = {
       type_player: "Wiedergabe",
       type_search: "Suche",
       type_library: "Bibliothek",
+      type_discovery: "Entdecken",
       type_playlist: "Playlist",
       type_settings: "Einstellungen",
       type_button: "Schaltfläche",
@@ -494,7 +626,12 @@ const TRANSLATIONS = {
       search_layout: "Layout",
       search_layout_rows: "Zeilen",
       search_layout_columns: "Spalten",
-      show_device_select: "Geräteauswahl anzeigen",
+      show_device_select: "Ausgabezeile anzeigen",
+      show_other_players: "Andere Home-Assistant-Player anbieten (Modus Steuern)",
+      outputs_title: "Ausgaben",
+      outputs_hint: "Kurzname, Symbol (mdi:…) und Sichtbarkeit jeder Ausgabe im Ausgabenbereich.",
+      outputs_alias: "Kurzname",
+      outputs_hide: "Ausblenden",
       type_custom_element: "Benutzerelement",
       btn_element_name: "Element-Tag",
       btn_element_config: "Konfiguration (JSON)",
@@ -888,6 +1025,16 @@ const STYLES = `
     text-overflow: ellipsis;
   }
 
+  .goto-artist-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-top: 8px; padding: 4px 12px; border-radius: 14px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text2); font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .goto-artist-btn svg { width: 14px; height: 14px; fill: currentColor; }
+  .goto-artist-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .goto-artist-btn:disabled { opacity: .5; cursor: progress; }
+
   /* Progress */
   .progress-wrapper { display: flex; flex-direction: column; gap: 6px; }
   .progress-bar-container {
@@ -1003,11 +1150,17 @@ const STYLES = `
   }
   .device-row:hover { background: color-mix(in srgb, var(--bg2) 80%, white 20%); }
   .device-row svg { width: 18px; height: 18px; fill: var(--text2); flex-shrink: 0; }
-  .device-name { flex: 1; font-size: 13px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .device-chevron { width: 16px; height: 16px; fill: var(--text2); flex-shrink: 0; }
+  .device-icon { display: flex; flex-shrink: 0; }
+  .device-icon ha-icon { --mdc-icon-size: 18px; color: var(--accent); }
+  .device-name { flex: 1; font-size: 13px; color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .device-switch-btn {
+    display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%;
+    background: color-mix(in srgb, var(--accent) 16%, transparent); flex-shrink: 0;
+  }
+  .device-switch-btn svg { width: 18px; height: 18px; fill: var(--accent); }
 
 
-  /* Device modal */
+  /* Modals (settings) */
   .modal-overlay {
     display: none;
     position: absolute;
@@ -1038,63 +1191,152 @@ const STYLES = `
   }
   .modal-title button { background: none; border: none; cursor: pointer; color: var(--text2); }
   .modal-title button svg { width: 18px; height: 18px; fill: currentColor; display: block; }
-  .device-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background .15s;
+  /* Output panel (switch / group / control) — over the player's art + controls */
+  .player-panel { position: relative; }
+  .out-panel {
+    position: absolute; inset: 0; z-index: 50;
+    display: flex; flex-direction: column;
+    background: var(--bg);
+    overflow: hidden;
   }
-  .device-item:hover { background: rgba(255,255,255,.06); }
-  .device-item.selected { color: var(--accent); }
-  .device-item.master { cursor: default; }
-  .device-item.master:hover { background: none; }
-  .device-item.member { color: var(--accent); opacity: .9; }
-  .device-item svg { width: 20px; height: 20px; fill: currentColor; }
-  .device-item-name { flex: 1; font-size: 14px; }
-  .device-item-state { font-size: 11px; color: var(--text2); }
-
-  /* Device modal sections */
-  .device-section + .device-section { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 4px; }
-  .device-section-title {
-    font-size: 10px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: .08em; color: var(--text2); padding: 10px 12px 4px; opacity: .65;
+  .out-panel[hidden] { display: none; }
+  .out-panel-floating { z-index: 100; border-radius: var(--radius); }
+  .out-head { display: flex; align-items: center; gap: 8px; padding: 12px 12px 6px; flex-shrink: 0; }
+  .out-modes {
+    flex: 1; display: flex; gap: 2px; padding: 3px; border-radius: 10px;
+    background: var(--bg2); border: 1px solid var(--border);
   }
-  .device-item-action {
-    background: none; border: none; cursor: pointer; color: var(--text2); padding: 4px;
-    border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    transition: color .15s, background .15s; flex-shrink: 0;
+  .out-mode {
+    flex: 1; padding: 7px 6px; border: none; border-radius: 8px; cursor: pointer;
+    background: transparent; color: var(--text2); font-size: 13px; font-weight: 600;
+  }
+  .out-mode.active { background: var(--accent); color: var(--text-primary-on-accent, #fff); }
+  .out-close { background: none; border: none; cursor: pointer; color: var(--text2); padding: 6px; border-radius: 50%; }
+  .out-close svg { width: 20px; height: 20px; fill: currentColor; display: block; }
+  .out-hint { font-size: 12px; color: var(--text2); padding: 0 16px 6px; flex-shrink: 0; }
+  .out-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0 12px 12px; }
+  .out-section-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--text2); opacity: .75; padding: 12px 4px 6px;
+  }
+  .out-empty { font-size: 13px; color: var(--text2); padding: 8px 4px; }
+  .out-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+  .out-tile {
+    position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 12px 8px 10px; border-radius: 12px; cursor: pointer; text-align: center;
+    background: var(--bg2); border: 2px solid var(--border);
+    transition: border-color .15s, background .15s, opacity .15s;
     -webkit-tap-highlight-color: transparent;
   }
-  .device-item-action:hover { color: var(--text); background: rgba(255,255,255,.12); }
-  .device-item-action svg { width: 16px; height: 16px; fill: currentColor; }
-  .device-item-action.attach { color: var(--accent); }
-  .device-item-action.detach:hover { color: #ff6b6b; background: rgba(255,107,107,.15); }
-
-  /* Device volume slider (inside group modal) */
-  .device-item-volume {
-    display: flex; align-items: center; gap: 6px;
-    padding: 2px 12px 8px 42px;
-    margin-top: -6px;
+  .out-tile:hover { background: color-mix(in srgb, var(--bg2) 85%, var(--text) 15%); }
+  .out-tile.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--bg2)); }
+  .out-tile.disabled { opacity: .4; cursor: not-allowed; }
+  .out-tile.off .out-tile-icon { opacity: .55; }
+  .out-tile-icon { position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+  .out-tile-icon ha-icon { --mdc-icon-size: 34px; color: var(--text); }
+  .out-tile.sel .out-tile-icon ha-icon, .out-tile.playing .out-tile-icon ha-icon { color: var(--accent); }
+  .out-tile-name {
+    width: 100%; font-size: 13px; font-weight: 600; line-height: 1.25; color: var(--text);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    word-break: break-word;
   }
-  .device-item-volume svg { width: 14px; height: 14px; fill: var(--text2); flex-shrink: 0; }
-  .device-item-volume input[type=range] {
-    flex: 1; -webkit-appearance: none; height: 4px; border-radius: 2px;
-    background: color-mix(in srgb, var(--text) 25%, transparent);
-    outline: none; cursor: pointer; touch-action: none;
+  .out-tile-sub {
+    width: 100%; font-size: 11px; color: var(--text2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .device-item-volume input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
-    background: var(--accent); cursor: pointer;
+  .out-check {
+    position: absolute; top: 6px; left: 6px; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--accent); display: flex; align-items: center; justify-content: center;
   }
-  .device-item-volume input[type=range]::-moz-range-thumb {
-    width: 16px; height: 16px; border-radius: 50%;
-    background: var(--accent); border: none; cursor: pointer;
+  .out-check svg { width: 13px; height: 13px; fill: var(--text-primary-on-accent, #fff); }
+  .out-crown { position: absolute; top: -4px; right: -6px; }
+  .out-crown svg { width: 16px; height: 16px; fill: #f5b301; }
+  .out-eq { position: absolute; bottom: 0; right: -4px; display: flex; align-items: flex-end; gap: 1px; height: 12px; }
+  .out-eq i { width: 3px; background: var(--accent); border-radius: 1px; animation: out-eq 1s ease-in-out infinite; }
+  .out-eq i:nth-child(2) { animation-delay: .2s; }
+  .out-eq i:nth-child(3) { animation-delay: .4s; }
+  @keyframes out-eq { 0%, 100% { height: 3px; } 50% { height: 12px; } }
+  .out-info, .out-power, .out-pin {
+    position: absolute; width: 24px; height: 24px; padding: 0; border: none; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    background: color-mix(in srgb, var(--text) 12%, transparent); color: var(--text2);
   }
-  .device-item-volume .device-vol-pct {
-    font-size: 11px; color: var(--text2); min-width: 28px; text-align: right;
+  .out-info[hidden] { display: none; }
+  .out-info { top: 6px; right: 6px; }
+  .out-power { bottom: 6px; right: 6px; color: var(--accent); }
+  .out-tile .out-pin { top: 6px; left: 6px; opacity: .6; }
+  .out-tile.sel .out-pin { left: auto; right: 34px; }
+  .out-pin.on { opacity: 1; color: var(--accent); background: color-mix(in srgb, var(--accent) 20%, transparent); }
+  .out-info svg, .out-power svg, .out-pin svg { width: 14px; height: 14px; fill: currentColor; }
+  .out-info-pop {
+    position: absolute; z-index: 5; padding: 10px 12px; border-radius: 10px;
+    background: var(--bg2); border: 1px solid var(--border); box-shadow: 0 6px 24px rgba(0,0,0,.35);
+    font-size: 12px; color: var(--text2);
+  }
+  .out-info-pop[hidden] { display: none; }
+  .out-info-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; word-break: break-word; }
+  .out-info-row { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; }
+  .out-info-row span:last-child { color: var(--text); text-align: right; word-break: break-all; }
+  .out-source {
+    display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px;
+    background: color-mix(in srgb, var(--accent) 10%, var(--bg2)); border: 1px solid var(--border);
+  }
+  .out-source-icons { display: flex; }
+  .out-source-icons ha-icon { --mdc-icon-size: 26px; color: var(--accent); margin-right: -6px; }
+  .out-source-text { flex: 1; min-width: 0; }
+  .out-source-names { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .out-source-np { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .out-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+  .out-chip {
+    display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; border-radius: 16px; cursor: pointer;
+    background: var(--bg2); border: 1px solid var(--border); font-size: 12px; font-weight: 600;
+  }
+  .out-chip svg { width: 14px; height: 14px; fill: #f5b301; }
+  .out-chip-del { background: none; border: none; padding: 0 0 0 2px; cursor: pointer; display: flex; }
+  .out-chip-del svg { width: 13px; height: 13px; fill: var(--text2); }
+  .out-link { background: none; border: none; color: var(--accent); font-size: 12px; cursor: pointer; padding: 10px 4px 0; }
+  .out-volumes { display: flex; flex-direction: column; gap: 4px; }
+  .out-vol-row { display: grid; grid-template-columns: minmax(70px, 30%) 28px 1fr 36px; align-items: center; gap: 6px; }
+  .out-vol-row.group .out-vol-name { font-weight: 700; color: var(--text); }
+  .out-vol-name { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .out-vol-icon, .out-mute { display: flex; align-items: center; justify-content: center; background: none; border: none; color: var(--text2); cursor: pointer; padding: 0; }
+  .out-mute.on { color: var(--accent); }
+  .out-vol-icon svg, .out-mute svg { width: 18px; height: 18px; fill: currentColor; }
+  .out-vol-row input[type=range] {
+    width: 100%; -webkit-appearance: none; height: 4px; border-radius: 2px;
+    background: color-mix(in srgb, var(--text) 25%, transparent); outline: none; cursor: pointer; touch-action: none;
+  }
+  .out-vol-row input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); }
+  .out-vol-row input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: none; }
+  .out-vol-pct { font-size: 11px; color: var(--text2); text-align: right; }
+  .out-sessions { display: flex; flex-direction: column; gap: 6px; }
+  .out-session {
+    position: relative; display: flex; align-items: center; gap: 10px; padding: 8px 40px 8px 8px; border-radius: 12px;
+    background: var(--bg2); border: 2px solid var(--border); cursor: pointer;
+  }
+  .out-session.active { border-color: var(--accent); }
+  .out-session-art { width: 44px; height: 44px; border-radius: 8px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--text) 8%, transparent); }
+  .out-session-art img { width: 100%; height: 100%; object-fit: cover; }
+  .out-session-art ha-icon { --mdc-icon-size: 26px; color: var(--accent); }
+  .out-session-text { flex: 1; min-width: 0; }
+  .out-session-names { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .out-session-np { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text2); min-width: 0; }
+  .out-session-np svg { width: 14px; height: 14px; fill: currentColor; flex-shrink: 0; }
+  .out-session-np span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .out-session .out-pin { top: 50%; right: 8px; transform: translateY(-50%); }
+  .out-foot { display: flex; gap: 8px; padding: 10px 12px 12px; border-top: 1px solid var(--border); flex-shrink: 0; }
+  .out-primary, .out-secondary {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 12px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .out-primary { background: var(--accent); color: var(--text-primary-on-accent, #fff); border: none; }
+  .out-secondary { background: var(--bg2); color: var(--text); border: 1px solid var(--border); }
+  .out-secondary.danger { color: #ff6b6b; }
+  .out-secondary svg { width: 16px; height: 16px; fill: #f5b301; }
+  .out-primary:disabled, .out-secondary:disabled { opacity: .45; cursor: default; }
+  .out-preset-input {
+    flex: 2; min-width: 0; padding: 9px 10px; border-radius: 10px; font-size: 13px;
+    background: var(--bg2); color: var(--text); border: 1px solid var(--border);
   }
 
   /* ══════════════════════════════════════════
@@ -1298,6 +1540,34 @@ const STYLES = `
     color: var(--text2);
     padding: 12px 16px 6px;
   }
+  .search-section-title-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; padding-right: 16px;
+  }
+  .search-section-title-row .search-section-title { padding-right: 0; }
+  .search-subsection { margin-bottom: 8px; }
+  .search-section-subtitle {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    opacity: .8;
+    padding: 4px 16px;
+  }
+  .artist-sort-toggles { display: flex; gap: 6px; }
+  .artist-sort-btn {
+    display: flex; align-items: center; gap: 3px;
+    padding: 4px 10px; border-radius: 14px;
+    border: 1px solid var(--divider, rgba(127,127,127,.3));
+    background: transparent; color: var(--text2);
+    font-size: 11px; font-weight: 600; cursor: pointer;
+    text-transform: none; letter-spacing: normal;
+  }
+  .artist-sort-btn.active {
+    border-color: var(--accent); color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+  .artist-sort-btn.active[data-dir="asc"]::after { content: "\\2191"; }
+  .artist-sort-btn.active[data-dir="desc"]::after { content: "\\2193"; }
 
   .search-card {
     flex-shrink: 0;
@@ -1422,24 +1692,6 @@ const STYLES = `
   .lib-filter-btn:not(:last-child) { border-right: 1px solid var(--border); }
   .lib-filter-btn:hover { background: rgba(255,255,255,.06); }
   .lib-filter-btn.active { background: var(--accent); color: #000; }
-  .lib-filter-fav {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 5px 10px;
-    font-size: 12px;
-    font-weight: 500;
-    background: none;
-    color: var(--text2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background .15s, color .15s, border-color .15s;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .lib-filter-fav:hover { background: rgba(255,255,255,.06); }
-  .lib-filter-fav.active { background: var(--accent); color: #000; border-color: var(--accent); }
-  .lib-filter-fav svg { width: 14px; height: 14px; fill: currentColor; }
 
   .lib-content { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
@@ -1793,6 +2045,28 @@ const STYLES = `
   }
   .mml-toast.visible { opacity: 1; }
 
+  .mml-connection-banner {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; margin: 0 0 8px 0;
+    background: color-mix(in srgb, var(--error-color, #b00020) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--error-color, #b00020) 35%, transparent);
+    border-radius: 8px; font-size: 13px;
+  }
+  .mml-connection-banner[hidden] { display: none; }
+  .mml-connection-banner svg {
+    width: 20px; height: 20px; min-width: 20px;
+    fill: var(--error-color, #b00020);
+  }
+  .mml-connection-banner-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .mml-connection-banner-text strong { font-weight: 600; }
+  .mml-connection-banner-text span { opacity: .8; font-size: 12px; }
+  .mml-connection-banner-action {
+    flex-shrink: 0; padding: 6px 12px; border-radius: 6px;
+    background: var(--error-color, #b00020); color: #fff;
+    font-size: 12px; font-weight: 600; text-decoration: none;
+    white-space: nowrap;
+  }
+
   /* ═══════════════════════════════════════════
      COMPANION MOBILE MODE
   ═══════════════════════════════════════════ */
@@ -1941,6 +2215,82 @@ function throttle(fn, ms) {
 }
 
 /* ─── Main Card Class ─────────────────────────────────────── */
+/* Pure function of `config` — shared by MyMusicLibraryCard (to build its actual
+   panels) and MyMusicLibraryCardEditor (to compute the same tab ids so nav
+   actions like mml_navigate_tab can target a specific tab unambiguously). */
+function _buildResolvedTabs(config) {
+  const DEFAULT_SECTIONS = ["artists", "albums", "playlists", "tracks"];
+  const VALID_SECTIONS = ["artists", "albums", "playlists", "tracks", "radios", "recently_played", "recently_added", "recommended", "flows"];
+  const TAB_ICONS = { player: "player", search: "search", library: "library", playlist: "playlist", settings: "settings", discovery: "sparkle" };
+
+  if (config.tabs && Array.isArray(config.tabs)) {
+    let idx = 0;
+    const typeCounts = {};
+    return config.tabs.map(t => {
+      const type = t.type || "button";
+      if (type === "custom_element") {
+        return { type: "custom_element", id: `ce-${idx++}`, element: t.element || "",
+          element_config: t.element_config || {}, name: t.name || "",
+          tap_action: t.tap_action, hold_action: t.hold_action, double_tap_action: t.double_tap_action,
+          width: t.width, height: t.height };
+      }
+      if (type === "button") {
+        return { type: "button", id: `btn-${idx++}`, icon: t.icon, name: t.name || "", entity: t.entity,
+          tap_action: t.tap_action, hold_action: t.hold_action, double_tap_action: t.double_tap_action,
+          width: t.width, height: t.height };
+      }
+      typeCounts[type] = (typeCounts[type] || 0) + 1;
+      const id = type === "settings" ? "settings" : (typeCounts[type] > 1 ? `${type}-${typeCounts[type] - 1}` : type);
+      const tab = { type, id, label: t.label || null, iconOverride: t.icon || null,
+        defaultIcon: TAB_ICONS[type] || null, show_in_nav: t.show_in_nav !== false,
+        // Optional: let this panel carry its own custom nav element (button-card etc.)
+        // instead of the default icon+label button — see _renderCustomElementSlot.
+        element: t.element || null, element_config: t.element_config || null,
+        width: t.width, height: t.height };
+      if (type === "library") {
+        const sections = Array.isArray(t.sections) ? t.sections.filter(s => VALID_SECTIONS.includes(s)) : null;
+        tab.sections = sections && sections.length ? sections : DEFAULT_SECTIONS;
+        const VALID_LAYOUTS = ["lanes", "grid", "columns", "auto"];
+        tab.layout = VALID_LAYOUTS.includes(t.layout) ? t.layout : "lanes";
+      }
+      if (type === "search") {
+        tab.search_layout = t.search_layout === "columns" ? "columns" : "rows";
+      }
+      if (type === "playlist") {
+        tab.playlist_uri = t.playlist_uri || "";
+        tab.playlist_label = t.playlist_label || "";
+        tab.playlist_thumbnail = t.playlist_thumbnail || "";
+      }
+      return tab;
+    });
+  }
+
+  // Backward compatibility: build from legacy config
+  const tabs = [];
+  if (config.nav_buttons_left) {
+    let idx = 0;
+    for (const b of config.nav_buttons_left) {
+      tabs.push({ type: "button", id: `btn-${idx++}`, icon: b.icon, name: b.name || "", entity: b.entity,
+        tap_action: b.tap_action, hold_action: b.hold_action, double_tap_action: b.double_tap_action,
+        width: b.width, height: b.height });
+    }
+  }
+  tabs.push({ type: "player", id: "player", label: null, iconOverride: null, defaultIcon: "player" });
+  tabs.push({ type: "search", id: "search", label: null, iconOverride: null, defaultIcon: "search", search_layout: "rows" });
+  tabs.push({ type: "library", id: "library", label: null, iconOverride: null, defaultIcon: "library",
+    sections: DEFAULT_SECTIONS, layout: "lanes" });
+  if (config.nav_buttons_right) {
+    let idx = (config.nav_buttons_left?.length || 0);
+    for (const b of config.nav_buttons_right) {
+      tabs.push({ type: "button", id: `btn-${idx++}`, icon: b.icon, name: b.name || "", entity: b.entity,
+        tap_action: b.tap_action, hold_action: b.hold_action, double_tap_action: b.double_tap_action,
+        width: b.width, height: b.height });
+    }
+  }
+  tabs.push({ type: "settings", id: "settings", label: null, iconOverride: null, defaultIcon: "settings" });
+  return tabs;
+}
+
 class MyMusicLibraryCard extends HTMLElement {
   constructor() {
     super();
@@ -1956,6 +2306,7 @@ class MyMusicLibraryCard extends HTMLElement {
     this._libLoading = false;
     this._libLoadedTabs = new Set();
     this._plLoadedTabs = new Set();
+    this._discoveryLoadedTabs = new Set();
     this._libSections = {}; // type → { offset, loading, exhausted, favorite, iconName }
     this._libTabState = {}; // tabId → { source, fav, browse, browseStack }
     this._maProviders = [];
@@ -1968,7 +2319,6 @@ class MyMusicLibraryCard extends HTMLElement {
         return set.size > 0 ? set : null;
       } catch (_) { return null; }
     })();
-    this._deviceModalOpen = false;
     this._searching = false;
     this._searchTimeout = null;
     this._searchId = 0;
@@ -1978,18 +2328,31 @@ class MyMusicLibraryCard extends HTMLElement {
     this._localPosition = null;
     this._localPositionTime = null;
     this._maQueueItems = [];
+    this._maQueueId = null;        // MA queue_id of the active player, from the last ma_queue load
+    this._queueLoadSeq = 0;        // drops out-of-order ma_queue responses
+    this._queuePushUnsub = null;   // unsubscribe fn of my_music_library/subscribe_queue
+    this._queuePushActive = false; // true while the backend pushes queue changes
+    this._queuePushTimer = null;
     this._lastKnownUri = null;
     this._queueVisible = this._loadPref("mml_queue_visible") !== "false";
-    this._groupMembers = [];       // entity_ids attached to _activePlayer as group
-    this._deviceVolDragging = new Set();
+    this._outputs = null;          // Map entity_id → MA facts (GET outputs), see _loadOutputs
+    this._outputsSeq = 0;
+    this._outputsSig = null;
+    this._presets = [];            // favorite groups (server-side)
+    this._outputPanelOpen = false;
+    this._outputMode = "switch";   // switch | group | control
+    this._switchSel = new Set();   // switch mode: selected destinations, first = new leader
+    this._showOffline = false;
+    this._presetEditing = false;
+    this._outDragging = false;
     this._excludedPlayers = [];    // entity_ids hidden from the device picker (HA options)
     // Per-tab library filter state is in this._libTabState[tabId]
     this._rendered = false;
     this._isMobile = this._detectMobile();
     // MA config fetched from backend via WebSocket
     this._maUrl = null;       // stored but only used as a last-resort hint
-    this._maEntryId = null;   // MA config entry ID — used for music_assistant/search WS calls
     this._maConfigLoaded = false;
+    this._maConnected = true; // assume connected until the config fetch says otherwise
     this._debugMode = false;
   }
 
@@ -2015,58 +2378,88 @@ class MyMusicLibraryCard extends HTMLElement {
   /* ── MA Queue (via Music Assistant native queue) ── */
 
   async _loadMAQueue() {
-    if (!this._activePlayer || !this._hass) { this._maQueueItems = []; this._updateQueueUI(); return; }
+    if (!this._activePlayer || !this._hass) { this._maQueueItems = []; this._maQueueId = null; this._updateQueueUI(); return; }
+    // Loads can overlap (push event + safety timer): only the latest one may update the UI.
+    const seq = ++this._queueLoadSeq;
+    let items = [];
+    let queueId = null;
     try {
       const data = await this._callIntegration("GET", `ma_queue?player=${encodeURIComponent(this._activePlayer)}&limit=100`);
-      this._maQueueItems = data?.items || [];
-      this._debugLog("MA queue loaded →", this._maQueueItems.length, "items");
+      items = data?.items || [];
+      queueId = data?.queue_id || null;
     } catch (_) {
-      this._maQueueItems = [];
+      items = [];
     }
+    if (seq !== this._queueLoadSeq) return;
+    this._maQueueItems = items;
+    this._maQueueId = queueId;
+    this._debugLog("MA queue loaded →", items.length, "items, queue:", queueId);
     this._updateQueueUI();
   }
 
+  /* Timed queue reload after an action. With push active (my_music_library/subscribe_queue),
+     MA itself tells us when the queue changes, so this only remains as a safety net for a
+     lost event; without push (subscription failure) it is the only mechanism. */
   _refreshQueueSoon(delay = 1200) {
     clearTimeout(this._queueRefreshTimer);
-    this._queueRefreshTimer = setTimeout(() => this._loadMAQueue(), delay);
+    const wait = this._queuePushActive ? Math.max(delay, 4000) : delay;
+    this._queueRefreshTimer = setTimeout(() => this._loadMAQueue(), wait);
+  }
+
+  /* ── Queue push: MA queue events relayed by the backend ── */
+
+  async _subscribeQueuePush() {
+    if (this._queuePushUnsub || this._queuePushSubscribing || !this._hass?.connection) return;
+    this._queuePushSubscribing = true;
+    try {
+      const unsub = await this._hass.connection.subscribeMessage(
+        (msg) => this._onQueuePush(msg),
+        { type: "my_music_library/subscribe_queue" },
+      );
+      if (!this.isConnected) {
+        // Card left the DOM while subscribing.
+        Promise.resolve().then(() => unsub()).catch(() => {});
+        return;
+      }
+      this._queuePushUnsub = unsub;
+      this._queuePushActive = true;
+      this._debugLog("Queue push: subscribed");
+    } catch (err) {
+      this._queuePushActive = false;
+      this._debugLog("Queue push unavailable, using timed refresh:", err);
+    } finally {
+      this._queuePushSubscribing = false;
+    }
+  }
+
+  _unsubscribeQueuePush() {
+    const unsub = this._queuePushUnsub;
+    this._queuePushUnsub = null;
+    this._queuePushActive = false;
+    clearTimeout(this._queuePushTimer);
+    if (unsub) Promise.resolve().then(() => unsub()).catch(() => {});
+  }
+
+  _onQueuePush(msg) {
+    if (!this._isActiveQueue(msg?.queue_id)) return;
+    // MA often emits several events for one action (items, then current item): coalesce them.
+    clearTimeout(this._queuePushTimer);
+    this._queuePushTimer = setTimeout(() => {
+      clearTimeout(this._queueRefreshTimer);
+      this._loadMAQueue();
+    }, 100);
+  }
+
+  _isActiveQueue(queueId) {
+    if (!queueId || !this._activePlayer) return false;
+    if (!this._maQueueId || queueId === this._maQueueId) return true;
+    // The active queue may have changed (e.g. player joined a group): also accept the player's own id.
+    return queueId === this._hass?.states?.[this._activePlayer]?.attributes?.mass_player_id;
   }
 
   _updateQueueUI() {
     const card = this.shadowRoot?.querySelector(".card-root");
     if (card) this._updateQueueDisplay(card);
-  }
-
-  /* ── Group persistence (server-side, per player) ── */
-
-  /** Load group members for a given player from the HA backend. */
-  async _loadGroupFromServer(player) {
-    if (!player || !this._hass) { this._groupMembers = []; return; }
-    try {
-      const data = await this._callIntegration("GET", `groups?player=${encodeURIComponent(player)}`);
-      const stored = (data?.members || []).filter(id => this._players.find(p => p.entity_id === id));
-      // Reconcile with actual HA state: if HA has no group_members, the group was dissolved externally
-      const haState = this._hass.states[player];
-      const haMembers = (haState?.attributes?.group_members || []).filter(id => id !== player);
-      if (stored.length > 0 && haMembers.length === 0) {
-        this._groupMembers = [];
-        this._saveGroupToServer();
-      } else {
-        this._groupMembers = stored;
-      }
-    } catch (_) {
-      this._groupMembers = [];
-    }
-    const card = this.shadowRoot?.querySelector(".card-root");
-    if (card) this._updateDeviceRow(card);
-  }
-
-  /** Persist group members to the HA backend (fire-and-forget). */
-  _saveGroupToServer() {
-    if (!this._activePlayer || !this._hass) return;
-    this._callIntegration("POST", "groups", {
-      player: this._activePlayer,
-      members: this._groupMembers,
-    }).catch(() => {});
   }
 
   async _callIntegration(method, path, body) {
@@ -2090,7 +2483,7 @@ class MyMusicLibraryCard extends HTMLElement {
   /* ── Lovelace required ── */
   setConfig(config) {
     this._config = { default_tab: "player", ...config };
-    this._resolvedTabs = this._buildResolvedTabs(config);
+    this._resolvedTabs = _buildResolvedTabs(config);
     const firstPanel = this._resolvedTabs.find(t => t.type !== "button");
     const defaultTab = this._config.default_tab || (firstPanel ? firstPanel.id : "player");
     this._tab = defaultTab;
@@ -2098,75 +2491,6 @@ class MyMusicLibraryCard extends HTMLElement {
       const h = typeof config.height === "number" ? `${config.height}px` : String(config.height);
       this.style.setProperty("--mml-height", h);
     }
-  }
-
-  _buildResolvedTabs(config) {
-    const DEFAULT_SECTIONS = ["artists", "albums", "playlists", "tracks"];
-    const VALID_SECTIONS = ["artists", "albums", "playlists", "tracks", "radios", "recently_played", "recently_added", "recommended", "flows"];
-    const TAB_ICONS = { player: "player", search: "search", library: "library", playlist: "playlist", settings: "settings" };
-
-    if (config.tabs && Array.isArray(config.tabs)) {
-      let idx = 0;
-      const typeCounts = {};
-      return config.tabs.map(t => {
-        const type = t.type || "button";
-        if (type === "custom_element") {
-          return { type: "custom_element", id: `ce-${idx++}`, element: t.element || "",
-            element_config: t.element_config || {}, name: t.name || "",
-            tap_action: t.tap_action, hold_action: t.hold_action, double_tap_action: t.double_tap_action,
-            width: t.width, height: t.height };
-        }
-        if (type === "button") {
-          return { type: "button", id: `btn-${idx++}`, icon: t.icon, name: t.name || "", entity: t.entity,
-            tap_action: t.tap_action, hold_action: t.hold_action, double_tap_action: t.double_tap_action,
-            width: t.width, height: t.height };
-        }
-        typeCounts[type] = (typeCounts[type] || 0) + 1;
-        const id = type === "settings" ? "settings" : (typeCounts[type] > 1 ? `${type}-${typeCounts[type] - 1}` : type);
-        const tab = { type, id, label: t.label || null, iconOverride: t.icon || null,
-          defaultIcon: TAB_ICONS[type] || null, show_in_nav: t.show_in_nav !== false };
-        if (type === "library") {
-          const sections = Array.isArray(t.sections) ? t.sections.filter(s => VALID_SECTIONS.includes(s)) : null;
-          tab.sections = sections && sections.length ? sections : DEFAULT_SECTIONS;
-          const VALID_LAYOUTS = ["lanes", "grid", "columns", "auto"];
-          tab.layout = VALID_LAYOUTS.includes(t.layout) ? t.layout : "lanes";
-        }
-        if (type === "search") {
-          tab.search_layout = t.search_layout === "columns" ? "columns" : "rows";
-        }
-        if (type === "playlist") {
-          tab.playlist_uri = t.playlist_uri || "";
-          tab.playlist_label = t.playlist_label || "";
-          tab.playlist_thumbnail = t.playlist_thumbnail || "";
-        }
-        return tab;
-      });
-    }
-
-    // Backward compatibility: build from legacy config
-    const tabs = [];
-    if (config.nav_buttons_left) {
-      let idx = 0;
-      for (const b of config.nav_buttons_left) {
-        tabs.push({ type: "button", id: `btn-${idx++}`, icon: b.icon, name: b.name || "", entity: b.entity,
-          tap_action: b.tap_action, hold_action: b.hold_action, double_tap_action: b.double_tap_action,
-          width: b.width, height: b.height });
-      }
-    }
-    tabs.push({ type: "player", id: "player", label: null, iconOverride: null, defaultIcon: "player" });
-    tabs.push({ type: "search", id: "search", label: null, iconOverride: null, defaultIcon: "search", search_layout: "rows" });
-    tabs.push({ type: "library", id: "library", label: null, iconOverride: null, defaultIcon: "library",
-      sections: DEFAULT_SECTIONS, layout: "lanes" });
-    if (config.nav_buttons_right) {
-      let idx = (config.nav_buttons_left?.length || 0);
-      for (const b of config.nav_buttons_right) {
-        tabs.push({ type: "button", id: `btn-${idx++}`, icon: b.icon, name: b.name || "", entity: b.entity,
-          tap_action: b.tap_action, hold_action: b.hold_action, double_tap_action: b.double_tap_action,
-          width: b.width, height: b.height });
-      }
-    }
-    tabs.push({ type: "settings", id: "settings", label: null, iconOverride: null, defaultIcon: "settings" });
-    return tabs;
   }
 
   // Tell Lovelace masonry how many rows to reserve (1 row ≈ 50px)
@@ -2193,6 +2517,7 @@ class MyMusicLibraryCard extends HTMLElement {
       this._maConfigLoaded = true;
       this._fetchMaConfig();
     }
+    if (!this._queuePushUnsub && this.isConnected) this._subscribeQueuePush();
 
     this._players = this._getMaPlayers();
 
@@ -2201,17 +2526,20 @@ class MyMusicLibraryCard extends HTMLElement {
     } else {
       if (!this._activePlayer || !this._players.find(p => p.entity_id === this._activePlayer)) {
         const saved = this._loadSavedPlayer();
+        const pinned = this._loadPref("mml_default_player");
         const prevActive = this._activePlayer;
-        this._activePlayer = (saved && this._players.find(p => p.entity_id === saved) ? saved : null)
+        const known = (eid) => eid && this._players.find(p => p.entity_id === eid) ? eid : null;
+        // Pinned output of this device (output panel, Control mode) wins over the last one used.
+        this._activePlayer = known(pinned) || known(saved)
           || this._config.entity
           || (this._players.find(p => p.state === "playing") || this._players[0])?.entity_id;
         this._debugLog("Player selected:", this._activePlayer, "prev:", prevActive, "saved:", saved, "players:", this._players.map(p => p.entity_id));
         if (this._activePlayer && this._activePlayer !== prevActive) {
           this._loadMAQueue();
-          this._loadGroupFromServer(this._activePlayer);
         }
       }
     }
+    this._scheduleOutputsReload();
 
     if (!this._rendered) {
       this._render();
@@ -2223,6 +2551,7 @@ class MyMusicLibraryCard extends HTMLElement {
 
   connectedCallback() {
     this._startProgressTick();
+    if (this._hass) this._subscribeQueuePush();
     // hui-card (HA wrapper) has auto height by default — force it to fill its grid cell
     // so our height:100% resolves to the actual allocated height instead of auto.
     requestAnimationFrame(() => {
@@ -2240,6 +2569,7 @@ class MyMusicLibraryCard extends HTMLElement {
 
   disconnectedCallback() {
     this._stopProgressTick();
+    this._unsubscribeQueuePush();
     // Force config re-fetch on next reconnect so excluded_players stays in sync
     // with any options changes made while the card was away from the DOM.
     this._maConfigLoaded = false;
@@ -2251,9 +2581,10 @@ class MyMusicLibraryCard extends HTMLElement {
       const cfg = await this._hass.callWS({ type: "my_music_library/config" });
       this._debugMode = !!cfg?.debug_mode;
       this._debugLog("Config loaded:", JSON.stringify(cfg));
-      if (cfg?.ma_entry_id) {
-        this._maEntryId = cfg.ma_entry_id;
-      }
+      // Only flip to "disconnected" on an explicit false — a missing/failed
+      // fetch (cfg undefined) shouldn't itself trigger the banner.
+      this._maConnected = cfg?.connected !== false;
+      this._updateConnectionBanner();
       await this._fetchProviders();
       if (cfg?.ma_url) {
         this._maUrl = cfg.ma_url.replace(/\/$/, "");
@@ -2285,6 +2616,11 @@ class MyMusicLibraryCard extends HTMLElement {
         this._libLoadedTabs.clear();
         const activeTabDef = this._resolvedTabs?.find(t => t.id === this._tab);
         if (activeTabDef?.type === "library") this._loadLibrary();
+      }
+      if (this._discoveryLoadedTabs.size > 0) {
+        this._discoveryLoadedTabs.clear();
+        const activeTabDef = this._resolvedTabs?.find(t => t.id === this._tab);
+        if (activeTabDef?.type === "discovery") this._loadDiscovery(this._tab);
       }
     } catch (_) {
       this._maProviders = [];
@@ -2331,7 +2667,9 @@ class MyMusicLibraryCard extends HTMLElement {
     // MediaPlayerEntityFeature.GROUPING = 524288 (bit 19)
     const FEATURE_GROUPING = 524288;
     const all = Object.entries(this._hass.states)
-      .filter(([id, state]) => id.startsWith("media_player.") && state.state !== "unavailable" && !this._isExcluded(id))
+      .filter(([id, state]) => id.startsWith("media_player.") && state.state !== "unavailable" && !this._isExcluded(id)
+        && !this._config.devices?.[id]?.hidden
+        && (this._config.show_other_players || !!state.attributes?.mass_player_id))
       .map(([entity_id, state]) => {
         const attr = state.attributes || {};
         // isMa: used for browse/search operations (requires MA Python client)
@@ -2383,18 +2721,28 @@ class MyMusicLibraryCard extends HTMLElement {
       search: (t) => this._renderSearchTab(),
       library: (t) => this._renderLibraryTab(t),
       playlist: (t) => this._renderPlaylistTab(t),
+      discovery: (t) => this._renderDiscoveryTab(t),
     };
 
     card.innerHTML = `
+      <div class="mml-connection-banner" id="mml-connection-banner" hidden>
+        ${ICONS.warning}
+        <div class="mml-connection-banner-text">
+          <strong>${this._t("connection.title")}</strong>
+          <span>${this._t("connection.desc")}</span>
+        </div>
+        <a class="mml-connection-banner-action" href="/config/integrations/integration/my_music_library">${this._t("connection.action")}</a>
+      </div>
       ${this._renderNav()}
       <div class="content">
         ${panels.map(t => panelRenderers[t.type] ? panelRenderers[t.type](t) : "").join("")}
       </div>
-      ${this._renderDeviceModal()}
+      ${panels.some(t => t.type === "player") ? "" : '<div class="out-panel out-panel-floating" id="out-panel" hidden></div>'}
       ${this._renderSettingsModal()}
       <div class="mml-toast" id="mml-toast"></div>
     `;
     root.appendChild(card);
+    this._updateConnectionBanner(card);
 
     if (!this._imgErrorBound) {
       this._imgErrorBound = true;
@@ -2416,11 +2764,28 @@ class MyMusicLibraryCard extends HTMLElement {
     this._updatePlayerContent(card);
   }
 
-  _renderCustomElementSlot(tab) {
+  /* ── Show/hide the "needs reconfiguration" banner based on _maConnected ── */
+  _updateConnectionBanner(card) {
+    const el = (card || this.shadowRoot?.querySelector(".card-root"))?.querySelector("#mml-connection-banner");
+    if (!el) return;
+    el.hidden = this._maConnected !== false;
+  }
+
+  /* `asPanelTab`: for a real panel (player/search/library/...) that carries its
+     own `element`/`element_config` — same custom-element slot mechanism as a
+     pure `custom_element` tab, but clicking it switches to that panel (like any
+     other nav-tab) instead of running a configurable tap_action. This lets one
+     tab entry be BOTH the content panel AND its own styled nav trigger, instead
+     of needing a separate hidden panel + a separate custom_element button. */
+  _renderCustomElementSlot(tab, { asPanelTab = false } = {}) {
     const sizeParts = [];
     if (tab.width)  sizeParts.push(`width:${typeof tab.width  === "number" ? tab.width  + "px" : tab.width}`);
     if (tab.height) sizeParts.push(`height:${typeof tab.height === "number" ? tab.height + "px" : tab.height}`);
     const sizeStyle = sizeParts.length ? ` style="${sizeParts.join(";")}"` : "";
+    if (asPanelTab) {
+      const activeClass = this._tab === tab.id ? " active" : "";
+      return `<div class="nav-tab nav-btn nav-btn-custom${activeClass}" data-tab="${tab.id}" data-ce-slot="${tab.id}"${sizeStyle}></div>`;
+    }
     return `<div class="nav-btn nav-btn-custom" data-tab-btn="${tab.id}" data-ce-slot="${tab.id}"${sizeStyle}></div>`;
   }
 
@@ -2432,6 +2797,9 @@ class MyMusicLibraryCard extends HTMLElement {
       }
       if (t.type === "button") {
         return this._renderNavButton(t);
+      }
+      if (t.element) {
+        return this._renderCustomElementSlot(t, { asPanelTab: true });
       }
       if (t.type === "settings") {
         const label = t.label || this._t("tabs.settings");
@@ -2497,6 +2865,7 @@ class MyMusicLibraryCard extends HTMLElement {
               <div class="track-info">
                 <div class="track-title" id="track-title">—</div>
                 <div class="track-artist" id="track-artist">${this._t("player.select_player")}</div>
+                <button class="goto-artist-btn" id="btn-goto-artist" style="display:none">${ICONS.artist}<span>${this._t("player.goto_artist")}</span></button>
               </div>
               <div class="progress-wrapper">
                 <div class="progress-bar-container" id="progress-bar">
@@ -2519,12 +2888,13 @@ class MyMusicLibraryCard extends HTMLElement {
                 <button class="ctrl-btn" id="btn-mute" title="${this._t("btns.mute")}">${ICONS.volumeHigh}</button>
                 <input type="range" id="volume-slider" min="0" max="100" value="50">
               </div>
-              <div class="device-row" id="device-row"${this._config.show_device_select === false ? ' style="display:none"' : ''}>
-                <span id="device-icon-wrap">${ICONS.device}</span>
+              <div class="device-row" id="device-row" title="${this._t("outputs.open")}"${this._config.show_device_select === false ? ' style="display:none"' : ''}>
+                <span class="device-icon" id="device-icon-wrap"></span>
                 <span class="device-name" id="device-name">${this._t("player.no_player")}</span>
-                ${ICONS.chevronRight}
+                <span class="device-switch-btn">${ICONS.swap}</span>
               </div>
             </div>
+            <div class="out-panel" id="out-panel" hidden></div>
           </div>
           <div class="queue-backdrop ${this._isMobile && this._queueVisible ? "open" : ""}" id="queue-backdrop"></div>
           <div class="queue-section ${this._isMobile && this._queueVisible ? "mml-queue-open" : ""}" id="queue-section" style="${!this._isMobile && !this._queueVisible ? "display:none" : ""}">
@@ -2566,7 +2936,6 @@ class MyMusicLibraryCard extends HTMLElement {
     const panelId = tabDef?.id || "library";
     const st = this._getLibTabState(panelId);
     const src = st.source;
-    const fav = st.fav;
     const browse = st.browse;
     return `
       <div class="tab-panel" data-panel="${panelId}">
@@ -2581,10 +2950,19 @@ class MyMusicLibraryCard extends HTMLElement {
               <button class="browse-mode-btn ${!browse ? "active" : ""}" data-browse="false">${this._t("lib.mode_catalogue")}</button>
               <button class="browse-mode-btn ${browse ? "active" : ""}" data-browse="true">${this._t("lib.mode_browse")}</button>
             </div>
-            <button class="lib-filter-fav ${fav ? "active" : ""}" style="${browse ? "display:none" : ""}">
-              ${fav ? ICONS.heart : ICONS.heartOutline}<span>${this._t("lib.filter_favorites")}</span>
-            </button>
           </div>
+          <div class="lib-content" id="lib-content-inner">
+            <div class="loader"><div class="spinner"></div> ${this._t("lib.loading")}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  _renderDiscoveryTab(tabDef) {
+    const panelId = tabDef?.id || "discovery";
+    return `
+      <div class="tab-panel" data-panel="${panelId}">
+        <div class="library-panel">
           <div class="lib-content" id="lib-content-inner">
             <div class="loader"><div class="spinner"></div> ${this._t("lib.loading")}</div>
           </div>
@@ -2662,23 +3040,10 @@ class MyMusicLibraryCard extends HTMLElement {
           <button class="ctrl-btn mini-ctrl-mute" title="${this._t("btns.mute")}">${ICONS.volumeHigh}</button>
           <input type="range" class="mini-volume-slider" min="0" max="100" value="50">
         </div>
-        <div class="device-row mini-device-row"${this._config.show_device_select === false ? ' style="display:none"' : ''}>
-          <span class="mini-device-icon-wrap">${ICONS.device}</span>
+        <div class="device-row mini-device-row" title="${this._t("outputs.open")}"${this._config.show_device_select === false ? ' style="display:none"' : ''}>
+          <span class="device-icon mini-device-icon-wrap"></span>
           <span class="device-name mini-device-name">${this._t("player.no_player")}</span>
-          ${ICONS.chevronRight}
-        </div>
-      </div>`;
-  }
-
-  _renderDeviceModal() {
-    return `
-      <div class="modal-overlay" id="device-modal">
-        <div class="modal-sheet">
-          <div class="modal-title">
-            <span>${this._t("group.title")}</span>
-            <button id="modal-close">${ICONS.close}</button>
-          </div>
-          <div id="device-list"></div>
+          <span class="device-switch-btn">${ICONS.swap}</span>
         </div>
       </div>`;
   }
@@ -2711,6 +3076,7 @@ class MyMusicLibraryCard extends HTMLElement {
         const tabDef = this._resolvedTabs.find(t => t.id === tab);
         if (tabDef?.type === "library" && !this._libLoadedTabs.has(tab)) this._loadLibrary();
         if (tabDef?.type === "playlist" && !this._plLoadedTabs.has(tab)) this._loadPlaylistTab(tabDef);
+        if (tabDef?.type === "discovery" && !this._discoveryLoadedTabs.has(tab)) this._loadDiscovery(tab);
       });
     });
 
@@ -2756,17 +3122,6 @@ class MyMusicLibraryCard extends HTMLElement {
         if (this._tab === tabId) this._reloadLibrary();
       });
 
-      libPanel.querySelector(".lib-filter-fav")?.addEventListener("click", () => {
-        ts.fav = !ts.fav;
-        this._savePref(`mml_lib_fav_${tabId}`, String(ts.fav));
-        const favEl = libPanel.querySelector(".lib-filter-fav");
-        if (favEl) {
-          favEl.classList.toggle("active", ts.fav);
-          favEl.querySelector("svg").outerHTML = ts.fav ? ICONS.heart : ICONS.heartOutline;
-        }
-        this._libLoadedTabs.delete(tabId);
-        if (this._tab === tabId) this._reloadLibrary();
-      });
     }
 
     const hasPanel = (type) => this._resolvedTabs.some(t => t.type === type);
@@ -2778,6 +3133,7 @@ class MyMusicLibraryCard extends HTMLElement {
       card.querySelector("#btn-next").addEventListener("click", () => this._callService("media_next_track"));
       card.querySelector("#btn-shuffle").addEventListener("click", () => this._toggleShuffle());
       card.querySelector("#btn-repeat").addEventListener("click", () => this._cycleRepeat());
+      card.querySelector("#btn-goto-artist").addEventListener("click", (e) => this._openCurrentArtistPage(e.currentTarget));
       card.querySelector("#btn-mute").addEventListener("click", () => this._toggleMute());
 
       // Volume — send command only on release (pointerup), not during drag
@@ -2803,17 +3159,13 @@ class MyMusicLibraryCard extends HTMLElement {
       card.querySelector("#queue-backdrop")?.addEventListener("click", closeQueue);
       card.querySelector("#queue-close-btn")?.addEventListener("click", closeQueue);
 
-      // Device row
-      card.querySelector("#device-row").addEventListener("click", () => this._openDeviceModal(card));
-      card.querySelector("#modal-close").addEventListener("click", () => this._closeDeviceModal(card));
-      card.querySelector("#device-modal").addEventListener("click", (e) => {
-        if (e.target === card.querySelector("#device-modal")) this._closeDeviceModal(card);
-      });
+      // Output row → output panel
+      card.querySelector("#device-row").addEventListener("click", () => this._openOutputPanel(card));
     }
 
     // Mini player bar (playlist tabs) — independent of the "player" tab being present.
     // Same callbacks as the main player tab: _togglePlayPause / _callService / _toggleMute /
-    // _bindSeekBar / _bindVolumeSlider / _openDeviceModal — just bound to a second set of elements.
+    // _bindSeekBar / _bindVolumeSlider / _openOutputPanel — just bound to a second set of elements.
     card.querySelectorAll(".mini-player-bar").forEach(bar => {
       bar.querySelector(".mini-ctrl-playpause")?.addEventListener("click", () => this._togglePlayPause());
       bar.querySelector(".mini-ctrl-prev")?.addEventListener("click", () => this._callService("media_previous_track"));
@@ -2821,7 +3173,7 @@ class MyMusicLibraryCard extends HTMLElement {
       bar.querySelector(".mini-ctrl-mute")?.addEventListener("click", () => this._toggleMute());
       this._bindSeekBar(bar.querySelector(".mini-progress-bar"), bar.querySelector(".mini-progress-fill"), bar.querySelector(".mini-pos-time"));
       this._bindVolumeSlider(bar.querySelector(".mini-volume-slider"));
-      bar.querySelector(".mini-device-row")?.addEventListener("click", () => this._openDeviceModal(card));
+      bar.querySelector(".mini-device-row")?.addEventListener("click", () => this._openOutputPanel(card));
     });
 
     // Playlist tabs — header buttons (play all, list/grid view toggle)
@@ -2998,6 +3350,7 @@ class MyMusicLibraryCard extends HTMLElement {
           this._setActiveTab(tabDef.id, card);
           if (tabDef.type === "library" && !this._libLoadedTabs.has(tabDef.id)) this._loadLibrary();
           if (tabDef.type === "playlist" && !this._plLoadedTabs.has(tabDef.id)) this._loadPlaylistTab(tabDef);
+          if (tabDef.type === "discovery" && !this._discoveryLoadedTabs.has(tabDef.id)) this._loadDiscovery(tabDef.id);
         }
         break;
       }
@@ -3072,9 +3425,13 @@ class MyMusicLibraryCard extends HTMLElement {
     if (!card) return;
     this._updatePlayerContent(card);
     this._updateNavButtons(card);
+    if (this._outputPanelOpen && !this._outDragging && this._outputPanelSignature() !== this._outPanelSig) {
+      this._renderOutputPanel(card);
+    }
     const activeTabDef = this._resolvedTabs.find(t => t.id === this._tab);
     if (activeTabDef?.type === "library" && !this._libLoadedTabs.has(this._tab)) this._loadLibrary();
     if (activeTabDef?.type === "playlist" && !this._plLoadedTabs.has(this._tab)) this._loadPlaylistTab(activeTabDef);
+    if (activeTabDef?.type === "discovery" && !this._discoveryLoadedTabs.has(this._tab)) this._loadDiscovery(this._tab);
   }
 
   _updateNavButtons(card) {
@@ -3143,6 +3500,12 @@ class MyMusicLibraryCard extends HTMLElement {
     if (artistEl) {
       artistEl.textContent = [attr.media_artist, attr.media_album_name].filter(Boolean).join(" · ") || this._t("player.select_player");
     }
+    const gotoArtistBtn = card.querySelector("#btn-goto-artist");
+    if (gotoArtistBtn) {
+      // the artist page lives in the search panel: no search tab, no button
+      const canOpen = attr.media_artist && attr.media_content_id && card.querySelector("#artist-page");
+      gotoArtistBtn.style.display = canOpen ? "" : "none";
+    }
 
     // Mini player bar (playlist tabs) — text is the only "art" substitute, per design
     card.querySelectorAll(".mini-player-title").forEach(el => {
@@ -3188,8 +3551,6 @@ class MyMusicLibraryCard extends HTMLElement {
     // Device row (name + icon reflect group state)
     this._updateDeviceRow(card);
 
-    // Live-update volume sliders inside the device/group modal
-    this._updateDeviceModalVolumes(card);
 
     // Refresh MA queue when the current track changes
     const currentUri = attr.media_content_id || null;
@@ -3341,169 +3702,628 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   /* ── Device row ── */
-  _updateDeviceRow(card) {
-    const state = this._getActiveState();
-    const attr = state?.attributes || {};
-    const name = attr.friendly_name || this._activePlayer || this._t("player.no_player");
-    const count = this._groupMembers.length;
-    const displayName = count > 0 ? `${name} +${count}` : name;
+  /* ══ Audio outputs: output row + output panel (switch / group / control) ══
+     Facts only Music Assistant knows (group leader, members, who can group with whom,
+     powered, HA area) come from GET /my_music_library/outputs, reloaded when the group
+     layout of our players changes in hass.states; live state (playing, volume, title)
+     comes from hass.states. Every action goes through POST /my_music_library/outputs. */
 
-    card.querySelectorAll("#device-name, .mini-device-name").forEach(el => { el.textContent = displayName; });
-    card.querySelectorAll("#device-icon-wrap, .mini-device-icon-wrap").forEach(el => {
-      el.innerHTML = count > 0 ? ICONS.group : ICONS.device;
-    });
-  }
+  _outputInfo(eid) { return this._outputs?.get(eid) || null; }
 
-  /* ── Device modal ── */
-  _openDeviceModal(card) {
-    const modal = card.querySelector("#device-modal");
-    const list = card.querySelector("#device-list");
-    list.innerHTML = "";
-
-    if (this._players.length === 0) {
-      list.innerHTML = `<div class="empty-state"><p>${this._t("group.no_players")}</p></div>`;
-      modal.classList.add("open");
+  async _loadOutputs() {
+    if (!this._hass) return;
+    const seq = ++this._outputsSeq;
+    try {
+      const data = await this._callIntegration("GET", "outputs");
+      if (seq !== this._outputsSeq) return;
+      this._outputs = new Map((data?.outputs || []).map(o => [o.entity_id, o]));
+      this._presets = data?.presets || [];
+    } catch (err) {
+      this._debugLog("outputs load failed:", err);
       return;
     }
-
-    const addSection = (title, entries) => {
-      if (!entries.length) return;
-      const section = document.createElement("div");
-      section.className = "device-section";
-      section.innerHTML = `<div class="device-section-title">${title}</div>`;
-      entries.forEach(({ player, role }) => section.appendChild(this._buildDeviceItem(player, role, card)));
-      list.appendChild(section);
-    };
-
-    const masterPlayer = this._players.find(p => p.entity_id === this._activePlayer);
-    const members     = this._players.filter(p => this._groupMembers.includes(p.entity_id));
-    const available   = this._players.filter(p => p.entity_id !== this._activePlayer && !this._groupMembers.includes(p.entity_id));
-
-    if (masterPlayer) addSection(this._t("group.section_master"), [{ player: masterPlayer, role: "master" }]);
-    addSection(this._t("group.section_members"), members.map(p => ({ player: p, role: "member" })));
-    addSection(this._t("group.section_available"), available.map(p => ({ player: p, role: "available" })));
-
-    modal.classList.add("open");
+    const card = this.shadowRoot?.querySelector(".card-root");
+    if (card) {
+      this._updateDeviceRow(card);
+      this._renderOutputPanel(card);
+    }
   }
 
-  _buildDeviceItem(player, role, card) {
-    const frag = document.createDocumentFragment();
-    const item = document.createElement("div");
-    item.className = `device-item${role === "master" ? " selected master" : role === "member" ? " member" : ""}`;
-
-    const iconSvg = role === "member" ? ICONS.group : ICONS.device;
-    const canGroup = player.canJoin;
-    let actionHtml = "";
-    if (role === "member") {
-      actionHtml = `<button class="device-item-action detach" title="${this._t("group.detach")}">${ICONS.close}</button>`;
-    } else if (role === "available" && canGroup) {
-      actionHtml = `<button class="device-item-action attach" title="${this._t("group.attach")}">${ICONS.plus}</button>`;
-    }
-
-    item.innerHTML = `
-      ${iconSvg}
-      <span class="device-item-name">${this._esc(player.name)}</span>
-      <span class="device-item-state">${this._esc(player.state)}</span>
-      ${actionHtml}`;
-    frag.appendChild(item);
-
-    if (role === "master" || role === "member") {
-      const volState = this._hass?.states[player.entity_id];
-      const volLevel = volState?.attributes?.volume_level;
-      const volPct = volLevel !== undefined ? Math.round(volLevel * 100) : 0;
-      const volRow = document.createElement("div");
-      volRow.className = "device-item-volume";
-      volRow.dataset.entity = player.entity_id;
-      volRow.innerHTML = `
-        ${ICONS.volumeHigh}
-        <input type="range" min="0" max="100" value="${volPct}" title="${this._t("group.volume")}">
-        <span class="device-vol-pct">${volPct}%</span>`;
-      const slider = volRow.querySelector("input");
-      const eid = player.entity_id;
-      slider.addEventListener("pointerdown", () => { this._deviceVolDragging.add(eid); });
-      slider.addEventListener("input", () => {
-        volRow.querySelector(".device-vol-pct").textContent = `${slider.value}%`;
-      });
-      slider.addEventListener("pointerup", () => {
-        if (!this._deviceVolDragging.has(eid)) return;
-        this._deviceVolDragging.delete(eid);
-        this._hass?.callService("media_player", "volume_set", {
-          entity_id: eid,
-          volume_level: parseInt(slider.value) / 100,
-        });
-      });
-      slider.addEventListener("pointercancel", () => { this._deviceVolDragging.delete(eid); });
-      frag.appendChild(volRow);
-    }
-
-    if (role === "available") {
-      item.addEventListener("click", (e) => {
-        if (e.target.closest(".attach")) return;
-        const prevActive = this._activePlayer;
-        this._activePlayer = player.entity_id;
-        this._savePlayer(player.entity_id);
-        if (this._activePlayer !== prevActive) {
-          this._groupMembers = [];
-          this._loadMAQueue();
-          this._loadGroupFromServer(this._activePlayer);
-        }
-        this._closeDeviceModal(card);
-        this._updatePlayerContent(card);
-      });
-      const attachBtn = item.querySelector(".attach");
-      if (attachBtn) {
-        attachBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          this._attachPlayer(player.entity_id, card);
-        });
-      }
-    } else if (role === "member") {
-      const detachBtn = item.querySelector(".detach");
-      if (detachBtn) {
-        detachBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          this._detachPlayer(player.entity_id, card);
-        });
-      }
-    }
-    return frag;
+  /* Group layout of our players as seen in hass.states: when it changes (MA regrouped,
+     a player went offline or off), the MA-side facts are reloaded. */
+  _outputsSignature() {
+    return Object.entries(this._hass?.states || {})
+      .filter(([, s]) => s.attributes?.mass_player_id)
+      .map(([id, s]) => `${id}:${s.state === "unavailable" ? "u" : s.state === "off" ? "o" : "1"}:${(s.attributes.group_members || []).join(",")}`)
+      .join("|");
   }
 
-  _attachPlayer(entityId, card) {
-    if (!this._hass || !this._activePlayer || entityId === this._activePlayer) return;
-    if (this._groupMembers.includes(entityId)) return;
-    const newMembers = [...this._groupMembers, entityId];
-    this._hass.callService("media_player", "join", {
-      entity_id: this._activePlayer,
-      group_members: newMembers,
+  _scheduleOutputsReload() {
+    const sig = this._outputsSignature();
+    if (sig === this._outputsSig) return;
+    this._outputsSig = sig;
+    clearTimeout(this._outputsReloadTimer);
+    this._outputsReloadTimer = setTimeout(() => this._loadOutputs(), this._outputs ? 400 : 0);
+  }
+
+  _groupLeaderOf(eid) {
+    return this._outputInfo(eid)?.leader || eid;
+  }
+
+  _groupMembersOf(leader) {
+    const info = this._outputInfo(leader);
+    const members = info ? info.members : (this._hass?.states[leader]?.attributes?.group_members || []);
+    return members.filter(m => m !== leader);
+  }
+
+  _canGroup(a, b) {
+    return !!(this._outputInfo(a)?.groupable?.includes(b) || this._outputInfo(b)?.groupable?.includes(a));
+  }
+
+  _outputFullName(eid) {
+    return this._hass?.states[eid]?.attributes?.friendly_name || this._outputInfo(eid)?.name || eid;
+  }
+
+  _outputArea(eid) {
+    const info = this._outputInfo(eid);
+    if (info) return info.area || null;
+    const ent = this._hass?.entities?.[eid];
+    const areaId = ent?.area_id || this._hass?.devices?.[ent?.device_id]?.area_id;
+    return (areaId && this._hass?.areas?.[areaId]?.name) || null;
+  }
+
+  /* Short display name: card alias → HA area (when it is the only output there) → cleaned name. */
+  _outputName(eid) {
+    const alias = this._config.devices?.[eid]?.name;
+    if (alias) return alias;
+    const area = this._outputArea(eid);
+    if (area) {
+      const sameArea = Object.keys(this._hass?.states || {})
+        .filter(id => id.startsWith("media_player.") && this._isOfferedOutput(id, { includeOffline: true }))
+        .filter(id => this._outputArea(id) === area);
+      if (sameArea.length === 1) return area;
+    }
+    return this._cleanOutputName(this._outputFullName(eid));
+  }
+
+  /* "squeeze-salle-d-eau" → "Salle d'eau", "browser_mod_80df8189_b0b53f25" → "Browser 80df". */
+  _cleanOutputName(name) {
+    let n = String(name || "").trim();
+    const bm = n.match(/^browser_mod_([0-9a-f]{4})/i);
+    if (bm) return `${this._t("outputs.browser")} ${bm[1]}`;
+    n = n.replace(/^(squeezelite|squeeze|snapcast|sonos|airplay|chromecast)[-_ ]+/i, "");
+    if (/[-_]/.test(n) && !/\s/.test(n)) {
+      n = n.replace(/[-_]+/g, " ").replace(/\b([dlj]) (?=[aeiouyhàâéèêëîïôöûü])/gi, "$1'");
+    }
+    return n ? n.charAt(0).toUpperCase() + n.slice(1) : String(name || "");
+  }
+
+  _outputIcon(eid) {
+    const custom = this._config.devices?.[eid]?.icon;
+    if (custom) return custom;
+    const info = this._outputInfo(eid);
+    const name = this._outputFullName(eid);
+    if (info) {
+      if (["group", "sync_group", "stereo_pair"].includes(info.type)) return "mdi:speaker-multiple";
+      const prov = (info.provider || "").split("--")[0];
+      if (prov === "sendspin" || /^web\b/i.test(name)) return "mdi:web";
+      if (prov === "chromecast") return "mdi:cast-audio";
+      if (prov === "airplay") return "mdi:apple-airplay";
+      if (/\b(tv|webos|bravia|television)\b/i.test(`${name} ${info.model || ""}`)) return "mdi:television";
+      return info.icon || "mdi:speaker";
+    }
+    const attr = this._hass?.states[eid]?.attributes || {};
+    if (/browser/i.test(eid)) return "mdi:web";
+    if (attr.device_class === "tv" || /\b(tv|fire_tv)\b/i.test(eid)) return "mdi:television";
+    return attr.icon || "mdi:speaker";
+  }
+
+  /* An output the panel may show: our MA players, plus other HA media players when
+     show_other_players is set — minus those hidden by the card or the integration options. */
+  _isOfferedOutput(eid, { includeOffline = false, includeOthers = false } = {}) {
+    const st = this._hass?.states[eid];
+    if (!st || this._isExcluded(eid) || this._config.devices?.[eid]?.hidden) return false;
+    if (!st.attributes?.mass_player_id && !(includeOthers && this._config.show_other_players)) return false;
+    return includeOffline || st.state !== "unavailable";
+  }
+
+  _panelOutputIds(opts = {}) {
+    return Object.keys(this._hass?.states || {})
+      .filter(id => id.startsWith("media_player.") && this._isOfferedOutput(id, opts))
+      .sort((a, b) => this._outputName(a).localeCompare(this._outputName(b)));
+  }
+
+  _stateLabel(eid) {
+    const st = this._hass?.states[eid];
+    const info = this._outputInfo(eid);
+    if (!st || st.state === "unavailable" || info?.available === false) return this._t("outputs.unavailable");
+    if (st.state === "off" || info?.powered === false) return this._t("outputs.off");
+    if (st.state === "playing") return this._t("outputs.playing");
+    if (st.state === "paused") return this._t("outputs.paused");
+    return this._t("outputs.idle");
+  }
+
+  _tf(key, vars = {}) {
+    return String(this._t(key)).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+  }
+
+  _setActivePlayerTo(eid) {
+    if (!eid || eid === this._activePlayer) return;
+    this._activePlayer = eid;
+    this._savePlayer(eid);
+    this._loadMAQueue();
+    const card = this.shadowRoot?.querySelector(".card-root");
+    if (card) this._updatePlayerContent(card);
+  }
+
+  /* ── Output row (player tab + mini player bar) ── */
+  _updateDeviceRow(card) {
+    let text = this._t("player.no_player");
+    let full = "";
+    let icon = "mdi:speaker";
+    if (this._activePlayer) {
+      const leader = this._groupLeaderOf(this._activePlayer);
+      const ids = [leader, ...this._groupMembersOf(leader)];
+      text = ids.length > 3
+        ? `${this._outputName(leader)} +${ids.length - 1}`
+        : ids.map(id => this._outputName(id)).join(" + ");
+      full = ids.map(id => this._outputFullName(id)).join(" + ");
+      icon = ids.length > 1 ? "mdi:speaker-multiple" : this._outputIcon(this._activePlayer);
+    }
+    card.querySelectorAll("#device-name, .mini-device-name").forEach(el => {
+      el.textContent = text;
+      el.title = full;
     });
-    this._groupMembers = newMembers;
-    this._saveGroupToServer();
-    this._openDeviceModal(card);
-    this._updateDeviceRow(card);
+    card.querySelectorAll("#device-icon-wrap, .mini-device-icon-wrap").forEach(el => {
+      if (el.dataset.icon === icon) return;
+      el.dataset.icon = icon;
+      el.innerHTML = `<ha-icon icon="${this._esc(icon)}"></ha-icon>`;
+    });
   }
 
-  _detachPlayer(entityId, card) {
-    if (!this._hass) return;
-    const remainingMembers = this._groupMembers.filter(id => id !== entityId);
-    if (remainingMembers.length > 0) {
-      // Reduce the group by re-issuing join with the smaller list.
-      // This removes the detached player without calling unjoin on it directly,
-      // which is not supported by all media_player platforms.
-      this._hass.callService("media_player", "join", {
-        entity_id: this._activePlayer,
-        group_members: remainingMembers,
-      });
-    } else {
-      // Last member removed → dissolve the group by unjoining the master.
-      this._hass.callService("media_player", "unjoin", {
-        entity_id: this._activePlayer,
-      });
+  /* ── Output panel ── */
+  _openOutputPanel(card, mode) {
+    if (!card.querySelector("#out-panel")) return;
+    if (card.querySelector('.tab-panel[data-panel="player"]') && this._tab !== "player") this._setActiveTab("player", card);
+    this._outputPanelOpen = true;
+    this._outputMode = mode || this._outputMode || "switch";
+    this._switchSel = new Set();
+    this._presetEditing = false;
+    card.querySelector("#out-panel").hidden = false;
+    this._renderOutputPanel(card);
+    this._loadOutputs();
+  }
+
+  _closeOutputPanel(card) {
+    this._outputPanelOpen = false;
+    const panel = card.querySelector("#out-panel");
+    if (panel) {
+      panel.hidden = true;
+      panel.innerHTML = "";
     }
-    this._groupMembers = remainingMembers;
-    this._saveGroupToServer();
-    this._openDeviceModal(card);
-    this._updateDeviceRow(card);
+  }
+
+  /* What the open panel shows; a change re-renders it (see _update). */
+  _outputPanelSignature() {
+    const states = this._hass?.states || {};
+    return this._panelOutputIds({ includeOffline: true, includeOthers: true }).map(id => {
+      const a = states[id]?.attributes || {};
+      return [id, states[id]?.state, a.volume_level, a.is_volume_muted, a.media_title, a.entity_picture, (a.group_members || []).join(",")].join("~");
+    }).join("|") + `#${this._activePlayer}`;
+  }
+
+  _renderOutputPanel(card) {
+    const panel = card?.querySelector("#out-panel");
+    if (!panel || !this._outputPanelOpen) return;
+    const mode = this._outputMode;
+    const scroll = panel.querySelector(".out-body")?.scrollTop || 0;
+    const body = mode === "group" ? this._renderOutGroup() : mode === "control" ? this._renderOutControl() : this._renderOutSwitch();
+    panel.innerHTML = `
+      <div class="out-head">
+        <div class="out-modes" role="tablist">
+          ${["switch", "group", "control"].map(m => `<button type="button" role="tab" class="out-mode${m === mode ? " active" : ""}" data-mode="${m}">${this._t(`outputs.mode_${m}`)}</button>`).join("")}
+        </div>
+        <button type="button" class="out-close" title="${this._t("outputs.close")}">${ICONS.close}</button>
+      </div>
+      <div class="out-hint">${this._t(`outputs.hint_${mode}`)}</div>
+      <div class="out-body">${body}</div>
+      ${this._renderOutFooter(mode)}
+      <div class="out-info-pop" hidden></div>`;
+    panel.querySelector(".out-body").scrollTop = scroll;
+    this._outPanelSig = this._outputPanelSignature();
+    if (!panel._mmlBound) {
+      panel._mmlBound = true;
+      this._bindOutputPanel(card, panel);
+    }
+    requestAnimationFrame(() => this._markTruncatedNames(panel));
+  }
+
+  /* The "i" button shows on tiles whose name is cut, or differs from the full name. */
+  _markTruncatedNames(panel) {
+    panel.querySelectorAll(".out-tile").forEach(tile => {
+      const nameEl = tile.querySelector(".out-tile-name");
+      const btn = tile.querySelector(".out-info");
+      if (!nameEl || !btn) return;
+      const cut = nameEl.scrollHeight > nameEl.clientHeight + 1 || nameEl.scrollWidth > nameEl.clientWidth + 1;
+      if (cut || nameEl.textContent !== nameEl.dataset.full) btn.hidden = false;
+    });
+  }
+
+  _renderOutTile(eid, { selected = false, disabled = false, reason = "", sub = "", action = "", extra = "" } = {}) {
+    const st = this._hass?.states[eid];
+    const info = this._outputInfo(eid);
+    const offline = !st || st.state === "unavailable" || info?.available === false;
+    const off = !offline && (st.state === "off" || info?.powered === false);
+    const playing = st?.state === "playing";
+    const name = this._outputName(eid);
+    const full = this._outputFullName(eid);
+    const isLeader = (info?.members || []).length > 0;
+    const cls = ["out-tile", selected && "sel", (disabled || offline) && "disabled", playing && "playing", off && "off"].filter(Boolean).join(" ");
+    return `
+      <div class="${cls}" data-eid="${this._esc(eid)}" data-action="${action}" title="${this._esc(reason || full)}"${disabled || offline ? ' aria-disabled="true"' : ""}>
+        <div class="out-tile-icon">
+          <ha-icon icon="${this._esc(this._outputIcon(eid))}"></ha-icon>
+          ${playing ? `<span class="out-eq"><i></i><i></i><i></i></span>` : ""}
+          ${isLeader ? `<span class="out-crown" title="${this._t("outputs.leader")}">${ICONS.crown}</span>` : ""}
+        </div>
+        <div class="out-tile-name" data-full="${this._esc(full)}">${this._esc(name)}</div>
+        <div class="out-tile-sub">${this._esc(reason || sub || this._stateLabel(eid))}</div>
+        ${selected ? `<span class="out-check">${ICONS.check}</span>` : ""}
+        <button type="button" class="out-info" data-info="${this._esc(eid)}" title="${this._t("outputs.details")}" hidden>${ICONS.info}</button>
+        ${off && info?.can_power ? `<button type="button" class="out-power" data-power="${this._esc(eid)}" title="${this._t("outputs.power_on")}">${ICONS.power}</button>` : ""}
+        ${extra}
+      </div>`;
+  }
+
+  _renderPresetChips(mode) {
+    if (!this._presets?.length) return "";
+    return `
+      <div class="out-section-title">${this._t("outputs.presets")}</div>
+      <div class="out-presets">
+        ${this._presets.map(p => `
+          <span class="out-chip" data-preset="${this._esc(p.id)}" title="${this._esc([p.leader, ...p.members].map(id => this._outputName(id)).join(" + "))}">
+            ${ICONS.star}<span>${this._esc(p.name)}</span>
+            ${mode === "group" ? `<button type="button" class="out-chip-del" data-del-preset="${this._esc(p.id)}" title="${this._t("outputs.delete_preset")}">${ICONS.close}</button>` : ""}
+          </span>`).join("")}
+      </div>`;
+  }
+
+  _renderOfflineToggle() {
+    const offline = this._panelOutputIds({ includeOffline: true }).filter(id => this._hass.states[id]?.state === "unavailable");
+    if (!offline.length) return "";
+    return `<button type="button" class="out-link" data-toggle-offline>${this._showOffline ? this._t("outputs.hide_offline") : this._tf("outputs.show_offline", { n: offline.length })}</button>`;
+  }
+
+  _renderOutSwitch() {
+    const src = this._activePlayer;
+    if (!src) return `<div class="empty-state"><p>${this._t("outputs.no_outputs")}</p></div>`;
+    const leader = this._groupLeaderOf(src);
+    const group = [leader, ...this._groupMembersOf(leader)];
+    const attr = this._hass?.states[leader]?.attributes || {};
+    const nowPlaying = attr.media_title
+      ? `${attr.media_title}${attr.media_artist ? ` — ${attr.media_artist}` : ""}`
+      : this._t("outputs.nothing");
+    const anchor = [...this._switchSel][0];
+    const tiles = this._panelOutputIds({ includeOffline: this._showOffline }).map(eid => {
+      const blocked = anchor && eid !== anchor && !this._canGroup(anchor, eid);
+      return this._renderOutTile(eid, {
+        selected: this._switchSel.has(eid),
+        disabled: blocked,
+        reason: blocked ? this._tf("outputs.cannot_group", { name: this._outputName(anchor) }) : "",
+        sub: group.includes(eid) ? this._t("outputs.current") : "",
+        action: "switch-toggle",
+      });
+    }).join("");
+    return `
+      <div class="out-section-title">${this._t("outputs.source")}</div>
+      <div class="out-source">
+        <div class="out-source-icons">${group.map(id => `<ha-icon icon="${this._esc(this._outputIcon(id))}"></ha-icon>`).join("")}</div>
+        <div class="out-source-text">
+          <div class="out-source-names">${this._esc(group.map(id => this._outputName(id)).join(" + "))}</div>
+          <div class="out-source-np">${this._esc(nowPlaying)}</div>
+        </div>
+      </div>
+      ${this._renderPresetChips("switch")}
+      <div class="out-section-title">${this._t("outputs.to")}</div>
+      <div class="out-grid">${tiles}</div>
+      ${this._renderOfflineToggle()}`;
+  }
+
+  _renderOutGroup() {
+    if (!this._activePlayer) return `<div class="empty-state"><p>${this._t("outputs.no_outputs")}</p></div>`;
+    const leader = this._groupLeaderOf(this._activePlayer);
+    const members = this._groupMembersOf(leader);
+    const tiles = this._panelOutputIds({ includeOffline: this._showOffline }).filter(id => id !== leader).map(eid => {
+      const inGroup = members.includes(eid);
+      const canJoin = inGroup || this._canGroup(leader, eid);
+      const otherLeader = this._outputInfo(eid)?.leader;
+      return this._renderOutTile(eid, {
+        selected: inGroup,
+        disabled: !canJoin,
+        reason: canJoin ? "" : this._tf("outputs.cannot_group", { name: this._outputName(leader) }),
+        sub: inGroup ? this._t("outputs.in_group")
+          : otherLeader && otherLeader !== leader ? this._tf("outputs.member_of", { name: this._outputName(otherLeader) }) : "",
+        action: "group-toggle",
+      });
+    }).join("");
+    return `
+      <div class="out-section-title">${this._tf("outputs.group_of", { name: this._esc(this._outputName(leader)) })}</div>
+      <div class="out-grid">${tiles || `<div class="out-empty">${this._t("outputs.no_other_outputs")}</div>`}</div>
+      ${this._renderOfflineToggle()}
+      ${this._renderPresetChips("group")}
+      ${this._renderOutVolumes(leader, members)}`;
+  }
+
+  _renderOutVolumes(leader, members) {
+    const ids = [leader, ...members];
+    const pct = (eid) => Math.round((this._hass?.states[eid]?.attributes?.volume_level ?? 0) * 100);
+    const groupVol = Math.round(ids.reduce((sum, id) => sum + pct(id), 0) / ids.length);
+    const row = (eid, label, isGroup = false) => {
+      const muted = !isGroup && this._hass?.states[eid]?.attributes?.is_volume_muted;
+      const value = isGroup ? groupVol : pct(eid);
+      return `
+        <div class="out-vol-row${isGroup ? " group" : ""}">
+          <span class="out-vol-name" title="${this._esc(isGroup ? label : this._outputFullName(eid))}">${this._esc(label)}</span>
+          ${isGroup ? `<span class="out-vol-icon">${ICONS.group}</span>` : `<button type="button" class="out-mute${muted ? " on" : ""}" data-mute="${this._esc(eid)}" title="${this._t("btns.mute")}">${muted ? ICONS.volumeMute : ICONS.volumeHigh}</button>`}
+          <input type="range" min="0" max="100" value="${value}" ${isGroup ? `data-group-vol="${this._esc(eid)}"` : `data-vol="${this._esc(eid)}"`}>
+          <span class="out-vol-pct">${value}%</span>
+        </div>`;
+    };
+    return `
+      <div class="out-section-title">${this._t("outputs.volumes")}</div>
+      <div class="out-volumes">
+        ${members.length ? row(leader, this._t("outputs.group_volume"), true) : ""}
+        ${ids.map(id => row(id, this._outputName(id))).join("")}
+      </div>`;
+  }
+
+  _renderOutControl() {
+    const ids = this._panelOutputIds({ includeOffline: this._showOffline });
+    const leaders = ids.filter(id => !this._outputInfo(id)?.leader);
+    const isActive = (id) => ["playing", "paused"].includes(this._hass?.states[id]?.state);
+    const sessions = leaders.filter(isActive);
+    const others = leaders.filter(id => !isActive(id));
+    const activeLeader = this._activePlayer ? this._groupLeaderOf(this._activePlayer) : null;
+    const pinned = this._loadPref("mml_default_player");
+    const pinBtn = (eid) => `<button type="button" class="out-pin${pinned === eid ? " on" : ""}" data-pin="${this._esc(eid)}" title="${this._t(pinned === eid ? "outputs.unpin" : "outputs.pin")}">${ICONS.pin}</button>`;
+    const sessionRow = (eid) => {
+      const a = this._hass.states[eid].attributes || {};
+      const group = [eid, ...this._groupMembersOf(eid)];
+      const art = a.entity_picture
+        ? `<img src="${this._esc(this._resolveImageUrl(a.entity_picture))}" alt="" loading="lazy">`
+        : `<ha-icon icon="${this._esc(this._outputIcon(eid))}"></ha-icon>`;
+      const np = a.media_title ? `${a.media_title}${a.media_artist ? ` — ${a.media_artist}` : ""}` : this._stateLabel(eid);
+      return `
+        <div class="out-session${eid === activeLeader ? " active" : ""}" data-eid="${this._esc(eid)}" data-action="control">
+          <div class="out-session-art">${art}</div>
+          <div class="out-session-text">
+            <div class="out-session-names">${this._esc(group.map(id => this._outputName(id)).join(" + "))}</div>
+            <div class="out-session-np">${this._hass.states[eid].state === "playing" ? ICONS.play : ICONS.pause}<span>${this._esc(np)}</span></div>
+          </div>
+          ${pinBtn(eid)}
+        </div>`;
+    };
+    const othersHa = this._config.show_other_players
+      ? this._panelOutputIds({ includeOthers: true }).filter(id => !this._hass.states[id].attributes?.mass_player_id)
+      : [];
+    return `
+      <div class="out-section-title">${this._t("outputs.sessions")}</div>
+      ${sessions.length ? `<div class="out-sessions">${sessions.map(sessionRow).join("")}</div>` : `<div class="out-empty">${this._t("outputs.no_sessions")}</div>`}
+      ${others.length ? `
+        <div class="out-section-title">${this._t("outputs.other_outputs")}</div>
+        <div class="out-grid">${others.map(eid => this._renderOutTile(eid, { selected: eid === activeLeader, action: "control", extra: pinBtn(eid) })).join("")}</div>` : ""}
+      ${this._renderOfflineToggle()}
+      ${othersHa.length ? `
+        <div class="out-section-title">${this._t("outputs.other_players")}</div>
+        <div class="out-grid">${othersHa.map(eid => this._renderOutTile(eid, { selected: eid === this._activePlayer, action: "control" })).join("")}</div>` : ""}`;
+  }
+
+  _renderOutFooter(mode) {
+    if (mode === "switch") {
+      const sel = [...this._switchSel];
+      const leader = this._activePlayer ? this._groupLeaderOf(this._activePlayer) : null;
+      const current = leader ? [leader, ...this._groupMembersOf(leader)] : [];
+      const unchanged = sel.length === current.length && sel.every(id => current.includes(id)) && sel.includes(leader);
+      const label = !sel.length ? this._t("outputs.select_hint")
+        : sel.length === 1 ? this._tf("outputs.switch_to_one", { name: this._outputName(sel[0]) })
+          : this._tf("outputs.switch_to_many", { n: sel.length });
+      return `<div class="out-foot"><button type="button" class="out-primary" data-do-switch ${!sel.length || unchanged ? "disabled" : ""}>${this._esc(label)}</button></div>`;
+    }
+    if (mode === "group") {
+      const leader = this._activePlayer ? this._groupLeaderOf(this._activePlayer) : null;
+      if (!leader) return "";
+      const members = this._groupMembersOf(leader);
+      if (this._presetEditing) {
+        return `
+          <div class="out-foot">
+            <input type="text" class="out-preset-input" maxlength="40" placeholder="${this._t("outputs.preset_name")}">
+            <button type="button" class="out-primary" data-save-preset>${this._t("outputs.save")}</button>
+            <button type="button" class="out-secondary" data-cancel-preset>${this._t("outputs.cancel")}</button>
+          </div>`;
+      }
+      return `
+        <div class="out-foot">
+          <button type="button" class="out-secondary" data-edit-preset ${members.length ? "" : "disabled"}>${ICONS.star} ${this._t("outputs.save_preset")}</button>
+          <button type="button" class="out-secondary danger" data-dissolve ${members.length ? "" : "disabled"}>${this._t("outputs.dissolve")}</button>
+        </div>`;
+    }
+    return "";
+  }
+
+  _bindOutputPanel(card, panel) {
+    const pop = () => panel.querySelector(".out-info-pop");
+    panel.addEventListener("pointerdown", (e) => {
+      if (e.target.matches('input[type="range"]')) this._outDragging = true;
+    });
+    panel.addEventListener("input", (e) => {
+      const pct = e.target.closest(".out-vol-row")?.querySelector(".out-vol-pct");
+      if (pct && e.target.matches('input[type="range"]')) pct.textContent = `${e.target.value}%`;
+    });
+    panel.addEventListener("change", (e) => {
+      const t = e.target;
+      if (!t.matches('input[type="range"]')) return;
+      this._outDragging = false;
+      if (t.dataset.vol) {
+        this._hass.callService("media_player", "volume_set", { entity_id: t.dataset.vol, volume_level: Number(t.value) / 100 });
+      } else if (t.dataset.groupVol) {
+        this._outputAction({ action: "group_volume", leader: t.dataset.groupVol, volume: Number(t.value) }, { reload: false });
+      }
+    });
+    panel.addEventListener("click", (e) => {
+      const t = e.target;
+      const popEl = pop();
+      if (popEl && !popEl.hidden && !t.closest(".out-info-pop") && !t.closest(".out-info")) popEl.hidden = true;
+      const btn = (sel) => t.closest(sel);
+      let el;
+      if ((el = btn(".out-mode"))) {
+        this._outputMode = el.dataset.mode;
+        this._switchSel = new Set();
+        this._presetEditing = false;
+        this._renderOutputPanel(card);
+      } else if (btn(".out-close")) {
+        this._closeOutputPanel(card);
+      } else if ((el = btn(".out-info"))) {
+        e.stopPropagation();
+        this._showOutputInfo(panel, el);
+      } else if ((el = btn(".out-power"))) {
+        e.stopPropagation();
+        this._outputAction({ action: "power", player: el.dataset.power, powered: true });
+      } else if ((el = btn(".out-pin"))) {
+        e.stopPropagation();
+        const eid = el.dataset.pin;
+        if (this._loadPref("mml_default_player") === eid) this._removePref("mml_default_player");
+        else this._savePref("mml_default_player", eid);
+        this._renderOutputPanel(card);
+      } else if ((el = btn(".out-mute"))) {
+        const eid = el.dataset.mute;
+        this._hass.callService("media_player", "volume_mute", { entity_id: eid, is_volume_muted: !this._hass.states[eid]?.attributes?.is_volume_muted });
+      } else if ((el = btn(".out-chip-del"))) {
+        e.stopPropagation();
+        const preset = this._presets.find(p => p.id === el.dataset.delPreset);
+        if (preset && confirm(this._tf("outputs.delete_preset_confirm", { name: preset.name }))) {
+          this._outputAction({ action: "delete_preset", id: preset.id });
+        }
+      } else if ((el = btn(".out-chip"))) {
+        this._applyPreset(card, this._presets.find(p => p.id === el.dataset.preset));
+      } else if (btn("[data-toggle-offline]")) {
+        this._showOffline = !this._showOffline;
+        this._renderOutputPanel(card);
+      } else if (btn("[data-do-switch]")) {
+        this._doSwitch(card);
+      } else if (btn("[data-edit-preset]")) {
+        this._presetEditing = true;
+        this._renderOutputPanel(card);
+        panel.querySelector(".out-preset-input")?.focus();
+      } else if (btn("[data-cancel-preset]")) {
+        this._presetEditing = false;
+        this._renderOutputPanel(card);
+      } else if (btn("[data-save-preset]")) {
+        this._saveCurrentGroupAsPreset(card, panel.querySelector(".out-preset-input")?.value || "");
+      } else if (btn("[data-dissolve]")) {
+        const leader = this._groupLeaderOf(this._activePlayer);
+        this._outputAction({ action: "set_members", leader, remove: this._groupMembersOf(leader) });
+      } else if ((el = btn(".out-tile, .out-session"))) {
+        if (el.getAttribute("aria-disabled") === "true") return;
+        this._onOutputTileClick(card, el.dataset.action, el.dataset.eid);
+      }
+    });
+    panel.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && e.target.matches(".out-preset-input")) this._saveCurrentGroupAsPreset(card, e.target.value);
+      if (e.key === "Escape") this._closeOutputPanel(card);
+    });
+  }
+
+  _onOutputTileClick(card, action, eid) {
+    if (action === "switch-toggle") {
+      if (this._switchSel.has(eid)) this._switchSel.delete(eid);
+      else this._switchSel.add(eid);
+      this._renderOutputPanel(card);
+    } else if (action === "group-toggle") {
+      const leader = this._groupLeaderOf(this._activePlayer);
+      const inGroup = this._groupMembersOf(leader).includes(eid);
+      this._outputAction({ action: "set_members", leader, [inGroup ? "remove" : "add"]: [eid] });
+    } else if (action === "control") {
+      this._setActivePlayerTo(eid);
+      this._closeOutputPanel(card);
+    }
+  }
+
+  async _doSwitch(card) {
+    const targets = [...this._switchSel];
+    if (!targets.length || !this._activePlayer) return;
+    const source = this._groupLeaderOf(this._activePlayer);
+    const ok = await this._outputAction({ action: "transfer", source, targets });
+    if (!ok) return;
+    const names = targets.map(id => this._outputName(id)).join(" + ");
+    this._showToast(this._tf("outputs.switched", { name: names }));
+    // Control follows the music: the new group's leader (the source when it stays in).
+    this._setActivePlayerTo(targets.includes(source) ? source : targets[0]);
+    this._closeOutputPanel(card);
+  }
+
+  _applyPreset(card, preset) {
+    if (!preset) return;
+    const wanted = [preset.leader, ...preset.members].filter(id => this._isOfferedOutput(id));
+    if (this._outputMode === "switch") {
+      this._switchSel = new Set(wanted);
+      this._renderOutputPanel(card);
+    } else if (this._outputMode === "group") {
+      const leader = this._groupLeaderOf(this._activePlayer);
+      const members = this._groupMembersOf(leader);
+      const add = wanted.filter(id => id !== leader && !members.includes(id) && this._canGroup(leader, id));
+      const remove = members.filter(id => !wanted.includes(id));
+      if (add.length || remove.length) this._outputAction({ action: "set_members", leader, add, remove });
+    }
+  }
+
+  async _saveCurrentGroupAsPreset(card, name) {
+    name = name.trim();
+    if (!name) return;
+    const leader = this._groupLeaderOf(this._activePlayer);
+    const ok = await this._outputAction({ action: "save_preset", name, leader, members: this._groupMembersOf(leader) });
+    if (ok) {
+      this._presetEditing = false;
+      this._showToast(this._tf("outputs.preset_saved", { name }));
+    }
+  }
+
+  _showOutputInfo(panel, btn) {
+    const eid = btn.dataset.info;
+    const info = this._outputInfo(eid);
+    const pop = panel.querySelector(".out-info-pop");
+    if (!pop) return;
+    const rows = [
+      [this._t("outputs.info_entity"), eid],
+      [this._t("outputs.info_area"), this._outputArea(eid)],
+      [this._t("outputs.info_model"), [info?.manufacturer, info?.model].filter(Boolean).join(" ")],
+      [this._t("outputs.info_provider"), info?.provider],
+      [this._t("outputs.info_state"), this._stateLabel(eid)],
+    ].filter(([, v]) => v);
+    pop.innerHTML = `
+      <div class="out-info-title">${this._esc(this._outputFullName(eid))}</div>
+      ${rows.map(([k, v]) => `<div class="out-info-row"><span>${this._esc(k)}</span><span>${this._esc(v)}</span></div>`).join("")}`;
+    pop.hidden = false;
+    const r = btn.getBoundingClientRect();
+    const pr = panel.getBoundingClientRect();
+    const width = Math.min(260, pr.width - 16);
+    pop.style.width = `${width}px`;
+    pop.style.left = `${Math.max(8, Math.min(r.right - pr.left - width, pr.width - width - 8))}px`;
+    const below = r.bottom - pr.top + 6;
+    pop.style.top = `${below + pop.offsetHeight > pr.height ? Math.max(8, r.top - pr.top - pop.offsetHeight - 6) : below}px`;
+  }
+
+  async _outputAction(body, { reload = true } = {}) {
+    try {
+      await this._callIntegration("POST", "outputs", body);
+      return true;
+    } catch (err) {
+      let msg = err?.message || String(err);
+      try { msg = JSON.parse(msg.replace(/^\d+:\s*/, "")).message || msg; } catch (_) { /* plain text */ }
+      this._showToast(this._tf("outputs.action_failed", { msg }));
+      return false;
+    } finally {
+      if (reload) this._loadOutputs();
+    }
   }
 
   /* ── Settings ── */
@@ -3567,7 +4387,13 @@ class MyMusicLibraryCard extends HTMLElement {
           this._enabledProviders = null;
         }
         this._savePref("mml_providers", this._enabledProviders ? JSON.stringify([...this._enabledProviders]) : "");
-        this._reloadLibrary();
+        const activeTabDef = this._resolvedTabs?.find(t => t.id === this._tab);
+        if (activeTabDef?.type === "discovery") {
+          this._discoveryLoadedTabs.delete(this._tab);
+          this._loadDiscovery(this._tab);
+        } else {
+          this._reloadLibrary();
+        }
       });
     });
   }
@@ -3588,6 +4414,10 @@ class MyMusicLibraryCard extends HTMLElement {
     try { return localStorage.getItem(key); } catch (_) { return null; }
   }
 
+  _removePref(key) {
+    try { localStorage.removeItem(key); } catch (_) {}
+  }
+
   _applyQueueVisibility(card) {
     const qs = card.querySelector("#queue-section");
     const btn = card.querySelector("#btn-queue-toggle");
@@ -3599,27 +4429,6 @@ class MyMusicLibraryCard extends HTMLElement {
       if (qs) qs.style.display = this._queueVisible ? "" : "none";
     }
     if (btn) btn.classList.toggle("active", this._queueVisible);
-  }
-
-  _closeDeviceModal(card) {
-    card.querySelector("#device-modal").classList.remove("open");
-  }
-
-  _updateDeviceModalVolumes(card) {
-    const modal = card.querySelector("#device-modal");
-    if (!modal?.classList.contains("open")) return;
-    for (const volRow of modal.querySelectorAll(".device-item-volume")) {
-      const eid = volRow.dataset.entity;
-      const slider = volRow.querySelector("input");
-      if (!eid || !slider || this._deviceVolDragging.has(eid)) continue;
-      const st = this._hass?.states[eid];
-      const vol = st?.attributes?.volume_level;
-      if (vol === undefined) continue;
-      const pct = Math.round(vol * 100);
-      slider.value = pct;
-      const label = volRow.querySelector(".device-vol-pct");
-      if (label) label.textContent = `${pct}%`;
-    }
   }
 
   /* ── Search ── */
@@ -3642,12 +4451,6 @@ class MyMusicLibraryCard extends HTMLElement {
         this._searchViaHaProxy(query),
         this._searchViaHaProxy(query, { libraryOnly: true }),
       ];
-      if (this._maEntryId) {
-        candidates.push(this._searchViaMaWs(query));
-        strategies.push("MA WS");
-        candidates.push(this._searchViaMaWs(query, { libraryOnly: true }));
-        strategies.push("MA WS (library)");
-      }
       this._debugLog("Search strategies:", strategies.join(", "));
 
       const settled = await Promise.allSettled(candidates);
@@ -3663,14 +4466,6 @@ class MyMusicLibraryCard extends HTMLElement {
       for (const b of buckets) {
         if (!b) continue;
         results = results ? this._mergeSearchResults(results, b) : b;
-      }
-    }
-
-    if (!results) {
-      const browseEntity = this._getBrowseEntity();
-      if (browseEntity) {
-        this._debugLog("Search fallback: browse_media on", browseEntity);
-        results = await this._searchViaBrowseMedia(browseEntity, query);
       }
     }
 
@@ -3706,30 +4501,6 @@ class MyMusicLibraryCard extends HTMLElement {
     } catch (e) {
       return null;
     }
-  }
-
-  /* Search via music_assistant/search WebSocket command (registered by MA integration).
-     Passes through HA — no CORS, works from HTTPS. */
-  async _searchViaMaWs(query, { libraryOnly = false } = {}) {
-    const base = { entry_id: this._maEntryId, limit: 100 };
-    if (libraryOnly) base.library_only = true;
-    const attempts = [
-      { type: "music_assistant/search", ...base, search_query: query },
-      { type: "music_assistant/search", ...base, name: query },
-      { type: "music_assistant/search_media_items", ...base, search_query: query },
-    ];
-
-    for (const msg of attempts) {
-      try {
-        const result = await this._hass.callWS(msg);
-        if (result) {
-          return this._parseMaWsSearchResults(result);
-        }
-      } catch (e) {
-        // MA WS search attempt failed
-      }
-    }
-    return null;
   }
 
   _makeThumbUrl(rawPath) {
@@ -3776,50 +4547,6 @@ class MyMusicLibraryCard extends HTMLElement {
       merged[key] = items;
     }
     return merged;
-  }
-
-  /* Search via HA browse_media WebSocket on an MA media_player entity */
-  async _searchViaBrowseMedia(entityId, query) {
-    const attempts = [
-      { media_content_id: `music_assistant://search?query=${encodeURIComponent(query)}`, media_content_type: "" },
-      { media_content_id: `music_assistant://search?query=${encodeURIComponent(query)}`, media_content_type: "search" },
-    ];
-    for (const attempt of attempts) {
-      try {
-        const result = await this._hass.callWS({
-          type: "media_player/browse_media",
-          entity_id: entityId,
-          ...attempt,
-        });
-        return this._parseSearchResults(result);
-      } catch (e) {
-        // browse_media search failed
-      }
-    }
-    return null;
-  }
-
-  _parseSearchResults(browseResult) {
-    const out = { tracks: [], artists: [], albums: [], playlists: [] };
-    if (!browseResult?.children) return out;
-    for (const child of browseResult.children) {
-      const type = (child.media_content_type || "").toLowerCase();
-      const item = {
-        id: child.media_content_id,
-        type,
-        title: child.title,
-        subtitle: child.media_artist || child.media_album_name || "",
-        thumbnail: child.thumbnail,
-        can_play: child.can_play,
-        can_expand: child.can_expand,
-      };
-      if (type === "track" || type === "music") out.tracks.push(item);
-      else if (type === "artist") out.artists.push(item);
-      else if (type === "album") out.albums.push(item);
-      else if (type === "playlist") out.playlists.push(item);
-      else out.tracks.push(item); // default bucket
-    }
-    return out;
   }
 
   _renderSearchResults(card, results) {
@@ -3949,7 +4676,6 @@ class MyMusicLibraryCard extends HTMLElement {
     if (!this._libTabState[id]) {
       this._libTabState[id] = {
         source: this._loadPref(`mml_lib_source_${id}`) || this._loadPref("mml_lib_source") || "all",
-        fav: this._loadPref(`mml_lib_fav_${id}`) === "true",
         browse: false,
         browseStack: [],
       };
@@ -3959,8 +4685,6 @@ class MyMusicLibraryCard extends HTMLElement {
 
   get _libSourceFilter() { return this._getLibTabState()?.source || "all"; }
   set _libSourceFilter(v) { this._getLibTabState().source = v; }
-  get _libFavFilter() { return this._getLibTabState()?.fav || false; }
-  set _libFavFilter(v) { this._getLibTabState().fav = v; }
   get _libBrowseMode() { return this._getLibTabState()?.browse || false; }
   set _libBrowseMode(v) { this._getLibTabState().browse = v; }
   get _browseStack() { return this._getLibTabState()?.browseStack || []; }
@@ -3970,6 +4694,39 @@ class MyMusicLibraryCard extends HTMLElement {
 
   _isLocalProvider(domain) {
     return MyMusicLibraryCard._LOCAL_PROVIDERS.some(p => domain.startsWith(p));
+  }
+
+  /* Recommendation folders (used by both the library tab's opt-in "discover"
+     sections and the standalone Discovery tab) can carry a provider — respect
+     the same enabled-providers filter as everything else. */
+  _isProviderFolder(f) {
+    const p = f.provider_instance || f.provider_domain || "";
+    return p && p !== "library" && p !== "builtin";
+  }
+
+  _matchFolderProvider(key) {
+    if (!key || key === "library" || key === "builtin") return true;
+    if (this._enabledProviders.has(key)) return true;
+    return [...this._enabledProviders].some(ep => ep.startsWith(key + "_") || key.startsWith(ep.split("--")[0] + "--") || ep === key);
+  }
+
+  _isFolderEnabled(f) {
+    if (!this._isProviderFolder(f)) return true;
+    if (this._enabledProviders === null) return true;
+    const inst = f.provider_instance || f.provider_domain || "";
+    return this._matchFolderProvider(inst);
+  }
+
+  /* Resolve a per-item icon for mixed-type collections (recommendation folders
+     can contain artists, albums, playlists, radios and tracks side by side). */
+  _itemIcon(item) {
+    const t = (item.media_content_type || "").toLowerCase();
+    if (t.includes("artist")) return "artist";
+    if (t.includes("album")) return "album";
+    if (t.includes("playlist")) return "playlist";
+    if (t.includes("radio")) return "radio";
+    if (t === "track") return "music";
+    return "music";
   }
 
   _filterLibItems(items) {
@@ -4077,8 +4834,6 @@ class MyMusicLibraryCard extends HTMLElement {
           toggle.querySelectorAll(".browse-mode-btn").forEach(b =>
             b.classList.toggle("active", (b.dataset.browse === "true") === this._libBrowseMode));
         }
-        const favBtn = panel.querySelector(".lib-filter-fav");
-        if (favBtn) favBtn.style.display = this._libBrowseMode ? "none" : "";
       }
     }
     this._loadLibrary();
@@ -4093,7 +4848,7 @@ class MyMusicLibraryCard extends HTMLElement {
     if (!libEl) return;
 
     this._libLoadedTabs.add(this._tab);
-    this._debugLog("Library load start, browseMode:", this._libBrowseMode, "sourceFilter:", this._libSourceFilter, "favFilter:", this._libFavFilter);
+    this._debugLog("Library load start, browseMode:", this._libBrowseMode, "sourceFilter:", this._libSourceFilter);
 
     if (this._libBrowseMode) {
       const currentUri = this._browseStack.length ? this._browseStack[this._browseStack.length - 1].uri : null;
@@ -4101,7 +4856,9 @@ class MyMusicLibraryCard extends HTMLElement {
     }
     this._libLoadId = (this._libLoadId || 0) + 1;
     const loadId = this._libLoadId;
-    const favorite = this._libFavFilter;
+    // The library only ever shows what you've favorited/saved in MA — browsing
+    // the full catalogue is what Search (and the library's own Browse mode) is for.
+    const favorite = true;
     const sourceFilter = this._libSourceFilter;
     const activeProviders = this._activeProviderFilter();
 
@@ -4148,17 +4905,6 @@ class MyMusicLibraryCard extends HTMLElement {
       filterBar.style.display = allDiscover ? "none" : "";
     }
 
-    // Helper: resolve per-item icon for mixed-type discover sections
-    const _itemIcon = (item) => {
-      const t = (item.media_content_type || "").toLowerCase();
-      if (t.includes("artist")) return "artist";
-      if (t.includes("album")) return "album";
-      if (t.includes("playlist")) return "playlist";
-      if (t.includes("radio")) return "radio";
-      if (t === "track") return "music";
-      return "music";
-    };
-
     // Helper: build section HTML (layout-aware)
     const isDiscoverSection = (type) => DISCOVER_SECTIONS.includes(type);
     const sectionHtml = (type, label, iconName, items) => {
@@ -4166,7 +4912,7 @@ class MyMusicLibraryCard extends HTMLElement {
       const itemsHtml = isTrackList
         ? items.map(i => this._renderLibListItem(i)).join("")
         : isDiscoverSection(type)
-          ? items.map(i => this._renderLibCard(i, _itemIcon(i))).join("")
+          ? items.map(i => this._renderLibCard(i, this._itemIcon(i))).join("")
           : items.map(i => this._renderLibCard(i, iconName)).join("");
       const sentinel = isTrackList
         ? `<div class="lib-sentinel-v" id="lib-sentinel-${type}"></div>`
@@ -4231,26 +4977,10 @@ class MyMusicLibraryCard extends HTMLElement {
       return _recPromise;
     };
 
-    const _isProviderFolder = (f) => {
-      const p = f.provider_instance || f.provider_domain || "";
-      return p && p !== "library" && p !== "builtin";
-    };
-    const _matchFolderProvider = (key) => {
-      if (!key || key === "library" || key === "builtin") return true;
-      if (this._enabledProviders.has(key)) return true;
-      return [...this._enabledProviders].some(ep => ep.startsWith(key + "_") || key.startsWith(ep.split("--")[0] + "--") || ep === key);
-    };
-    const _isFolderEnabled = (f) => {
-      if (!_isProviderFolder(f)) return true;
-      if (this._enabledProviders === null) return true;
-      const inst = f.provider_instance || f.provider_domain || "";
-      return _matchFolderProvider(inst);
-    };
-
     const _extractDiscoverItems = async (sectionType) => {
       const recFolders = await _getRecommendations();
       if (!recFolders || recFolders.length === 0) return [];
-      const folders = recFolders.filter(_isFolderEnabled);
+      const folders = recFolders.filter(f => this._isFolderEnabled(f));
       const mapping = DISCOVER_FOLDER_MAP[sectionType];
       if (Array.isArray(mapping)) {
         return folders
@@ -4463,6 +5193,57 @@ class MyMusicLibraryCard extends HTMLElement {
     }
   }
 
+  /* ── Discovery tab: one section per raw recommendation folder from MA,
+     using the server's own name/content as-is (no client-side re-categorization). ── */
+  async _loadDiscovery(tabId) {
+    if (!this._hass) return;
+    const id = tabId || this._tab;
+    this._discoveryLoadedTabs.add(id);
+
+    const card = this.shadowRoot.querySelector(".card-root");
+    const panel = card?.querySelector(`.tab-panel[data-panel="${id}"]`);
+    const libEl = (panel || card)?.querySelector("#lib-content-inner");
+    if (!libEl) return;
+
+    this._discoveryLoadId = (this._discoveryLoadId || 0) + 1;
+    const loadId = this._discoveryLoadId;
+
+    libEl.innerHTML = `<div class="loader"><div class="spinner"></div> ${this._t("lib.loading")}</div>`;
+
+    let folders = [];
+    try {
+      const data = await this._callIntegration("GET", "recommendations");
+      if (loadId !== this._discoveryLoadId) return;
+      folders = (data?.folders || []).filter(f => this._isFolderEnabled(f));
+    } catch (err) {
+      this._debugLog("Discovery fetch failed:", err);
+      if (loadId !== this._discoveryLoadId) return;
+      libEl.innerHTML = `<div class="empty-state">${ICONS.sparkle}<p>${this._t("discovery.load_error")}</p></div>`;
+      return;
+    }
+
+    const sectionsHtml = folders.map(f => {
+      const items = this._filterLibItems(f.items || []);
+      if (!items.length) return "";
+      const fid = this._esc(f.folder_id || f.name || "");
+      const cardsHtml = items.map(i => this._renderLibCard(i, this._itemIcon(i))).join("");
+      return `
+        <div class="lib-section" id="lib-sec-disc-${fid}">
+          <div class="lib-section-header"><span class="lib-section-title">${this._esc(f.name || "")}</span></div>
+          <div class="lib-lane-wrap">
+            <button class="lib-lane-arrow left" data-dir="left">${ICONS.chevronLeft}</button>
+            <div class="lib-scroll">${cardsHtml}</div>
+            <button class="lib-lane-arrow right" data-dir="right">${ICONS.chevronRight}</button>
+          </div>
+        </div>`;
+    }).filter(Boolean).join("");
+
+    if (loadId !== this._discoveryLoadId) return;
+    libEl.innerHTML = sectionsHtml || `<div class="empty-state">${ICONS.sparkle}<p>${this._t("discovery.empty")}</p></div>`;
+    this._attachItemActions(libEl);
+    libEl.querySelectorAll(".lib-section").forEach(sec => this._attachLaneArrows(sec));
+  }
+
   _attachLaneArrows(sectionEl) {
     if (!sectionEl) return;
     const wrap = sectionEl.querySelector(".lib-lane-wrap");
@@ -4589,7 +5370,29 @@ class MyMusicLibraryCard extends HTMLElement {
     });
   }
 
-  _openArtistPage(id, title, thumbnail) {
+  /* Player tab "artist" button: resolve the playing track's main artist, then open its page.
+     Back from that page returns to the player tab. */
+  async _openCurrentArtistPage(btn) {
+    const uri = this._hass?.states[this._activePlayer]?.attributes?.media_content_id;
+    if (!uri || btn.disabled) return;
+    btn.disabled = true;
+    try {
+      const r = await this._callIntegration("GET", `subitems?action=track_artist&uri=${encodeURIComponent(uri)}`);
+      const artist = r?.items?.[0];
+      if (!artist?.media_content_id) {
+        this._showToast(this._t("player.artist_not_found"));
+        return;
+      }
+      this._openArtistPage(artist.media_content_id, artist.title, artist.thumbnail || "", { backTab: "player" });
+    } catch (err) {
+      this._debugLog("track_artist failed:", err);
+      this._showToast(this._t("player.artist_not_found"));
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  _openArtistPage(id, title, thumbnail, opts = {}) {
     const card = this.shadowRoot.querySelector(".card-root");
     if (!card) return;
     const searchMain = card.querySelector("#search-main");
@@ -4605,6 +5408,10 @@ class MyMusicLibraryCard extends HTMLElement {
       ? `<img class="artist-hero-art" src="${this._resolveImageUrl(thumbnail)}" alt="" loading="lazy">`
       : `<div class="artist-hero-art-placeholder">${ICONS.artist}</div>`;
 
+    // undefined = still loading, null = load failed, Array = loaded (see _renderArtistAllAlbumsSection)
+    this._artistAllAlbums = undefined;
+    this._artistAllAlbumsSort = { field: "name", dir: "asc" };
+
     artistPanel.innerHTML = `
       <div class="artist-page-header">
         <button class="back-btn" id="artist-back">${this._t("nav.back")}</button>
@@ -4613,60 +5420,124 @@ class MyMusicLibraryCard extends HTMLElement {
         <button class="add-queue-btn" id="artist-queue-btn" data-queue-id="${this._esc(id)}" data-queue-type="artist" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>
       </div>
       <div class="artist-page-sections">
-        <div class="loader"><div class="spinner"></div> ${this._t("lib.loading_short")}</div>
+        <div class="search-section" id="artist-favorites-section">
+          <div class="search-section-title">${this._t("artist.favorites")}</div>
+          <div class="artist-favorites-body">
+            <div class="loader"><div class="spinner"></div> ${this._t("lib.loading_short")}</div>
+          </div>
+        </div>
+        <div class="search-section" id="artist-all-albums-section">
+          <div class="search-section-title-row">
+            <div class="search-section-title">${this._t("artist.all_albums")}</div>
+            <div class="artist-sort-toggles">
+              <button type="button" class="artist-sort-btn" data-sort-field="name">${this._t("artist.sort_name")}</button>
+              <button type="button" class="artist-sort-btn" data-sort-field="date">${this._t("artist.sort_date")}</button>
+            </div>
+          </div>
+          <div class="artist-all-albums-body">
+            <div class="loader"><div class="spinner"></div> ${this._t("lib.loading_short")}</div>
+          </div>
+        </div>
       </div>
     `;
 
     artistPanel.querySelector("#artist-back").addEventListener("click", () => {
       artistPanel.style.display = "none";
       searchMain.style.display = "";
+      if (opts.backTab) this._setActiveTab(opts.backTab, card);
     });
     artistPanel.querySelector("#artist-queue-btn")?.addEventListener("click", (e) => {
       e.stopPropagation();
       this._showQueueDropdown(e.currentTarget, id, "artist");
     });
+    artistPanel.querySelectorAll(".artist-sort-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const field = btn.dataset.sortField;
+        if (this._artistAllAlbumsSort.field === field) {
+          this._artistAllAlbumsSort.dir = this._artistAllAlbumsSort.dir === "asc" ? "desc" : "asc";
+        } else {
+          this._artistAllAlbumsSort = { field, dir: field === "date" ? "desc" : "asc" };
+        }
+        this._renderArtistAllAlbumsSection(artistPanel);
+      });
+    });
 
     this._callIntegration("GET", `subitems?action=artist_albums&uri=${encodeURIComponent(id)}&limit=100`)
+      .then(r => this._renderArtistFavoritesSection(artistPanel, r?.items || []))
+      .catch(() => this._renderArtistFavoritesSection(artistPanel, null));
+
+    this._callIntegration("GET", `subitems?action=artist_albums_all&uri=${encodeURIComponent(id)}&limit=300`)
       .then(r => {
-        const items = r?.items || [];
-        const groups = {};
-        for (const item of items) {
-          const t = (item.album_type || "album").toLowerCase();
-          (groups[t] = groups[t] || []).push(item);
-        }
-        const labelMap = {
-          album: this._t("lib.album_types.album"),
-          ep: this._t("lib.album_types.ep"),
-          single: this._t("lib.album_types.single"),
-          compilation: this._t("lib.album_types.compilation"),
-        };
-        const order = ["album", "ep", "single", "compilation"];
-        let sectionsHtml = "";
-        for (const t of order) {
-          const group = groups[t];
-          if (!group?.length) continue;
-          sectionsHtml += `
-            <div class="search-section">
-              <div class="search-section-title">${labelMap[t] || t}</div>
-              <div class="lib-scroll">
-                ${group.map(i => this._renderSearchCard({ id: i.media_content_id, type: "album", title: i.title, subtitle: i.media_artist, thumbnail: i.thumbnail }, "album")).join("")}
-              </div>
-            </div>`;
-        }
-        if (!sectionsHtml) {
-          sectionsHtml = `<div class="empty-state">${ICONS.library}<p>${this._t("lib.no_albums")}</p></div>`;
-        }
-        const sections = artistPanel.querySelector(".artist-page-sections");
-        if (sections) {
-          sections.innerHTML = sectionsHtml;
-          this._attachItemActions(sections);
-        }
+        this._artistAllAlbums = r?.items || [];
+        this._renderArtistAllAlbumsSection(artistPanel);
       })
-      .catch(err => {
-        // Artist albums fetch failed
-        const sections = artistPanel.querySelector(".artist-page-sections");
-        if (sections) sections.innerHTML = `<div class="empty-state">${ICONS.library}<p>${this._t("lib.load_error")}</p></div>`;
+      .catch(() => {
+        this._artistAllAlbums = null;
+        this._renderArtistAllAlbumsSection(artistPanel);
       });
+  }
+
+  /* ── Artist page: "Favoris" section (library/favorite albums, grouped by type) ── */
+  _renderArtistFavoritesSection(artistPanel, items) {
+    const body = artistPanel.querySelector(".artist-favorites-body");
+    if (!body) return;
+    if (items === null) {
+      body.innerHTML = `<div class="empty-state">${ICONS.library}<p>${this._t("lib.load_error")}</p></div>`;
+      return;
+    }
+    const html = this._renderAlbumTypeGroups(items);
+    body.innerHTML = html || `<div class="empty-state">${ICONS.library}<p>${this._t("lib.no_albums")}</p></div>`;
+    this._attachItemActions(body);
+  }
+
+  /* One sub-section per album type (Albums, EPs, Singles, Live, Compilations), in that
+     order, each keeping the order of `items`. Types MA leaves unknown fall under Albums. */
+  _renderAlbumTypeGroups(items) {
+    const order = ["album", "ep", "single", "live", "compilation"];
+    const groups = {};
+    for (const item of items) {
+      const t = (item.album_type || "album").toLowerCase();
+      (groups[order.includes(t) ? t : "album"] ??= []).push(item);
+    }
+    return order.filter(t => groups[t]).map(t => `
+      <div class="search-subsection">
+        <div class="search-section-subtitle">${this._t(`lib.album_types.${t}`)}</div>
+        <div class="lib-scroll">
+          ${groups[t].map(i => this._renderSearchCard({ id: i.media_content_id, type: "album", title: i.title, subtitle: i.media_artist, thumbnail: i.thumbnail }, "album")).join("")}
+        </div>
+      </div>`).join("");
+  }
+
+  /* ── Artist page: "Tous les albums" section (full catalog, sortable) ── */
+  _renderArtistAllAlbumsSection(artistPanel) {
+    const section = artistPanel.querySelector("#artist-all-albums-section");
+    const body = artistPanel.querySelector(".artist-all-albums-body");
+    if (!body) return;
+
+    const items = this._artistAllAlbums;
+    if (items === undefined) return; // still loading — keep spinner as-is
+    if (items === null) {
+      body.innerHTML = `<div class="empty-state">${ICONS.library}<p>${this._t("artist.load_error")}</p></div>`;
+    } else if (!items.length) {
+      body.innerHTML = `<div class="empty-state">${ICONS.library}<p>${this._t("artist.no_albums")}</p></div>`;
+    } else {
+      const { field, dir } = this._artistAllAlbumsSort;
+      const sorted = [...items].sort((a, b) => {
+        const cmp = field === "date"
+          ? (a.year ?? -Infinity) - (b.year ?? -Infinity)
+          : (a.title || "").localeCompare(b.title || "");
+        return dir === "desc" ? -cmp : cmp;
+      });
+      body.innerHTML = this._renderAlbumTypeGroups(sorted);
+      this._attachItemActions(body);
+    }
+
+    section?.querySelectorAll(".artist-sort-btn").forEach(btn => {
+      const isActive = btn.dataset.sortField === this._artistAllAlbumsSort.field;
+      btn.classList.toggle("active", isActive);
+      if (isActive) btn.dataset.dir = this._artistAllAlbumsSort.dir;
+      else delete btn.dataset.dir;
+    });
   }
 
   async _playAndSwitchToPlayer(id, type) {
@@ -4677,24 +5548,16 @@ class MyMusicLibraryCard extends HTMLElement {
 
     this._debugLog("PlayQueue:", id, "type:", type, "on:", this._activePlayer);
     try {
-      await this._callServiceSilent("music_assistant", "play_media", {
+      await this._callServiceSilent("my_music_library", "play_media", {
         entity_id: this._activePlayer,
         media_id: id,
         enqueue: "replace",
       });
-    } catch (_) {
-      try {
-        await this._callServiceSilent("media_player", "play_media", {
-          entity_id: this._activePlayer,
-          media_content_id: id,
-          media_content_type: type || "music",
-        });
-      } catch (err) {
-        this._debugLog("play_media error:", err);
-        if (this._isMediaNotFoundError(err)) {
-          this._showToast(this._t("errors.media_not_found"));
-        }
-      }
+    } catch (err) {
+      this._debugLog("play_media error:", err);
+      this._showToast(this._isMediaNotFoundError(err)
+        ? this._t("errors.media_not_found")
+        : `${this._t("errors.play_failed")}: ${this._extractErrorMessage(err)}`);
     }
     this._refreshQueueSoon(1500);
   }
@@ -4750,7 +5613,7 @@ class MyMusicLibraryCard extends HTMLElement {
     if (!this._hass || !this._activePlayer) return;
     const enqueue = mode === "next" ? "next" : "add";
     try {
-      await this._callServiceSilent("music_assistant", "play_media", {
+      await this._callServiceSilent("my_music_library", "play_media", {
         entity_id: this._activePlayer,
         media_id: id,
         enqueue,
@@ -4811,21 +5674,25 @@ class MyMusicLibraryCard extends HTMLElement {
     if (this._queueDropdownCleanup) { this._queueDropdownCleanup(); this._queueDropdownCleanup = null; }
   }
 
+  /* Music Assistant builds the whole mix (similar-track lookups at the providers) before
+     answering, which takes several seconds: give feedback right away instead of after. */
   async _startRadioMode(id, type) {
     if (!this._hass || !this._activePlayer) return;
+    const card = this.shadowRoot.querySelector(".card-root");
+    if (card) this._setActiveTab("player", card);
+    this._showToast(this._t("queue.mix_preparing"), 30000);
     try {
-      await this._callServiceSilent("music_assistant", "play_media", {
+      await this._callServiceSilent("my_music_library", "play_media", {
         entity_id: this._activePlayer,
         media_id: id,
         enqueue: "replace",
         radio_mode: true,
       });
       this._showToast(this._t("queue.mix_started"));
-      const card = this.shadowRoot.querySelector(".card-root");
-      if (card) this._setActiveTab("player", card);
       this._refreshQueueSoon(1500);
     } catch (err) {
       this._debugLog("startRadioMode failed:", err);
+      this._showToast(`${this._t("errors.play_failed")}: ${this._extractErrorMessage(err)}`);
     }
   }
 
@@ -5045,24 +5912,16 @@ class MyMusicLibraryCard extends HTMLElement {
     if (!this._hass || !this._activePlayer) return;
     this._debugLog("Play:", contentId, "type:", contentType, "on:", this._activePlayer);
     try {
-      await this._callServiceSilent("music_assistant", "play_media", {
+      await this._callServiceSilent("my_music_library", "play_media", {
         entity_id: this._activePlayer,
         media_id: contentId,
         enqueue: "replace",
       });
-    } catch (_) {
-      try {
-        await this._callServiceSilent("media_player", "play_media", {
-          entity_id: this._activePlayer,
-          media_content_id: contentId,
-          media_content_type: contentType || "music",
-        });
-      } catch (err) {
-        this._debugLog("play_media error:", err);
-        if (this._isMediaNotFoundError(err)) {
-          this._showToast(this._t("errors.media_not_found"));
-        }
-      }
+    } catch (err) {
+      this._debugLog("play_media error:", err);
+      this._showToast(this._isMediaNotFoundError(err)
+        ? this._t("errors.media_not_found")
+        : `${this._t("errors.play_failed")}: ${this._extractErrorMessage(err)}`);
     }
     this._refreshQueueSoon(1500);
   }
@@ -5091,6 +5950,13 @@ class MyMusicLibraryCard extends HTMLElement {
     return msg.includes("no data") || msg.includes("DataException");
   }
 
+  /* HA WS service-call rejections are usually {code, message} objects, not
+     JS Error instances — pull out whatever readable text is available so a
+     failed play_media isn't just a silent no-op. */
+  _extractErrorMessage(err) {
+    return err?.message || err?.code || (typeof err === "string" ? err : "") || "unknown error";
+  }
+
   /* ── Utilities ── */
   _esc(str) {
     if (!str) return "";
@@ -5113,6 +5979,14 @@ const EDITOR_STYLES = `
     color: var(--secondary-text-color, #727272); margin-bottom: 8px;
   }
   .editor-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .ed-out-hint { font-size: 12px; color: var(--secondary-text-color, #727272); margin-bottom: 8px; }
+  .ed-out-row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .ed-out-ent { font-size: 13px; color: var(--primary-text-color, #212121); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ed-out-row input[type="text"] {
+    padding: 6px 8px; border: 1px solid var(--divider-color, #e0e0e0); border-radius: 4px; font-size: 13px;
+    background: var(--card-background-color, #fff); color: var(--primary-text-color, #212121); min-width: 0;
+  }
+  .ed-out-hide-label { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--secondary-text-color, #727272); white-space: nowrap; }
   .editor-row label { min-width: 120px; font-size: 14px; color: var(--primary-text-color, #212121); flex-shrink: 0; }
   .editor-row input, .editor-row select {
     flex: 1; padding: 8px; border: 1px solid var(--divider-color, #e0e0e0);
@@ -5227,7 +6101,15 @@ class MyMusicLibraryCardEditor extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    if (this.shadowRoot && !this.shadowRoot.querySelector(".editor")) this._render();
+    // The Outputs section lists the players from hass: render again once they are known
+    // (setConfig often comes first) or when the list changes — not on every state update.
+    const outputsKey = this._outputsKey();
+    if (this.shadowRoot && (!this.shadowRoot.querySelector(".editor") || outputsKey !== this._renderedOutputsKey)) this._render();
+  }
+
+  _outputsKey() {
+    const states = this._hass?.states || {};
+    return Object.keys(states).filter(id => id.startsWith("media_player.") && states[id].attributes?.mass_player_id).sort().join(",");
   }
 
   _fireChanged() {
@@ -5295,7 +6177,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
         </div>
         ${this._showAddMenu ? `
           <div class="add-tab-menu">
-            ${["player","search","library","playlist","settings","button","custom_element"].map(type => `
+            ${["player","search","library","discovery","playlist","settings","button","custom_element"].map(type => `
               <button data-add-type="${type}">${this._tabTypeLabel(type)}</button>
             `).join("")}
           </div>` : `
@@ -5306,6 +6188,47 @@ class MyMusicLibraryCardEditor extends HTMLElement {
     `;
     root.appendChild(wrap);
     this._attachEditorListeners(wrap, tabs);
+  }
+
+  /* Per-output overrides: devices: { <entity_id>: { name, icon, hidden } } (empty values dropped). */
+  _renderOutputsFields() {
+    this._renderedOutputsKey = this._outputsKey();
+    const states = this._hass?.states || {};
+    const ids = Object.keys(states)
+      .filter(id => id.startsWith("media_player.") && (states[id].attributes?.mass_player_id || this._config.show_other_players))
+      .filter(id => states[id].state !== "unavailable" || this._config.devices?.[id])
+      .sort((a, b) => (states[a].attributes?.friendly_name || a).localeCompare(states[b].attributes?.friendly_name || b));
+    if (!ids.length) return "";
+    const devices = this._config.devices || {};
+    return `
+      <div class="editor-section">
+        <div class="editor-section-title">${this._t("editor.outputs_title")}</div>
+        <div class="ed-out-hint">${this._t("editor.outputs_hint")}</div>
+        ${ids.map(id => {
+          const d = devices[id] || {};
+          return `
+            <div class="ed-out-row" data-eid="${this._esc(id)}">
+              <div class="ed-out-ent" title="${this._esc(id)}">${this._esc(states[id].attributes?.friendly_name || id)}</div>
+              <input class="ed-out-name" type="text" placeholder="${this._t("editor.outputs_alias")}" value="${this._esc(d.name || "")}">
+              <input class="ed-out-icon" type="text" placeholder="mdi:speaker" value="${this._esc(d.icon || "")}">
+              <label class="ed-out-hide-label"><input class="ed-out-hide" type="checkbox" ${d.hidden ? "checked" : ""}> ${this._t("editor.outputs_hide")}</label>
+            </div>`;
+        }).join("")}
+      </div>`;
+  }
+
+  _setDeviceOverride(eid, { name, icon, hidden }) {
+    const devices = { ...(this._config.devices || {}) };
+    const entry = {};
+    if (name) entry.name = name;
+    if (icon) entry.icon = icon;
+    if (hidden) entry.hidden = true;
+    if (Object.keys(entry).length) devices[eid] = entry;
+    else delete devices[eid];
+    this._config = { ...this._config };
+    if (Object.keys(devices).length) this._config.devices = devices;
+    else delete this._config.devices;
+    this._fireChanged();
   }
 
   _renderBasicFields(defaultTabOptions) {
@@ -5332,7 +6255,12 @@ class MyMusicLibraryCardEditor extends HTMLElement {
           <label>${this._t("editor.show_device_select")}</label>
           <input id="ed-show-device" type="checkbox" ${cfg.show_device_select !== false ? "checked" : ""}>
         </div>
+        <div class="editor-row">
+          <label>${this._t("editor.show_other_players")}</label>
+          <input id="ed-show-other-players" type="checkbox" ${cfg.show_other_players ? "checked" : ""}>
+        </div>
       </div>
+      ${this._renderOutputsFields()}
       <div class="editor-section">
         <div class="editor-section-title">${this._t("editor.nav_bar_section")}</div>
         <div class="editor-row">
@@ -5385,8 +6313,32 @@ class MyMusicLibraryCardEditor extends HTMLElement {
     } else if (actionType === "call-service" || actionType === "perform-action") {
       actionFields = `<div class="editor-row"><label>${this._t("editor.btn_service")}</label><input data-btn-field="perform_action" data-idx="${index}" type="text" value="${this._esc(tab.tap_action?.perform_action || tab.tap_action?.service || "")}"></div>`;
     } else if (actionType === "mml_navigate_tab") {
-      const panelTabs = this._getResolvedTabs().filter(t => t.type && !["button","custom_element"].includes(t.type));
-      actionFields = `<div class="editor-row"><label>${this._t("editor.btn_mml_tab")}</label><select data-btn-field="tab" data-idx="${index}">${panelTabs.map(t => `<option value="${t.type}" ${tab.tap_action?.tab === t.type ? "selected" : ""}>${this._t(`tabs.${t.type}`) || t.type}</option>`).join("")}</select></div>`;
+      // Use each tab's resolved *id* (not just its type) as the option value: when
+      // several tabs share a type (e.g. two "library" tabs with different sections),
+      // targeting by type alone is ambiguous — it always resolves to the first one.
+      // _buildResolvedTabs computes the same ids the card itself uses at runtime.
+      const resolvedTabs = _buildResolvedTabs(this._config);
+      const panelTabs = resolvedTabs.filter(t => t.type && !["button","custom_element"].includes(t.type));
+      const typeCounts = {};
+      for (const t of panelTabs) typeCounts[t.type] = (typeCounts[t.type] || 0) + 1;
+      const optionLabel = (t) => {
+        const base = t.label || this._t(`tabs.${t.type}`) || t.type;
+        return (!t.label && typeCounts[t.type] > 1) ? `${base} (${t.id})` : base;
+      };
+      // Backward compat: older bindings may store a bare type (e.g. "library") from
+      // before ids were used here — if nothing matches by id, fall back to matching
+      // the first tab of that type, same as the runtime resolver does.
+      const storedValue = tab.tap_action?.tab;
+      const matchesById = panelTabs.some(t => t.id === storedValue);
+      let firstTypeMatchUsed = false;
+      actionFields = `<div class="editor-row"><label>${this._t("editor.btn_mml_tab")}</label><select data-btn-field="tab" data-idx="${index}">${panelTabs.map(t => {
+        let isSelected = t.id === storedValue;
+        if (!matchesById && !firstTypeMatchUsed && t.type === storedValue) {
+          isSelected = true;
+          firstTypeMatchUsed = true;
+        }
+        return `<option value="${t.id}" ${isSelected ? "selected" : ""}>${this._esc(optionLabel(t))}</option>`;
+      }).join("")}</select></div>`;
     } else if (actionType === "mml_navigate_section") {
       const sections = ["artists","albums","playlists","tracks","radios","recently_played","recently_added","recommended","flows"];
       actionFields = `<div class="editor-row"><label>${this._t("editor.btn_mml_section")}</label><select data-btn-field="section" data-idx="${index}">${sections.map(s => `<option value="${s}" ${tab.tap_action?.section === s ? "selected" : ""}>${this._t(`lib.${s}`) || s}</option>`).join("")}</select></div>`;
@@ -5415,7 +6367,52 @@ class MyMusicLibraryCardEditor extends HTMLElement {
           <label style="padding-top:6px">${this._t("editor.btn_element_config")}</label>
           <textarea data-ce-config data-idx="${index}" rows="4">${this._esc(_yamlDump(tab.element_config || {}))}</textarea>
         </div>
+        ${this._renderShowInNavField(tab, index)}
         ${this._renderActionSelect(tab, index)}
+        ${this._renderAdvancedBlock(tab, index)}
+      </div>`;
+  }
+
+  /* Keys already covered by a dedicated control for a given tab type — the
+     advanced block only shows/edits whatever is left over, so nothing is
+     ever edited in two places at once. */
+  static _HANDLED_KEYS = {
+    player: ["type", "label", "icon", "show_in_nav"],
+    search: ["type", "label", "icon", "show_in_nav", "search_layout"],
+    library: ["type", "label", "icon", "show_in_nav", "sections", "layout"],
+    discovery: ["type", "label", "icon", "show_in_nav"],
+    playlist: ["type", "label", "icon", "show_in_nav", "playlist_uri", "playlist_label", "playlist_thumbnail"],
+    settings: ["type", "label", "icon", "show_in_nav"],
+    button: ["type", "icon", "name", "entity", "show_in_nav", "width", "height"],
+    custom_element: ["type", "element", "element_config", "name", "show_in_nav", "width", "height"],
+  };
+
+  _renderShowInNavField(tab, index) {
+    const checked = tab.show_in_nav !== false;
+    return `
+      <div class="editor-row">
+        <label>${this._t("editor.tab_show_in_nav")}</label>
+        <label class="toggle-switch">
+          <input type="checkbox" data-field-checkbox="show_in_nav" data-idx="${index}"${checked ? " checked" : ""}>
+          <span class="toggle-track"></span>
+        </label>
+      </div>`;
+  }
+
+  /* Generic escape hatch: whatever isn't managed by a dedicated control above
+     (e.g. tap_action's `data`/`target`, or any other property) is shown here
+     as raw YAML — one text block instead of a form control per property. */
+  _renderAdvancedBlock(tab, index) {
+    const handled = MyMusicLibraryCardEditor._HANDLED_KEYS[tab.type] || ["type"];
+    const extra = {};
+    for (const [k, v] of Object.entries(tab)) {
+      if (!handled.includes(k)) extra[k] = v;
+    }
+    const hasExtra = Object.keys(extra).length > 0;
+    return `
+      <div class="editor-row" style="align-items:flex-start">
+        <label style="padding-top:6px">${this._t("editor.advanced_config")}</label>
+        <textarea data-advanced-config data-idx="${index}" rows="3" placeholder="${this._t("editor.advanced_config_hint")}">${hasExtra ? this._esc(_yamlDump(extra)) : ""}</textarea>
       </div>`;
   }
 
@@ -5431,10 +6428,12 @@ class MyMusicLibraryCardEditor extends HTMLElement {
         <div class="editor-row">
           <label>${this._t("editor.tab_icon")}</label>
           <input data-field="icon" data-idx="${index}" type="text" value="${this._esc(tab.icon || "")}" placeholder="${this._t("editor.tab_icon_hint")}">
-        </div>`;
+        </div>
+        ${this._renderShowInNavField(tab, index)}`;
     if (tab.type === "library") body += this._renderSectionsEditor(tab, index);
     if (tab.type === "search") body += this._renderSearchLayoutEditor(tab, index);
     if (tab.type === "playlist") body += this._renderPlaylistEditor(tab, index);
+    body += this._renderAdvancedBlock(tab, index);
     body += `</div>`;
     return body;
   }
@@ -5565,7 +6564,9 @@ class MyMusicLibraryCardEditor extends HTMLElement {
           <label>${this._t("editor.btn_entity")}</label>
           <input data-field="entity" data-idx="${index}" type="text" value="${this._esc(tab.entity || "")}" placeholder="light.living_room">
         </div>
+        ${this._renderShowInNavField(tab, index)}
         ${this._renderActionSelect(tab, index)}
+        ${this._renderAdvancedBlock(tab, index)}
       </div>`;
   }
 
@@ -5594,6 +6595,23 @@ class MyMusicLibraryCardEditor extends HTMLElement {
     wrap.querySelector("#ed-show-device")?.addEventListener("change", (e) => {
       this._config = { ...this._config, show_device_select: e.target.checked };
       this._fireChanged();
+    });
+    wrap.querySelector("#ed-show-other-players")?.addEventListener("change", (e) => {
+      this._config = { ...this._config };
+      if (e.target.checked) this._config.show_other_players = true;
+      else delete this._config.show_other_players;
+      this._fireChanged();
+      this._render();
+    });
+    wrap.querySelectorAll(".ed-out-row").forEach(row => {
+      const eid = row.dataset.eid;
+      row.querySelectorAll("input").forEach(input => input.addEventListener("change", () => {
+        this._setDeviceOverride(eid, {
+          name: row.querySelector(".ed-out-name").value.trim(),
+          icon: row.querySelector(".ed-out-icon").value.trim(),
+          hidden: row.querySelector(".ed-out-hide").checked,
+        });
+      }));
     });
 
     const _setNavBar = (key, val, defaultVal) => {
@@ -5672,6 +6690,36 @@ class MyMusicLibraryCardEditor extends HTMLElement {
         t[idx] = { ...t[idx] };
         if (val) t[idx][field] = val; else delete t[idx][field];
         this._updateTabs(t);
+      });
+    });
+
+    // show_in_nav toggle (defaults to true, so it's only stored when false)
+    wrap.querySelectorAll("[data-field-checkbox]").forEach(input => {
+      input.addEventListener("change", () => {
+        const idx = parseInt(input.dataset.idx);
+        const field = input.dataset.fieldCheckbox;
+        const t = [...tabs];
+        t[idx] = { ...t[idx] };
+        if (input.checked) delete t[idx][field]; else t[idx][field] = false;
+        this._updateTabs(t);
+      });
+    });
+
+    // Advanced (raw YAML) block: merges/overrides whatever isn't managed by a
+    // dedicated control above — the escape hatch for tap_action.data/target,
+    // hold_action, double_tap_action, or any other one-off property.
+    wrap.querySelectorAll("[data-advanced-config]").forEach(ta => {
+      ta.addEventListener("change", () => {
+        const idx = parseInt(ta.dataset.idx);
+        try {
+          const extra = _yamlLoad(ta.value.trim() || "{}");
+          const t = [...tabs];
+          const handled = MyMusicLibraryCardEditor._HANDLED_KEYS[t[idx].type] || ["type"];
+          const kept = {};
+          for (const k of handled) if (k in t[idx]) kept[k] = t[idx][k];
+          t[idx] = { ...kept, ...extra };
+          this._updateTabs(t);
+        } catch (_) { /* invalid YAML — ignore, keep previous value */ }
       });
     });
 

@@ -3,22 +3,33 @@
     "step": {
       "user": {
         "title": "My Music Library einrichten",
-        "description": "Geben Sie die URL Ihres Music Assistant Servers ein ({ma_url_hint}). Erforderlich für Suche und Bibliotheksdurchsuchung.",
+        "description": "Geben Sie die URL Ihres Music Assistant Servers ({ma_url_hint}) und ein langlebiges API-Token ({token_hint}) ein.",
         "data": {
           "ma_url": "URL des Music Assistant Servers",
-          "default_player": "Standard-Player",
+          "ma_token": "Music Assistant API-Token",
           "default_tab": "Standardreiter beim Öffnen"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Erneut mit Music Assistant verbinden",
+        "description": "My Music Library verbindet sich direkt mit Music Assistant (seit Version 4). Gib die Server-URL und ein langlebiges API-Token ein – erstellbar in Music Assistant unter Einstellungen → dein Benutzer → API-Tokens. Dieser Schritt erscheint auch, wenn das gespeicherte Token widerrufen wurde.",
+        "data": {
+          "ma_url": "URL des Music Assistant Servers",
+          "ma_token": "Music Assistant API-Token"
         }
       }
     },
     "error": {
-      "cannot_connect": "Verbindung fehlgeschlagen",
+      "cannot_connect": "Verbindung zum Music Assistant Server fehlgeschlagen",
+      "invalid_auth": "Authentifizierung fehlgeschlagen — API-Token prüfen",
+      "invalid_server_version": "Diese Music Assistant Serverversion ist nicht kompatibel",
       "invalid_url": "Ungültige URL — muss mit http:// oder https:// beginnen",
       "unknown": "Unerwarteter Fehler"
     },
     "abort": {
       "already_configured": "My Music Library ist bereits konfiguriert",
-      "single_instance_allowed": "Nur eine Instanz ist erlaubt"
+      "single_instance_allowed": "Nur eine Instanz ist erlaubt",
+      "reauth_successful": "Erfolgreich erneut mit Music Assistant verbunden"
     }
   },
   "options": {
@@ -27,12 +38,73 @@
         "title": "Player-Einstellungen",
         "description": "Wählen Sie Player aus, die in der Geräteauswahl ausgeblendet werden sollen. Sie können auch ein Wildcard-Muster eingeben (z.B. `media_player.browser_mod_*`) und Enter drücken, um alle passenden Player auszuschließen.",
         "data": {
+          "default_player": "Standard-Player",
           "excluded_players": "Ausgeblendete Player",
           "debug_mode": "Debug-Protokollierung aktivieren"
         },
         "data_description": {
-          "debug_mode": "Wenn aktiviert, erscheinen detaillierte Protokolle in den HA-Logs (Filter: my_music_library) und in der Browser-Konsole (F12). Nach dem Debugging deaktivieren."
+          "debug_mode": "Wenn aktiviert, erscheinen detaillierte Protokolle in den HA-Logs (Filter: my_music_library) und in der Browser-Konsole (F12). Wenn deaktiviert, gilt die mit `logger:` in configuration.yaml festgelegte Stufe (HA-Standard: warning). Nach dem Debugging deaktivieren."
         }
+      }
+    }
+  },
+  "issues": {
+    "duplicate_entities": {
+      "title": "Doppelte Music-Assistant-Player",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Ursprüngliche IDs an My Music Library vergeben",
+            "description": "Diese Entitäten werden umbenannt (My-Music-Library-Entität → ursprüngliche ID):\n\n{entities}\n\nDie offiziellen Entitäten erhalten das Suffix `_music_assistant`. Beide Umbenennungen lassen sich in den Einstellungen jeder Entität rückgängig machen.\n\n**Automationen und Skripte, die die ursprünglichen IDs verwenden** (sie steuern ab jetzt die My-Music-Library-Entitäten):\n\n{references}\n\nStandard-Aktionen `media_player.*` funktionieren weiterhin. Aktionen der offiziellen Integration, z. B. `music_assistant.play_media`, funktionieren auf diesen Entitäten nicht mehr: ersetze sie durch `my_music_library.play_media` oder `media_player.play_media`.",
+            "data": {
+              "disable_official": "Entitäten der offiziellen Integration zusätzlich deaktivieren"
+            }
+          }
+        },
+        "abort": {
+          "no_duplicates": "Keine Duplikate mehr: nichts umzubenennen."
+        }
+      }
+    }
+  },
+  "services": {
+    "play_media": {
+      "name": "Medien abspielen",
+      "description": "Spielt ein Music-Assistant-Element (URI, URL oder Name) auf einem My-Music-Library-Player ab.",
+      "fields": {
+        "media_id": {
+          "name": "Medium",
+          "description": "URI eines Music-Assistant-Elements (z. B. library://playlist/16), eine Stream-URL oder ein zu suchender Name."
+        },
+        "enqueue": {
+          "name": "Einreihen",
+          "description": "Wie das Medium zur Warteschlange hinzugefügt wird. Standard: sofort abspielen."
+        },
+        "radio_mode": {
+          "name": "Radiomodus",
+          "description": "Nach dem Ende der Warteschlange ähnliche Titel weiterspielen."
+        }
+      }
+    },
+    "transfer_queue": {
+      "name": "Warteschlange übertragen",
+      "description": "Überträgt, was ein My-Music-Library-Player abspielt (gleicher Titel, gleiche Position), auf einen oder mehrere andere Player. Bei mehreren Zielen führt das erste eine Gruppe aus allen an; die Quelle stoppt.",
+      "fields": {
+        "targets": {
+          "name": "Ziele",
+          "description": "Player, die die Musik übernehmen."
+        }
+      }
+    }
+  },
+  "selector": {
+    "enqueue": {
+      "options": {
+        "play": "Jetzt abspielen",
+        "replace": "Warteschlange ersetzen und abspielen",
+        "next": "Als Nächstes abspielen",
+        "replace_next": "Warteschlange ersetzen, als Nächstes abspielen",
+        "add": "Zur Warteschlange hinzufügen"
       }
     }
   }

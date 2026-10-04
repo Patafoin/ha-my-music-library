@@ -1,0 +1,37 @@
+play_media:
+  target:
+    entity:
+      integration: my_music_library
+      domain: media_player
+  fields:
+    media_id:
+      required: true
+      example: "library://playlist/16"
+      selector:
+        text:
+    enqueue:
+      selector:
+        select:
+          translation_key: enqueue
+          options:
+            - play
+            - replace
+            - next
+            - replace_next
+            - add
+    radio_mode:
+      selector:
+        boolean:
+transfer_queue:
+  target:
+    entity:
+      integration: my_music_library
+      domain: media_player
+  fields:
+    targets:
+      required: true
+      selector:
+        entity:
+          integration: my_music_library
+          domain: media_player
+          multiple: true
