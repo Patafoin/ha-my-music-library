@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "4.8.2";
+const CARD_VERSION = "4.8.4";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -2327,6 +2327,7 @@ class MyMusicLibraryCard extends HTMLElement {
     this._progressInterval = null;
     this._localPosition = null;
     this._localPositionTime = null;
+    this._localPositionKey = null;  // player + track the seek override belongs to
     this._maQueueItems = [];
     this._maQueueId = null;        // MA queue_id of the active player, from the last ma_queue load
     this._queueLoadSeq = 0;        // drops out-of-order ma_queue responses
@@ -3565,6 +3566,16 @@ class MyMusicLibraryCard extends HTMLElement {
     const dur = attr.media_duration || 0;
     const isPlaying = state?.state === "playing";
 
+    // The seek override only bridges the gap until HA reports the new position: drop it
+    // on another track or player, or once a position report newer than the seek arrives.
+    if (this._localPosition !== null) {
+      const posUpdated = attr.media_position_updated_at;
+      if (this._localPositionKey !== `${this._activePlayer}|${attr.media_content_id}`
+          || (posUpdated && new Date(posUpdated).getTime() / 1000 > this._localPositionTime + 1)) {
+        this._localPosition = null;
+      }
+    }
+
     let pos;
     if (isPlaying && this._localPosition !== null) {
       const elapsed = Date.now() / 1000 - this._localPositionTime;
@@ -3583,7 +3594,8 @@ class MyMusicLibraryCard extends HTMLElement {
       this._localPosition = null;
     }
 
-    pos = Math.min(pos || 0, dur);
+    // never below 0: a device clock a bit behind HA's puts media_position_updated_at in the future
+    pos = Math.max(0, Math.min(pos || 0, dur));
     const pct = dur > 0 ? (pos / dur) * 100 : 0;
 
     if (!this._seekDragging) {
@@ -3693,6 +3705,7 @@ class MyMusicLibraryCard extends HTMLElement {
       this._callService("media_seek", { seek_position: Math.round(pos) });
       this._localPosition = pos;
       this._localPositionTime = Date.now() / 1000;
+      this._localPositionKey = `${this._activePlayer}|${state.attributes.media_content_id}`;
     };
     progressBar.addEventListener("pointerup", endSeekDrag);
     progressBar.addEventListener("pointercancel", () => {

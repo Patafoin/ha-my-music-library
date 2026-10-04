@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-4.8.2-blue)
+![Version](https://img.shields.io/badge/version-4.8.4-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2026.2%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -501,6 +501,13 @@ custom_components/my_music_library/
 ## Changelog
 
 > **4.8.2 is the first public release of the 4.x line.** Versions 4.0.0 to 4.8.1 were never published: together, the entries from 4.5.0 to 4.8.2 below describe everything 4.8.2 brings since 3.14.0.
+
+### 4.8.4
+- **Fix** — on next/previous track, the player showed the new track, **went back to the previous one** for a second or two, then showed the new one again (title and artwork). Music Assistant briefly points back to the track it left while the speaker still plays the old stream; the integration now holds such a return for up to 3 seconds and only shows it if it lasts (a real "previous" right after "next" is shown at most 3 seconds late).
+- **Fix** — the elapsed time could show **negative values** for a moment when a track started (on a device whose clock is a bit behind Home Assistant's); it now never goes below 0:00.
+
+### 4.8.3
+- **Fix** — after moving forward in a track with the progress bar, the bar **stayed at that position on the next track** (or on another player) instead of starting over: the position chosen by the seek kept priority over the one reported by Home Assistant as long as music was playing. It now only bridges the gap until Home Assistant reports the new position, and is dropped on a track or player change.
 
 ### 4.8.2 — first public 4.x release
 - **Fix** — the output panel showed **no output at all** with the oldest supported Music Assistant client (1.3.3, shipped with Home Assistant 2026.2): its "hide player" setting is a set of conditions (when off, when synced…), never empty, which was read as "hidden". Only "always" hides a player now.

@@ -11,7 +11,9 @@ migration (see docs/migration-v4 — deferred functional improvements).
 from __future__ import annotations
 
 import functools
+import time
 from collections.abc import Awaitable, Callable, Coroutine, Mapping
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
@@ -25,11 +27,12 @@ from homeassistant.components.media_player import (
 from homeassistant.components.media_player import MediaType as HAMediaType
 from homeassistant.components.media_player import RepeatMode
 from homeassistant.const import STATE_OFF
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback, async_get_current_platform
+from homeassistant.helpers.event import async_call_later
 from homeassistant.util.dt import utc_from_timestamp
 from music_assistant_models.enums import EventType, MediaType, PlayerFeature, QueueOption
 from music_assistant_models.enums import RepeatMode as MassRepeatMode
@@ -56,6 +59,11 @@ if TYPE_CHECKING:
     from music_assistant_models.player_queue import PlayerQueue
 
     from .mass_connection import MyMusicLibraryConfigEntry
+
+# On next/previous, Music Assistant (2.10.4) shows the new track at once, then goes back to the
+# previous one for a second or two while the player still reports the old stream, then settles.
+# A return to the previous track within this window is held back, and only shown if it lasts.
+BOUNCE_WINDOW = 3.0
 
 SUPPORTED_FEATURES = (
     MediaPlayerEntityFeature.PLAY
@@ -146,6 +154,10 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
             self._attr_supported_features |= MediaPlayerEntityFeature.GROUPING
         self._attr_device_class = MediaPlayerDeviceClass.SPEAKER
         self._prev_time: float = 0
+        self._shown_item_id: str | None = None
+        self._prev_item_id: str | None = None
+        self._item_changed_at: float = 0
+        self._cancel_bounce_check: Callable[[], None] | None = None
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
@@ -162,6 +174,7 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
         self.async_on_remove(
             self.mass.subscribe(queue_time_updated, EventType.QUEUE_TIME_UPDATED)
         )
+        self.async_on_remove(self._cancel_pending_bounce_check)
 
     @property
     def active_queue(self) -> PlayerQueue | None:
@@ -206,8 +219,43 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
             player.volume_level / 100 if player.volume_level is not None else None
         )
         self._attr_is_volume_muted = player.volume_muted
+        cur_item = active_queue.current_item if active_queue else None
+        if self._is_bounce_back(cur_item.queue_item_id if cur_item else None):
+            return
         self._update_media_attributes(player, active_queue)
         self._update_media_image_url(player, active_queue)
+
+    def _is_bounce_back(self, item_id: str | None) -> bool:
+        """Tell whether the queue just went back to the track it left (see BOUNCE_WINDOW)."""
+        if item_id == self._shown_item_id:
+            return False
+        now = time.monotonic()
+        if (
+            item_id is not None
+            and item_id == self._prev_item_id
+            and now - self._item_changed_at < BOUNCE_WINDOW
+        ):
+            # Look again once the window is over: a real return then gets shown.
+            if self._cancel_bounce_check is None:
+                self._cancel_bounce_check = async_call_later(
+                    self.hass, BOUNCE_WINDOW, self._async_bounce_check
+                )
+            return True
+        self._prev_item_id, self._shown_item_id = self._shown_item_id, item_id
+        self._item_changed_at = now
+        return False
+
+    async def _async_bounce_check(self, _now: datetime) -> None:
+        """Refresh once the bounce window is over."""
+        self._cancel_bounce_check = None
+        await self.async_on_update()
+        self.async_write_ha_state()
+
+    @callback
+    def _cancel_pending_bounce_check(self) -> None:
+        if self._cancel_bounce_check is not None:
+            self._cancel_bounce_check()
+            self._cancel_bounce_check = None
 
     def _update_media_attributes(self, player: Player, queue: PlayerQueue | None) -> None:
         """Update media_* attributes from the active queue's current item."""
@@ -230,7 +278,7 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
             self._attr_shuffle = None
             self._attr_repeat = None
             if player.elapsed_time is not None:
-                self._attr_media_position = int(player.elapsed_time)
+                self._attr_media_position = max(0, int(player.elapsed_time))
                 self._prev_time = player.elapsed_time
             self._attr_media_position_updated_at = (
                 utc_from_timestamp(player.elapsed_time_last_updated)
@@ -252,7 +300,7 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
 
         self._attr_media_content_id = cur_item.uri
         self._attr_media_duration = cur_item.duration
-        self._attr_media_position = int(queue.elapsed_time)
+        self._attr_media_position = max(0, int(queue.elapsed_time))
         self._attr_media_position_updated_at = utc_from_timestamp(queue.elapsed_time_last_updated)
         self._prev_time = queue.elapsed_time
 
