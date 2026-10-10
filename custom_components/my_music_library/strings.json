@@ -65,6 +65,24 @@
           "no_duplicates": "No duplicate left: nothing to rename."
         }
       }
+    },
+    "missing_players": {
+      "title": "Music Assistant players that no longer exist",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Delete the media players of vanished players",
+            "description": "Music Assistant no longer knows these players, but their media players are still in Home Assistant (unavailable):\n\n{players}\n\nThis usually happens when a device comes back under another identifier: Music Assistant then sees a new player (for Squeezelite, a different MAC address — set a fixed MAC address in the player's settings to avoid it), or for browser web players.\n\nTick the media players to delete. Untick a speaker that is only switched off: it will come back by itself when it reconnects.",
+            "data": {
+              "players": "Media players to delete"
+            }
+          }
+        },
+        "abort": {
+          "no_missing_players": "Every player is back: nothing to delete.",
+          "not_connected": "My Music Library is not connected to Music Assistant."
+        }
+      }
     }
   },
   "services": {

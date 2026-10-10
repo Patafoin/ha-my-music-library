@@ -52,6 +52,7 @@ from .const import (
     SERVICE_TRANSFER_QUEUE,
 )
 from .entity import UNIQUE_ID_PREFIX, MusicAssistantBaseEntity
+from .missing_players import async_remove_player
 
 if TYPE_CHECKING:
     from music_assistant_client import MusicAssistantClient
@@ -114,6 +115,14 @@ async def async_setup_entry(
         async_add_entities([MusicAssistantPlayer(mass, event.object_id)])
 
     entry.async_on_unload(mass.subscribe(handle_player_added, EventType.PLAYER_ADDED))
+
+    def handle_player_removed(event: MassEvent) -> None:
+        if event.object_id is None:
+            return
+        added_ids.discard(event.object_id)
+        async_remove_player(hass, entry, event.object_id)
+
+    entry.async_on_unload(mass.subscribe(handle_player_removed, EventType.PLAYER_REMOVED))
 
     players = []
     for player in mass.players:

@@ -18,6 +18,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.loader import async_get_integration
 
@@ -25,6 +26,7 @@ from .api import ImageProxyView, MAThumbnailView, MAQueueView, MusicAssistantBro
 from .const import CARD_JS_FILENAME, CARD_URL, CONF_DEBUG_MODE, CONF_DEFAULT_PLAYER, CONF_DEFAULT_TAB, CONF_EXCLUDED_PLAYERS, CONF_MA_URL, CONFIG_ENTRY_VERSION, DEFAULT_TAB, DOMAIN, ICON_URL, WS_CONFIG_COMMAND, WS_SUBSCRIBE_QUEUE_COMMAND
 from .duplicates import ISSUE_DUPLICATE_ENTITIES, async_track_duplicates, async_update_issue
 from .mass_connection import MyMusicLibraryConfigEntry, async_connect, async_disconnect
+from .missing_players import async_track_missing
 from .queue_push import async_relay_queue_events, ws_subscribe_queue
 from .queue_watchdog import QueueWatchdog
 
@@ -187,6 +189,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: MyMusicLibraryConfigEntr
     # every media_player registry change.
     async_update_issue(hass)
     entry.async_on_unload(async_track_duplicates(hass))
+    # Our media_players whose MA player is gone (missing_players.py).
+    entry.async_on_unload(async_track_missing(hass, entry))
 
     return True
 
@@ -235,6 +239,25 @@ async def async_unload_entry(hass: HomeAssistant, entry: MyMusicLibraryConfigEnt
         _apply_debug_mode(False)
 
     return unload_ok
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: MyMusicLibraryConfigEntry, device_entry: dr.DeviceEntry
+) -> bool:
+    """Allow deleting a device from the UI once its Music Assistant player is gone.
+
+    A player MA still knows would come straight back: it has to be removed in
+    Music Assistant first.
+    """
+    if entry.state is not ConfigEntryState.LOADED:
+        return False
+    mass = entry.runtime_data.mass
+    if not mass.connection.connected:
+        return False
+    return not any(
+        domain == DOMAIN and mass.players.get(player_id) is not None
+        for domain, player_id in device_entry.identifiers
+    )
 
 
 def _register_websocket_commands(hass: HomeAssistant) -> None:

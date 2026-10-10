@@ -65,6 +65,24 @@
           "no_duplicates": "Keine Duplikate mehr: nichts umzubenennen."
         }
       }
+    },
+    "missing_players": {
+      "title": "Music-Assistant-Player, die nicht mehr existieren",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Media Player verschwundener Player löschen",
+            "description": "Music Assistant kennt diese Player nicht mehr, ihre Media Player sind aber noch in Home Assistant (nicht verfügbar):\n\n{players}\n\nDas passiert meist, wenn ein Gerät unter einer anderen Kennung zurückkommt: Music Assistant sieht dann einen neuen Player (bei Squeezelite eine andere MAC-Adresse — eine feste MAC-Adresse in den Player-Einstellungen verhindert das) oder bei Webplayern von Browsern.\n\nWähle die zu löschenden Media Player aus. Einen nur ausgeschalteten Lautsprecher abwählen: Er kommt beim erneuten Verbinden von selbst zurück.",
+            "data": {
+              "players": "Zu löschende Media Player"
+            }
+          }
+        },
+        "abort": {
+          "no_missing_players": "Alle Player sind zurück: nichts zu löschen.",
+          "not_connected": "My Music Library ist nicht mit Music Assistant verbunden."
+        }
+      }
     }
   },
   "services": {

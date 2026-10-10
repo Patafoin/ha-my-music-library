@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-4.8.4-blue)
+![Version](https://img.shields.io/badge/version-4.8.5-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2026.2%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -456,6 +456,7 @@ If something isn't working as expected:
 | An automation using `music_assistant.play_media` fails | That action only works on the official integration's entities: use `my_music_library.play_media` |
 | Library is empty | The library only shows favorites: favorite some items in Music Assistant, or use Search / Browse mode; also try the source filter (All / Local / Streaming) |
 | No players found | Make sure at least one My Music Library media player entity is enabled and not `unavailable` |
+| Old copies of a player (`_2`, `_3`, unavailable) after a device came back | Music Assistant saw it under a new identifier (for Squeezelite: its MAC address — set a fixed one in the player's settings). Delete the old ones from Settings > Repairs, or from their device page |
 | Players missing from picker | Check that they're not in the hidden players list (integration options) |
 
 ---
@@ -477,7 +478,8 @@ custom_components/my_music_library/
 ├── queue_push.py        # Relays Music Assistant queue events to the card (WebSocket subscription)
 ├── queue_watchdog.py    # Resumes queues Music Assistant leaves stopped after a track (MA bug workaround)
 ├── duplicates.py        # Detects duplicates with the official integration, swaps entity IDs
-├── repairs.py           # Repairs fix flow for duplicates
+├── missing_players.py   # Media players whose Music Assistant player is gone (removal, Repairs issue)
+├── repairs.py           # Repairs fix flows (duplicates, players that no longer exist)
 ├── services.yaml        # Action descriptions
 ├── const.py             # Domain constants
 ├── api.py               # HTTP views for the card (search, library, browse, subitems, queue, outputs → MA)
@@ -501,6 +503,13 @@ custom_components/my_music_library/
 ## Changelog
 
 > **4.8.2 is the first public release of the 4.x line.** Versions 4.0.0 to 4.8.1 were never published: together, the entries from 4.5.0 to 4.8.2 below describe everything 4.8.2 brings since 3.14.0.
+
+### 4.8.5
+- **Fix** — media players of Music Assistant players that no longer exist **stayed in Home Assistant forever** (unavailable, often with the same name as the real one). This happens when a device comes back under another identifier: Music Assistant then sees a new player — for instance a Squeezelite player that started before the network was up (`00:00:00:00:00:00`) or on another network interface, or a browser's web player. Now:
+  - a player removed in Music Assistant has its media player and device removed at once;
+  - players Music Assistant no longer knows at all are listed in **Settings > Repairs** (10 minutes after start-up, so that players have time to reconnect); the fix lets you tick the ones to delete. Never automatic: a speaker that is only switched off is missing from Music Assistant's list too;
+  - such a device can also be deleted from its device page.
+- **Fix** — compatibility with Home Assistant 2026.10 (new device registry API).
 
 ### 4.8.4
 - **Fix** — on next/previous track, the player showed the new track, **went back to the previous one** for a second or two, then showed the new one again (title and artwork). Music Assistant briefly points back to the track it left while the speaker still plays the old stream; the integration now holds such a return for up to 3 seconds and only shows it if it lasts (a real "previous" right after "next" is shown at most 3 seconds late).

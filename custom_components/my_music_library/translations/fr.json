@@ -65,6 +65,24 @@
           "no_duplicates": "Plus aucun doublon : rien à renommer."
         }
       }
+    },
+    "missing_players": {
+      "title": "Lecteurs Music Assistant qui n'existent plus",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Supprimer les media players des lecteurs disparus",
+            "description": "Music Assistant ne connaît plus ces lecteurs, mais leurs media players sont restés dans Home Assistant (indisponibles) :\n\n{players}\n\nCela arrive le plus souvent quand un appareil revient sous un autre identifiant : Music Assistant y voit alors un nouveau lecteur (pour Squeezelite, une autre adresse MAC — fixez l'adresse MAC dans les réglages du lecteur pour l'éviter), ou avec les lecteurs web des navigateurs.\n\nCochez les media players à supprimer. Décochez une enceinte simplement éteinte : elle reviendra d'elle-même à sa reconnexion.",
+            "data": {
+              "players": "Media players à supprimer"
+            }
+          }
+        },
+        "abort": {
+          "no_missing_players": "Tous les lecteurs sont revenus : rien à supprimer.",
+          "not_connected": "My Music Library n'est pas connectée à Music Assistant."
+        }
+      }
     }
   },
   "services": {
