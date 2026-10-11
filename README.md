@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration that provides a fully-featured Lovelace music player card connected to [Music Assistant](https://music-assistant.io/).
 
-![Version](https://img.shields.io/badge/version-4.8.5-blue)
+![Version](https://img.shields.io/badge/version-4.8.6-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2026.2%2B-brightgreen)
 ![HACS](https://img.shields.io/badge/HACS-default-41BDF5)
 
@@ -503,6 +503,10 @@ custom_components/my_music_library/
 ## Changelog
 
 > **4.8.2 is the first public release of the 4.x line.** Versions 4.0.0 to 4.8.1 were never published: together, the entries from 4.5.0 to 4.8.2 below describe everything 4.8.2 brings since 3.14.0.
+
+### 4.8.6
+- **Fix** — after re-entering the Music Assistant URL and token (**Reconfiguration needed** / reauthentication), the integration now reconnects by itself. From Home Assistant 2026.12 it would otherwise have kept the old connection until the next restart. Typing the same token again also reconnects.
+- **Maintenance** — the integration declares that it is set up from the UI only (`CONFIG_SCHEMA`), which removes a hassfest warning. No change for users; still compatible with Home Assistant 2026.2 and later.
 
 ### 4.8.5
 - **Fix** — media players of Music Assistant players that no longer exist **stayed in Home Assistant forever** (unavailable, often with the same name as the real one). This happens when a device comes back under another identifier: Music Assistant then sees a new player — for instance a Squeezelite player that started before the network was up (`00:00:00:00:00:00`) or on another network interface, or a browser's web player. Now:

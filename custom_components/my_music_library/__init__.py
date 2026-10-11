@@ -18,6 +18,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.loader import async_get_integration
@@ -33,6 +34,9 @@ from .queue_watchdog import QueueWatchdog
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[str] = ["media_player"]
+
+# Set up from the UI only; async_setup just prepares the shared queue store.
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 WWW_DIR = os.path.join(os.path.dirname(__file__), "www")
 ICON_PATH = os.path.join(os.path.dirname(__file__), "brand", "icon.png")

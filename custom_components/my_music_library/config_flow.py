@@ -178,10 +178,15 @@ class MyMusicLibraryConfigFlow(ConfigFlow, domain=DOMAIN):
                 if error:
                     errors["base"] = error
                 else:
-                    return self.async_update_reload_and_abort(
+                    self.hass.config_entries.async_update_entry(
                         reauth_entry,
                         data={**reauth_entry.data, CONF_MA_URL: url, CONF_MA_TOKEN: token},
                     )
+                    # Reload here rather than through async_update_reload_and_abort: from HA
+                    # 2026.12 that helper leaves the reload to our update listener, which only
+                    # applies the debug mode. Also reloads when the same token is typed again.
+                    self.hass.config_entries.async_schedule_reload(reauth_entry.entry_id)
+                    return self.async_abort(reason="reauth_successful")
 
         schema = vol.Schema(
             {
