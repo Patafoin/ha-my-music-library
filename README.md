@@ -10,6 +10,8 @@ A full-featured Music Assistant player card for Home Assistant: now playing, liv
 
 [![Open your Home Assistant instance and open this repository inside HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Patafoin&repository=ha-my-music-library&category=integration)
 
+💬 Questions, feedback, ideas: [discussion on the Home Assistant Community forum](https://community.home-assistant.io/t/my-music-library-a-full-music-assistant-player-card-with-speaker-switching-and-grouping/1028632).
+
 > [!WARNING]
 > **Updating from 3.x?** Version 4 is a breaking update (Music Assistant API token, new player entities, new actions). Read **[Upgrading from 3.x](#upgrading-from-3x)** before updating.
 
