@@ -16,7 +16,6 @@ import uuid
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import area_registry as ar
@@ -24,6 +23,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from music_assistant_models.errors import MusicAssistantError
 
+from . import profiles
 from .const import DOMAIN
 from .entity import UNIQUE_ID_PREFIX
 
@@ -39,11 +39,8 @@ NOT_OUTPUTS = {"protocol", "visualizer", "light"}
 
 
 def get_mass(hass: HomeAssistant) -> MusicAssistantClient | None:
-    """Return the MA client of our loaded config entry, if any."""
-    for entry in hass.config_entries.async_entries(DOMAIN):
-        if entry.state == ConfigEntryState.LOADED:
-            return entry.runtime_data.mass
-    return None
+    """Return the MA client of the current user (their profile's, else the main one)."""
+    return profiles.get_client(hass)
 
 
 def entity_id_for(hass: HomeAssistant, player_id: str) -> str | None:

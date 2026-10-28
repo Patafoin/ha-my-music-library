@@ -12,6 +12,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.components.websocket_api import (
     ActiveConnection,
     async_register_command,
+    async_response,
     websocket_command,
 )
 from homeassistant.config_entries import ConfigEntryState
@@ -28,6 +29,16 @@ from .const import CARD_JS_FILENAME, CARD_URL, CONF_DEBUG_MODE, CONF_DEFAULT_PLA
 from .duplicates import ISSUE_DUPLICATE_ENTITIES, async_track_duplicates, async_update_issue
 from .mass_connection import MyMusicLibraryConfigEntry, async_connect, async_disconnect
 from .missing_players import async_track_missing
+from .outputs import entity_id_for
+from .profiles import (
+    acting_user,
+    async_connect_profiles,
+    async_refresh_ma_user,
+    get_client,
+    get_profile,
+    profiles_signature,
+    visible_player_ids,
+)
 from .queue_push import async_relay_queue_events, ws_subscribe_queue
 from .queue_watchdog import QueueWatchdog
 
@@ -173,6 +184,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: MyMusicLibraryConfigEntr
     # everything registered above stays in place so the card can still load and
     # report the "not connected" state via the WS config command.
     entry.runtime_data = await async_connect(hass, entry)
+    # One connection per profile (profiles.py); a failing one doesn't fail the entry.
+    await async_connect_profiles(hass, entry)
+    hass.data[DOMAIN]["_profiles_signature"] = profiles_signature(entry)
 
     async def _on_hass_stop(event: Event) -> None:
         await async_disconnect(entry.runtime_data)
@@ -228,8 +242,14 @@ async def async_migrate_entry(hass: HomeAssistant, entry: MyMusicLibraryConfigEn
 async def _async_options_updated(
     hass: HomeAssistant, entry: MyMusicLibraryConfigEntry
 ) -> None:
-    """React to options changes (debug toggle, excluded players, etc.)."""
+    """React to options and profile changes.
+
+    Adding, editing or removing a profile (config subentry) also lands here:
+    profile connections are opened at setup, so those changes reload the entry.
+    """
     _apply_debug_mode(entry.options.get(CONF_DEBUG_MODE, False))
+    if profiles_signature(entry) != hass.data.get(DOMAIN, {}).get("_profiles_signature"):
+        hass.config_entries.async_schedule_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: MyMusicLibraryConfigEntry) -> bool:
@@ -268,25 +288,50 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
     """Register WebSocket commands exposed to the frontend card."""
 
     @websocket_command({vol.Required("type"): WS_CONFIG_COMMAND})
-    def ws_get_config(
+    @async_response
+    async def ws_get_config(
         hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
     ) -> None:
-        """Return the integration config to the card."""
+        """Return the integration config to the card, for the connected user.
+
+        With a profile, `connected` is the state of that user's own connection,
+        `default_player` the profile's, and `allowed_players` the entity_ids of
+        the players their Music Assistant user may see (None: no restriction).
+        """
         entries = hass.config_entries.async_entries(DOMAIN)
         if not entries:
             connection.send_result(msg["id"], {"ma_url": None, "connected": False})
             return
 
         entry = entries[0]
+        connected = entry.state == ConfigEntryState.LOADED
+        default_player = entry.options.get(CONF_DEFAULT_PLAYER) or None
+        profile_name: str | None = None
+        allowed_players: list[str] | None = None
+
+        with acting_user(connection.user.id if connection.user else None):
+            if connected and (profile := get_profile(hass)) is not None:
+                profile_name = profile.title
+                default_player = profile.default_player or default_player
+            mass = get_client(hass) if connected else None
+            connected = mass is not None
+            if mass is not None:
+                ma_user = await async_refresh_ma_user(hass)
+                if (player_ids := visible_player_ids(mass, ma_user)) is not None:
+                    allowed_players = [
+                        eid for pid in player_ids if (eid := entity_id_for(hass, pid))
+                    ]
 
         connection.send_result(
             msg["id"],
             {
-                "connected": entry.state == ConfigEntryState.LOADED,
+                "connected": connected,
                 "ma_url": entry.data.get(CONF_MA_URL) or None,
-                "default_player": entry.options.get(CONF_DEFAULT_PLAYER) or None,
+                "default_player": default_player,
                 "default_tab": entry.data.get(CONF_DEFAULT_TAB, DEFAULT_TAB),
                 "excluded_players": list(entry.options.get(CONF_EXCLUDED_PLAYERS, [])),
+                "allowed_players": allowed_players,
+                "profile": profile_name,
                 "debug_mode": bool(entry.options.get(CONF_DEBUG_MODE, False)),
             },
         )

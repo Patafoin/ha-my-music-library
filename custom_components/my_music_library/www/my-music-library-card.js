@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "4.8.6";
+const CARD_VERSION = "4.9.0";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -2347,6 +2347,8 @@ class MyMusicLibraryCard extends HTMLElement {
     this._presetEditing = false;
     this._outDragging = false;
     this._excludedPlayers = [];    // entity_ids hidden from the device picker (HA options)
+    this._allowedPlayers = null;   // Set of entity_ids this HA user's MA account may see (profiles), null = all
+    this._profileDefaultPlayer = null; // default player of this HA user's profile (or of the integration)
     // Per-tab library filter state is in this._libTabState[tabId]
     this._rendered = false;
     this._isMobile = this._detectMobile();
@@ -2533,6 +2535,7 @@ class MyMusicLibraryCard extends HTMLElement {
         // Pinned output of this device (output panel, Control mode) wins over the last one used.
         this._activePlayer = known(pinned) || known(saved)
           || this._config.entity
+          || known(this._profileDefaultPlayer)
           || (this._players.find(p => p.state === "playing") || this._players[0])?.entity_id;
         this._debugLog("Player selected:", this._activePlayer, "prev:", prevActive, "saved:", saved, "players:", this._players.map(p => p.entity_id));
         if (this._activePlayer && this._activePlayer !== prevActive) {
@@ -2590,9 +2593,16 @@ class MyMusicLibraryCard extends HTMLElement {
       if (cfg?.ma_url) {
         this._maUrl = cfg.ma_url.replace(/\/$/, "");
       }
-      if (Array.isArray(cfg?.excluded_players)) {
-        this._excludedPlayers = cfg.excluded_players;
+      this._profileDefaultPlayer = cfg?.default_player || null;
+      if (Array.isArray(cfg?.excluded_players) || cfg?.allowed_players !== undefined) {
+        this._excludedPlayers = Array.isArray(cfg?.excluded_players) ? cfg.excluded_players : this._excludedPlayers;
+        this._allowedPlayers = Array.isArray(cfg?.allowed_players) ? new Set(cfg.allowed_players) : null;
         this._players = this._getMaPlayers();
+        // A player picked before the config arrived may not belong to this user: pick again.
+        if (this._activePlayer && !this._players.find(p => p.entity_id === this._activePlayer)) {
+          this._activePlayer = null;
+          if (this._hass) this.hass = this._hass;
+        }
         const card = this.shadowRoot?.querySelector(".card-root");
         if (card) this._updatePlayerContent(card);
       }
@@ -2647,6 +2657,9 @@ class MyMusicLibraryCard extends HTMLElement {
   /* ── Get media_player entities (all non-unavailable, MA players first) ── */
   /** Return true if entityId matches a plain ID or a glob pattern (supports *). */
   _isExcluded(entityId) {
+    // Profiles: Music Assistant players outside this user's MA account are hidden too.
+    if (this._allowedPlayers && this._hass?.states[entityId]?.attributes?.mass_player_id
+        && !this._allowedPlayers.has(entityId)) return true;
     for (const pattern of (this._excludedPlayers || [])) {
       if (!pattern) continue;
       if (pattern.includes("*")) {

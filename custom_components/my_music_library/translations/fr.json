@@ -32,6 +32,46 @@
       "reauth_successful": "Reconnexion à Music Assistant réussie"
     }
   },
+  "config_subentries": {
+    "profile": {
+      "initiate_flow": {
+        "user": "Ajouter un profil"
+      },
+      "entry_type": "Profil",
+      "step": {
+        "user": {
+          "title": "Ajouter un profil",
+          "description": "Un profil permet à un utilisateur Home Assistant de parcourir et d'écouter avec son propre compte Music Assistant : la carte affiche alors la bibliothèque, les sources musicales et les lecteurs de ce compte.\n\nCréez le jeton **en étant connecté à Music Assistant avec cet utilisateur** (Paramètres → votre utilisateur → Jetons d'API) : Music Assistant applique les filtres de l'utilisateur à qui appartient le jeton. Les utilisateurs sans profil gardent le compte principal de l'intégration.",
+          "data": {
+            "ha_user": "Utilisateur Home Assistant",
+            "ma_token": "Jeton d'API Music Assistant de cet utilisateur",
+            "default_player": "Lecteur par défaut"
+          },
+          "data_description": {
+            "default_player": "Lecteur sélectionné quand cet utilisateur ouvre la carte sur un appareil où aucun lecteur n'a encore été choisi."
+          }
+        },
+        "reconfigure": {
+          "title": "Modifier le profil",
+          "description": "Laissez le jeton vide pour garder l'actuel.",
+          "data": {
+            "ma_token": "Nouveau jeton d'API Music Assistant",
+            "default_player": "Lecteur par défaut"
+          }
+        }
+      },
+      "error": {
+        "cannot_connect": "Impossible de se connecter au serveur Music Assistant",
+        "invalid_auth": "Échec de l'authentification — vérifiez le jeton d'API",
+        "invalid_server_version": "Cette version du serveur Music Assistant n'est pas compatible",
+        "unknown_user": "Utilisateur Home Assistant inconnu"
+      },
+      "abort": {
+        "no_users": "Tous les utilisateurs Home Assistant ont déjà un profil.",
+        "reconfigure_successful": "Profil mis à jour"
+      }
+    }
+  },
   "options": {
     "step": {
       "init": {

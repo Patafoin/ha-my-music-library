@@ -32,6 +32,46 @@
       "reauth_successful": "Erfolgreich erneut mit Music Assistant verbunden"
     }
   },
+  "config_subentries": {
+    "profile": {
+      "initiate_flow": {
+        "user": "Profil hinzufügen"
+      },
+      "entry_type": "Profil",
+      "step": {
+        "user": {
+          "title": "Profil hinzufügen",
+          "description": "Mit einem Profil durchsucht und hört ein Home-Assistant-Benutzer mit seinem eigenen Music-Assistant-Konto: Die Karte zeigt dann die Bibliothek, die Musikquellen und die Player dieses Kontos.\n\nErstelle das Token **angemeldet in Music Assistant als dieser Benutzer** (Einstellungen → dein Benutzer → API-Tokens): Music Assistant wendet die Filter des Benutzers an, dem das Token gehört. Benutzer ohne Profil behalten das Hauptkonto der Integration.",
+          "data": {
+            "ha_user": "Home-Assistant-Benutzer",
+            "ma_token": "Music-Assistant-API-Token dieses Benutzers",
+            "default_player": "Standard-Player"
+          },
+          "data_description": {
+            "default_player": "Player, der ausgewählt wird, wenn dieser Benutzer die Karte auf einem Gerät öffnet, auf dem noch kein Player gewählt wurde."
+          }
+        },
+        "reconfigure": {
+          "title": "Profil bearbeiten",
+          "description": "Lass das Token leer, um das aktuelle zu behalten.",
+          "data": {
+            "ma_token": "Neues Music-Assistant-API-Token",
+            "default_player": "Standard-Player"
+          }
+        }
+      },
+      "error": {
+        "cannot_connect": "Verbindung zum Music-Assistant-Server fehlgeschlagen",
+        "invalid_auth": "Authentifizierung fehlgeschlagen — API-Token prüfen",
+        "invalid_server_version": "Diese Music-Assistant-Serverversion ist nicht kompatibel",
+        "unknown_user": "Unbekannter Home-Assistant-Benutzer"
+      },
+      "abort": {
+        "no_users": "Alle Home-Assistant-Benutzer haben bereits ein Profil.",
+        "reconfigure_successful": "Profil aktualisiert"
+      }
+    }
+  },
   "options": {
     "step": {
       "init": {

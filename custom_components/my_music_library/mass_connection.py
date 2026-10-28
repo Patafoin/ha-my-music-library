@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant
@@ -19,11 +20,49 @@ _LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
+class MAUser:
+    """The Music Assistant user a token belongs to, with its access filters.
+
+    MA applies these filters itself to content (library, search, browse) for
+    every user, but not to its player and provider *lists* for an admin: MML
+    applies them to those lists (profiles.py).
+    """
+
+    username: str
+    player_filter: frozenset[str] = frozenset()
+    provider_filter: frozenset[str] = frozenset()
+
+
+@dataclass
+class ProfileConnection:
+    """The Music Assistant connection of one profile (config subentry)."""
+
+    subentry_id: str
+    title: str
+    default_player: str | None
+    mass: MusicAssistantClient | None = None
+    listen_task: asyncio.Task | None = None
+    ma_user: MAUser | None = None
+
+    @property
+    def connected(self) -> bool:
+        """Whether this profile can talk to Music Assistant right now."""
+        return self.mass is not None and self.mass.connection.connected
+
+
+@dataclass
 class MMLRuntimeData:
-    """Hold the native Music Assistant client for our config entry."""
+    """Hold the native Music Assistant client for our config entry.
+
+    `mass` is the main connection (entry token): it backs the media_player
+    entities and serves every Home Assistant user without a profile.
+    `profiles` maps a Home Assistant user id to that user's own connection.
+    """
 
     mass: MusicAssistantClient
     listen_task: asyncio.Task
+    ma_user: MAUser | None = None
+    profiles: dict[str, ProfileConnection] = field(default_factory=dict)
 
 
 type MyMusicLibraryConfigEntry = ConfigEntry[MMLRuntimeData]
@@ -45,6 +84,18 @@ async def async_connect(hass: HomeAssistant, entry: MyMusicLibraryConfigEntry) -
             "Music Assistant server URL and/or API token missing — reconfigure the integration."
         )
 
+    mass, listen_task = await async_open(hass, entry, url, token)
+    return MMLRuntimeData(mass=mass, listen_task=listen_task, ma_user=await async_fetch_user(mass))
+
+
+async def async_open(
+    hass: HomeAssistant, entry: MyMusicLibraryConfigEntry, url: str, token: str
+) -> tuple[MusicAssistantClient, asyncio.Task]:
+    """Open one Music Assistant connection and start listening on it.
+
+    Used for the main connection and for each profile's. A connection that
+    drops later reloads the whole entry (_client_listen).
+    """
     session = async_get_clientsession(hass)
     mass = MusicAssistantClient(url, session, token=token)
 
@@ -75,11 +126,36 @@ async def async_connect(hass: HomeAssistant, entry: MyMusicLibraryConfigEntry) -
         await mass.disconnect()
         raise ConfigEntryNotReady(listen_error) from listen_error
 
-    return MMLRuntimeData(mass=mass, listen_task=listen_task)
+    return mass, listen_task
+
+
+async def async_fetch_user(mass: MusicAssistantClient) -> MAUser | None:
+    """Return the Music Assistant user behind this connection's token.
+
+    None when the server can't tell (no user accounts, older server, error):
+    no filter is applied then, as before profiles existed.
+    """
+    try:
+        me: Any = await mass.send_command("auth/me")
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.debug("Could not read the Music Assistant user of a connection: %s", err)
+        return None
+    if not isinstance(me, dict):
+        return None
+    return MAUser(
+        username=str(me.get("username") or ""),
+        player_filter=frozenset(me.get("player_filter") or ()),
+        provider_filter=frozenset(me.get("provider_filter") or ()),
+    )
 
 
 async def async_disconnect(runtime_data: MMLRuntimeData) -> None:
-    """Cancel the listen task and disconnect the client."""
+    """Cancel the listen tasks and disconnect the main and profile clients."""
+    for profile in runtime_data.profiles.values():
+        if profile.listen_task is not None:
+            profile.listen_task.cancel()
+        if profile.mass is not None:
+            await profile.mass.disconnect()
     runtime_data.listen_task.cancel()
     await runtime_data.mass.disconnect()
 

@@ -9,7 +9,14 @@ from music_assistant_client import MusicAssistantClient
 from music_assistant_client.exceptions import CannotConnect, InvalidServerVersion
 from music_assistant_models.errors import AuthenticationFailed, AuthenticationRequired, MusicAssistantError
 
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    ConfigSubentryFlow,
+    OptionsFlow,
+    SubentryFlowResult,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -27,12 +34,14 @@ from .const import (
     CONF_DEFAULT_PLAYER,
     CONF_DEFAULT_TAB,
     CONF_EXCLUDED_PLAYERS,
+    CONF_HA_USER,
     CONF_MA_TOKEN,
     CONF_MA_URL,
     CONFIG_ENTRY_VERSION,
     DEFAULT_TAB,
     DOMAIN,
     NAME,
+    SUBENTRY_TYPE_PROFILE,
 )
 
 
@@ -97,6 +106,14 @@ class MyMusicLibraryConfigFlow(ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
         """Return the options flow handler."""
         return MyMusicLibraryOptionsFlow()
+
+    @classmethod
+    @callback
+    def async_get_supported_subentry_types(
+        cls, config_entry: ConfigEntry
+    ) -> dict[str, type[ConfigSubentryFlow]]:
+        """Profiles: one Home Assistant user ↔ one Music Assistant token."""
+        return {SUBENTRY_TYPE_PROFILE: ProfileSubentryFlow}
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -257,3 +274,104 @@ class MyMusicLibraryOptionsFlow(OptionsFlow):
         )
 
         return self.async_show_form(step_id="init", data_schema=schema)
+
+
+class ProfileSubentryFlow(ConfigSubentryFlow):
+    """Add or edit a profile: a Home Assistant user browses and plays with their own MA account.
+
+    The token must be created while logged in to Music Assistant as that user,
+    so that Music Assistant applies that user's filters (see profiles.py).
+    """
+
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Choose the Home Assistant user, their Music Assistant token and default player."""
+        entry = self._get_entry()
+        taken = {subentry.data.get(CONF_HA_USER) for subentry in entry.subentries.values()}
+        users = {
+            user.id: user.name or user.id
+            for user in await self.hass.auth.async_get_users()
+            if user.is_active and not user.system_generated and user.id not in taken
+        }
+        if not users:
+            return self.async_abort(reason="no_users")
+
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            ha_user = user_input[CONF_HA_USER]
+            if ha_user not in users:
+                errors[CONF_HA_USER] = "unknown_user"
+            elif error := await _test_connection(self.hass, entry.data[CONF_MA_URL], user_input[CONF_MA_TOKEN]):
+                errors["base"] = error
+            else:
+                return self.async_create_entry(
+                    title=users[ha_user],
+                    data={
+                        CONF_HA_USER: ha_user,
+                        CONF_MA_TOKEN: user_input[CONF_MA_TOKEN],
+                        CONF_DEFAULT_PLAYER: user_input.get(CONF_DEFAULT_PLAYER, ""),
+                    },
+                    unique_id=ha_user,
+                )
+
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_HA_USER): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[{"value": k, "label": v} for k, v in users.items()],
+                        mode=SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Required(CONF_MA_TOKEN): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.PASSWORD)
+                ),
+                **_default_player_field(self.hass, ""),
+            }
+        )
+        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Change a profile's token (left empty: kept) or default player."""
+        entry = self._get_entry()
+        subentry = self._get_reconfigure_subentry()
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            token = user_input.get(CONF_MA_TOKEN) or subentry.data[CONF_MA_TOKEN]
+            if error := await _test_connection(self.hass, entry.data[CONF_MA_URL], token):
+                errors["base"] = error
+            else:
+                # The entry's update listener reloads it: profile connections are opened at setup.
+                return self.async_update_and_abort(
+                    entry,
+                    subentry,
+                    data_updates={
+                        CONF_MA_TOKEN: token,
+                        CONF_DEFAULT_PLAYER: user_input.get(CONF_DEFAULT_PLAYER, ""),
+                    },
+                )
+
+        schema = vol.Schema(
+            {
+                vol.Optional(CONF_MA_TOKEN): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.PASSWORD)
+                ),
+                **_default_player_field(self.hass, subentry.data.get(CONF_DEFAULT_PLAYER, "")),
+            }
+        )
+        return self.async_show_form(step_id="reconfigure", data_schema=schema, errors=errors)
+
+
+def _default_player_field(hass: HomeAssistant, current: str) -> dict[Any, Any]:
+    """Optional default player of a profile, among our own media_players ("" = none)."""
+    players = _get_mml_players(hass)
+    if current not in players:
+        current = ""
+    return {
+        vol.Optional(CONF_DEFAULT_PLAYER, default=current): vol.In(
+            {"": "—", **dict(sorted(players.items(), key=lambda x: x[1].lower()))}
+        )
+    }

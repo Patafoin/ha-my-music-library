@@ -2,6 +2,24 @@
 
 > **4.8.2 is the first public release of the 4.x line.** Versions 4.0.0 to 4.8.1 were never published: together, the entries from 4.5.0 to 4.8.2 below describe everything 4.8.2 brings since 3.14.0.
 
+## 4.9.0 — Profiles: everyone their own music 🎉
+
+**One Music Assistant account per Home Assistant user.** Until now, everyone in the house saw the same library in the card — the one of the account entered at setup. With **profiles**, each Home Assistant user can browse and play with **their own Music Assistant account**:
+
+- **their own library, search, browsing and discovery** — a child sees their Deezer library and their bedtime stories, the parents keep theirs, untouched;
+- **their own music sources and speakers** — the card only offers what their Music Assistant account may use (the filters set in Music Assistant > Settings > Users);
+- **their own streaming account** — music started from the card plays from their account, so their listening history and recommendations stay theirs;
+- **no surprises** — a user with a profile never falls back to someone else's account: if their token is revoked, they get the "not connected" banner.
+
+Add one from the integration page (**Settings > Devices & Services > My Music Library > Add profile**): a Home Assistant user, a Music Assistant token created for that user, and an optional default player. No restart needed. Users without a profile keep the setup account, exactly as before. Step-by-step guide: [Profiles](README.md#profiles--one-music-assistant-account-per-user).
+
+Also in 4.9.0:
+
+- **Change** — the card's music sources and speakers now follow the Music Assistant filters of the setup account too, even for a Music Assistant admin (Music Assistant itself lists them all for an admin).
+- **Fix** — with several Music Assistant users, the search could show **another user's library**: Music Assistant 2.10 caches library search results without telling users apart, so whoever searched first set the results for everyone. The card's library search now uses Music Assistant's library listings, which keep to each user's own library. Library items of another account no longer show as favorites either.
+- **Fix** — the card's queue was never saved on the Home Assistant side (the request failed with an error in the logs), so it was not shared between devices nor kept across restarts.
+- **Fix** — the **Default player** option was not used by the card; it now selects that player when the card opens on a device where no player was chosen yet.
+
 ## 4.8.6
 - **Fix** — after re-entering the Music Assistant URL and token (**Reconfiguration needed** / reauthentication), the integration now reconnects by itself. From Home Assistant 2026.12 it would otherwise have kept the old connection until the next restart. Typing the same token again also reconnects.
 - **Maintenance** — the integration declares that it is set up from the UI only (`CONFIG_SCHEMA`), which removes a hassfest warning. No change for users; still compatible with Home Assistant 2026.2 and later.

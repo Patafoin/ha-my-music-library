@@ -32,6 +32,46 @@
       "reauth_successful": "Reconnected to Music Assistant successfully"
     }
   },
+  "config_subentries": {
+    "profile": {
+      "initiate_flow": {
+        "user": "Add profile"
+      },
+      "entry_type": "Profile",
+      "step": {
+        "user": {
+          "title": "Add a profile",
+          "description": "A profile lets a Home Assistant user browse and play with their own Music Assistant account: the card then shows that account's library, music sources and players.\n\nCreate the token **while logged in to Music Assistant as that user** (Settings → your user → API tokens): Music Assistant applies the filters of the user the token belongs to. Users without a profile keep the integration's main account.",
+          "data": {
+            "ha_user": "Home Assistant user",
+            "ma_token": "Music Assistant API token of this user",
+            "default_player": "Default player"
+          },
+          "data_description": {
+            "default_player": "Player selected when this user opens the card on a device where no player was chosen yet."
+          }
+        },
+        "reconfigure": {
+          "title": "Edit the profile",
+          "description": "Leave the token empty to keep the current one.",
+          "data": {
+            "ma_token": "New Music Assistant API token",
+            "default_player": "Default player"
+          }
+        }
+      },
+      "error": {
+        "cannot_connect": "Failed to connect to the Music Assistant server",
+        "invalid_auth": "Authentication failed — check the API token",
+        "invalid_server_version": "This Music Assistant server version is not compatible",
+        "unknown_user": "Unknown Home Assistant user"
+      },
+      "abort": {
+        "no_users": "Every Home Assistant user already has a profile.",
+        "reconfigure_successful": "Profile updated"
+      }
+    }
+  },
   "options": {
     "step": {
       "init": {

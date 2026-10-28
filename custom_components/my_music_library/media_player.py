@@ -40,7 +40,7 @@ from music_assistant_models.errors import MusicAssistantError
 from music_assistant_models.event import MassEvent
 from music_assistant_models.media_items import Track
 
-from . import outputs
+from . import outputs, profiles
 from .const import (
     ATTR_ENQUEUE,
     ATTR_MASS_PLAYER_ID,
@@ -463,15 +463,16 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
         Schema intentionally trimmed to what the card calls today: a single
         media_id (URI or free-text name), an enqueue mode, and radio_mode.
         """
+        mass = self._caller_mass()
         if "://" in media_id:
             uri = media_id
-        elif item := await self.mass.music.get_item_by_name(name=media_id):
+        elif item := await mass.music.get_item_by_name(name=media_id):
             uri = item.uri
         else:
             raise HomeAssistantError(f"Could not resolve {media_id!r} to a playable media item")
 
         queue_id = queue.queue_id if (queue := self.active_queue) else self.player_id
-        await self.mass.player_queues.play_media(
+        await mass.player_queues.play_media(
             queue_id,
             media=[uri],
             option=self._convert_enqueue(enqueue),
@@ -480,7 +481,24 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
 
     async def _async_handle_transfer_queue(self, targets: list[str]) -> None:
         """Move what this player plays to `targets` (see outputs.async_transfer)."""
-        await outputs.async_transfer(self.hass, self.entity_id, targets)
+        with profiles.acting_user(self._caller_user_id()):
+            await outputs.async_transfer(self.hass, self.entity_id, targets)
+
+    def _caller_user_id(self) -> str | None:
+        """Home Assistant user who called the running action (None: automation, system)."""
+        return self._context.user_id if self._context is not None else None
+
+    def _caller_mass(self) -> MusicAssistantClient:
+        """Connection to start playback with: the caller's profile's, else the main one.
+
+        Music Assistant streams from, and records the history of, the user whose
+        connection starts the playback: a profile's playback must go through it.
+        """
+        with profiles.acting_user(self._caller_user_id()):
+            mass = profiles.get_client(self.hass)
+        if mass is None:
+            raise HomeAssistantError("The Music Assistant connection of this user's profile is down")
+        return mass
 
     @staticmethod
     def _convert_enqueue(enqueue: str | MediaPlayerEnqueue | None) -> QueueOption | None:

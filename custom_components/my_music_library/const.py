@@ -11,6 +11,10 @@ CONF_MA_TOKEN = "ma_token"
 CONF_DEBUG_MODE = "debug_mode"
 CONF_EXCLUDED_PLAYERS = "excluded_players"
 
+# Profiles (config subentries): one Home Assistant user ↔ one Music Assistant token
+SUBENTRY_TYPE_PROFILE = "profile"
+CONF_HA_USER = "ha_user"
+
 DEFAULT_TAB = "player"
 
 # Config entry schema version (see async_migrate_entry in __init__.py)

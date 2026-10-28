@@ -2,7 +2,7 @@
 
 A full-featured Music Assistant player card for Home Assistant: now playing, live queue, search, library and artist pages, playlists, and an output panel to move or group the music between speakers — with its own `media_player` entities for your automations.
 
-![Version](https://img.shields.io/badge/version-4.8.6-blue)
+![Version](https://img.shields.io/badge/version-4.9.0-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2026.2%2B-brightgreen)
 [![HACS](https://img.shields.io/badge/HACS-default-41BDF5)](https://hacs.xyz/)
 
@@ -11,6 +11,9 @@ A full-featured Music Assistant player card for Home Assistant: now playing, liv
 [![Open your Home Assistant instance and open this repository inside HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Patafoin&repository=ha-my-music-library&category=integration)
 
 💬 Questions, feedback, ideas: [discussion on the Home Assistant Community forum](https://community.home-assistant.io/t/my-music-library-a-full-music-assistant-player-card-with-speaker-switching-and-grouping/1028632).
+
+> [!TIP]
+> **New in 4.9 — Profiles.** Each member of the household can have **their own music** in the card: their own Music Assistant account, streaming account, library and speakers — a child's tablet with their Deezer account and the bedtime stories, without seeing (or messing with) the parents' library. **[Set up profiles](#profiles--one-music-assistant-account-per-user)**.
 
 > [!WARNING]
 > **Updating from 3.x?** Version 4 is a breaking update (Music Assistant API token, new player entities, new actions). Read **[Upgrading from 3.x](#upgrading-from-3x)** before updating.
@@ -30,9 +33,30 @@ Step-by-step guide: **[Upgrading from 3.x](#upgrading-from-3x)**.
 
 ---
 
+## Contents
+
+- [What's new in 4.x](#whats-new-in-4x-since-3140)
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Upgrading from 3.x](#upgrading-from-3x)
+- [Integration options](#integration-options) — default player, hidden players, debug logging
+- [Profiles — one Music Assistant account per user](#profiles--one-music-assistant-account-per-user)
+- [Adding the card to a dashboard](#adding-the-card-to-a-dashboard)
+- [Card configuration (YAML)](#card-configuration-yaml) — tabs, library sections, playlist tab, nav bar
+- [Button actions](#button-actions)
+- [Full configuration example](#full-configuration-example)
+- [Actions and entities](#actions-and-entities) — `my_music_library.play_media`, `my_music_library.transfer_queue`
+- [Troubleshooting](#troubleshooting)
+- [Project structure](#project-structure)
+- [Changelog](#changelog)
+
+---
+
 ## What's new in 4.x (since 3.14.0)
 
 - **Output panel** — see where the music plays and **switch** it to other outputs (same track, same position), **group** outputs with per-output and group volume, **control** any output from the card; favorite groups, power on from the card, a default output per device.
+- **Profiles** (4.9) — each Home Assistant user can browse and play with their own Music Assistant account: their own library, music sources and speakers, and playback from their own streaming account. See [Profiles](#profiles--one-music-assistant-account-per-user).
 - **Own Music Assistant connection and players** — no dependency on the official integration; live `media_player` entities usable in automations, with `my_music_library.play_media` and `my_music_library.transfer_queue` ("the music follows me").
 - **Instant queue** — the queue updates as soon as Music Assistant changes it (pushed, no more delays).
 - **Playback that keeps going** — works around a Music Assistant bug that sometimes stopped an album or playlist after its first track.
@@ -67,6 +91,7 @@ Details: [Changelog](https://github.com/Patafoin/ha-my-music-library/blob/main/C
 - **Playlist tab** — a dedicated tab locked to one playlist (picked in the visual editor), showing every track with list/grid view toggle; tapping a track plays it instantly without leaving the tab, thanks to a compact player bar (transport, progress, volume, output row) pinned at the bottom
 - **Own media players** — one `media_player` entity per Music Assistant player, updated live (push), usable in automations and scripts, plus a `my_music_library.play_media` action
 - **Output panel** — the output row under the player shows where the music plays ("Living room + Kitchen") and opens a panel over the player with three modes: **Switch** (move the music — same track, same position — to one or more outputs, which then form a group), **Group** (add outputs to the current group or remove them, with a volume slider per output and one for the whole group) and **Control** (see what plays where and pick which output the card controls). Outputs are shown as tiles with an icon, a short name (card alias → Home Assistant area → cleaned-up name; an "i" button shows the full name, entity, model and provider), their state, the group leader's crown, and outputs that can't be grouped together greyed out with the reason. Also: favorite groups ("Whole house"…) saved server-side, turn an output on from its tile, offline outputs hidden behind a link, and a per-device default output (pin)
+- **Profiles** — one Music Assistant account per Home Assistant user: each person sees their own library, music sources and speakers, and plays from their own streaming account (see [Profiles](#profiles--one-music-assistant-account-per-user))
 - **Player exclusion** — hide specific players from the card via integration options; supports wildcard patterns (`media_player.browser_mod_*`)
 - **Fully configurable tabs** — reorder, rename, re-icon any tab; add action buttons in the tab bar; control which library sections appear and in what order; style any tab's nav button with a custom element (e.g. `button-card`)
 - **Visual card editor** — WYSIWYG editor in the Lovelace UI: drag-and-drop tab reorder, live preview, no YAML needed
@@ -166,6 +191,61 @@ logger:
 ```
 
 > Changes take effect immediately — no restart or refresh needed for the backend logs. Do a hard refresh (Ctrl+Shift+R) to pick up the frontend debug flag.
+
+## Profiles — one Music Assistant account per user
+
+By default, every Home Assistant user sees the same thing in the card: the library, music sources and speakers of the Music Assistant account whose token you entered at setup. With **profiles**, a Home Assistant user uses **their own Music Assistant account** instead.
+
+**Example** — a child has a tablet with the Home Assistant app, their own Deezer account and a folder of bedtime stories. With a profile, the card on their tablet shows *their* Deezer library and stories, plays from *their* Deezer account (their listening history and recommendations stay theirs), and only offers the speakers they're allowed to use. The parents keep their own library, untouched.
+
+### What you need
+
+- Music Assistant with user accounts (tested with 2.10) — the server is shared, each person gets an account.
+- One Home Assistant **user** per person who gets a profile (a login account; a *person* is not needed).
+
+### Step 1 — Music Assistant: create the user and choose what they may use
+
+1. In Music Assistant, add the music sources of this person if they have their own — e.g. a second **Deezer** provider logged in with *their* account, a **local folder** provider for their files.
+2. Go to **Settings > Users**, create the user (role **User**), and set their filters:
+   - **Music sources (providers)** — the sources this user may use, e.g. *Deezer (child)* and *Stories*.
+   - **Players** — the speakers this user may use. Leave it empty to allow all speakers.
+3. Do the same for **the account you entered at setup** if it should not see the other sources (e.g. exclude the child's Deezer from the parents' account). My Music Library applies these filters even to a Music Assistant admin.
+
+### Step 2 — Music Assistant: create a token for that user
+
+Log in to Music Assistant **as that user** and create a long-lived token (**Settings > your user > API tokens**). The token decides whose account is used: a token created by another user would show *their* library.
+
+> An admin can also create a token for another user through Music Assistant's API (`auth/token/create` with `user_id`).
+
+### Step 3 — Home Assistant: create the user
+
+In **Settings > People**, add a person with **Allow person to login** (or create a user only, in **Settings > People > Users** with advanced mode). Give them a non-admin account if this is a child.
+
+### Step 4 — Home Assistant: add the profile
+
+1. Go to **Settings > Devices & Services > My Music Library** and click **Add profile**.
+2. Choose the **Home Assistant user**, paste the **Music Assistant token** from step 2, and optionally a **default player** (selected when this user opens the card on a device where no player was chosen yet).
+3. Submit: the integration checks the token and reconnects by itself — no restart needed.
+
+Then log in to the Home Assistant app on their device **with their account**. Done.
+
+To change the token or the default player later: on the integration page, open the profile's menu (**⋮**) > **Reconfigure** (leave the token empty to keep it). Deleting a profile sends that user back to the setup account.
+
+### How it works
+
+| | User **with** a profile | User **without** a profile |
+|---|---|---|
+| Library, search, browse, discovery | their Music Assistant account | the setup account |
+| Music sources and speakers offered | their account's filters | the setup account's filters |
+| Playback started from the card | from their account (streaming account, history) | from the setup account |
+| If their connection is down (token revoked…) | "not connected" banner — **never** someone else's library | — |
+
+Good to know:
+
+- **What the card shows** is separated. Home Assistant itself has no per-user permissions on entities: every user can still find every media player elsewhere in Home Assistant (developer tools, other dashboards).
+- **Player controls** (play/pause, next, volume…) and automations go through the setup account; starting a playback from the card goes through the user's own account.
+- **Same speaker, two people**: a speaker allowed to both plays whoever started the music last.
+- **Favorites**: Music Assistant shares one library and one "favorite" flag between accounts; My Music Library only shows each user the items that are in *their own* library.
 
 ---
 
@@ -478,7 +558,9 @@ If something isn't working as expected:
 | Library is empty | The library only shows favorites: favorite some items in Music Assistant, or use Search / Browse mode; also try the source filter (All / Local / Streaming) |
 | No players found | Make sure at least one My Music Library media player entity is enabled and not `unavailable` |
 | Old copies of a player (`_2`, `_3`, unavailable) after a device came back | Music Assistant saw it under a new identifier (for Squeezelite: its MAC address — set a fixed one in the player's settings). Delete the old ones from Settings > Repairs, or from their device page |
-| Players missing from picker | Check that they're not in the hidden players list (integration options) |
+| Players missing from picker | Check that they're not in the hidden players list (integration options), and — with [profiles](#profiles--one-music-assistant-account-per-user) — that the user's Music Assistant account may use them (player filter in Music Assistant) |
+| A user sees someone else's library | They have no profile (they use the setup account), or their profile's token was created by another Music Assistant user: create the token while logged in as them (see [Profiles](#profiles--one-music-assistant-account-per-user)) |
+| "Not connected" banner for one user only | Their profile's token was revoked or expired (Music Assistant tokens last one year): open the profile (⋮ > Reconfigure) and paste a new token |
 
 ---
 
@@ -492,8 +574,10 @@ custom_components/my_music_library/
 │                        # debug mode toggle
 ├── manifest.json        # Integration metadata (version, dependencies)
 ├── config_flow.py       # UI configuration flow (setup: URL + token, re-authentication,
-│                        # options: default player, hidden players, debug mode)
-├── mass_connection.py   # Own Music Assistant connection (connect, listen, auto-reload)
+│                        # options: default player, hidden players, debug mode;
+│                        # profiles: Home Assistant user ↔ Music Assistant token)
+├── mass_connection.py   # Own Music Assistant connections (connect, listen, auto-reload)
+├── profiles.py          # Profiles: each Home Assistant user's own Music Assistant connection
 ├── entity.py            # Base entity for Music Assistant players
 ├── media_player.py      # media_player platform + play_media / transfer_queue actions
 ├── queue_push.py        # Relays Music Assistant queue events to the card (WebSocket subscription)

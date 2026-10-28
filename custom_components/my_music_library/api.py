@@ -14,13 +14,12 @@ import aiohttp
 from aiohttp import web
 
 from homeassistant.components.http import HomeAssistantView
-from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from . import outputs
+from . import outputs, profiles
 from .const import CONF_MA_URL, DOMAIN
 from .entity import UNIQUE_ID_PREFIX
 
@@ -105,20 +104,27 @@ def _serialize_search_results(results: Any) -> dict:
 
 # ── MA client / URL resolution ────────────────────────────────────────────────
 #
-# my_music_library owns its Music Assistant connection (see mass_connection.py) —
+# my_music_library owns its Music Assistant connections (see mass_connection.py) —
 # there is exactly one config entry, and it only reaches ConfigEntryState.LOADED
-# once that connection succeeded. No more scanning other integrations' domains.
+# once its main connection succeeded. Each Home Assistant user with a profile has
+# a connection of their own (profiles.py): views run for the requesting user
+# (@profiles.user_scoped) and get that user's client here.
 
 
 def _get_mass_client(hass: HomeAssistant) -> Any | None:
-    """Return the native MusicAssistantClient for our config entry, if loaded."""
-    for entry in hass.config_entries.async_entries(DOMAIN):
-        if entry.state == ConfigEntryState.LOADED:
-            return entry.runtime_data.mass
-    _LOGGER.warning(
-        "My Music Library config entry is not loaded — check its connection "
-        "to the Music Assistant server (filter: my_music_library)."
-    )
+    """Return the MusicAssistantClient of the current user, if connected."""
+    if (mass := profiles.get_client(hass)) is not None:
+        return mass
+    if profiles.get_profile(hass) is not None:
+        _LOGGER.warning(
+            "The Music Assistant connection of this user's profile is down — check its "
+            "token in the integration's profiles (filter: my_music_library)."
+        )
+    else:
+        _LOGGER.warning(
+            "My Music Library config entry is not loaded — check its connection "
+            "to the Music Assistant server (filter: my_music_library)."
+        )
     return None
 
 
@@ -144,13 +150,48 @@ async def _search_via_ma_client(
     if mass is None:
         return None
     try:
-        results = await mass.music.search(
-            search_query=query, limit=limit, library_only=library_only
+        if library_only:
+            results = await _search_library(mass, query, limit)
+        else:
+            results = await mass.music.search(search_query=query, limit=limit)
+        return profiles.scope_search_results(
+            _serialize_search_results(results), profiles.get_ma_user(hass), library_only=library_only
         )
-        return _serialize_search_results(results)
     except Exception as err:  # noqa: BLE001
         _LOGGER.warning("MA search(%r) failed: %s", query, err)
         return None
+
+
+# Library search, one library listing per media type (search result key → client method).
+_LIBRARY_SEARCH_METHODS: dict[str, str] = {
+    "artists": "get_library_artists",
+    "albums": "get_library_albums",
+    "tracks": "get_library_tracks",
+    "playlists": "get_library_playlists",
+    "radio": "get_library_radios",
+}
+
+
+async def _search_library(mass: Any, query: str, limit: int) -> dict[str, list]:
+    """Search the library through MA's library listings rather than its search command.
+
+    MA's search command caches its results by query and providers only: a library
+    search (no provider) hands every user the results of whoever searched first —
+    another account's library (MA 2.10.7, keyed per user on MA's dev branch). The
+    library listings aren't cached and keep to the caller's own library.
+    """
+    keys = list(_LIBRARY_SEARCH_METHODS)
+    found = await asyncio.gather(
+        *(getattr(mass.music, _LIBRARY_SEARCH_METHODS[key])(search=query, limit=limit) for key in keys),
+        return_exceptions=True,
+    )
+    results: dict[str, list] = {}
+    for key, items in zip(keys, found, strict=True):
+        if isinstance(items, BaseException):
+            _LOGGER.debug("Library search %r in %s failed: %s", query, key, items)
+            items = []
+        results[key] = list(items)
+    return results
 
 
 # ── Library ───────────────────────────────────────────────────────────────────
@@ -586,7 +627,12 @@ async def _get_subitems(
         _LOGGER.warning("Subitems %s(%r, %r) failed: %s", method_name, item_id, provider, err)
         return None
 
-    return [_normalize_library_item(_to_json_safe(i)) for i in items[:limit]]
+    safe_items = [_to_json_safe(i) for i in items]
+    if action == "artist_albums":
+        # The artist page's favorites: only albums in this user's own library (profiles).
+        ma_user = profiles.get_ma_user(hass)
+        safe_items = [i for i in safe_items if profiles.in_users_library(i, ma_user)]
+    return [_normalize_library_item(i) for i in safe_items[:limit]]
 
 
 async def _get_artist_all_albums(
@@ -833,6 +879,7 @@ class MusicAssistantSearchView(HomeAssistantView):
     name = "my_music_library:search"
     requires_auth = True
 
+    @profiles.user_scoped
     async def get(self, request: web.Request) -> web.Response:
         """Handle search request."""
         hass: HomeAssistant = request.app["hass"]
@@ -866,6 +913,7 @@ class MusicAssistantLibraryView(HomeAssistantView):
     name = "my_music_library:library"
     requires_auth = True
 
+    @profiles.user_scoped
     async def get(self, request: web.Request) -> web.Response:
         """Handle library request."""
         hass: HomeAssistant = request.app["hass"]
@@ -903,6 +951,7 @@ class MusicAssistantBrowseView(HomeAssistantView):
     name = "my_music_library:browse"
     requires_auth = True
 
+    @profiles.user_scoped
     async def get(self, request: web.Request) -> web.Response:
         """Handle browse request."""
         hass: HomeAssistant = request.app["hass"]
@@ -930,6 +979,7 @@ class MusicAssistantRecommendationsView(HomeAssistantView):
     name = "my_music_library:recommendations"
     requires_auth = True
 
+    @profiles.user_scoped
     async def get(self, request: web.Request) -> web.Response:
         """Handle recommendations request."""
         hass: HomeAssistant = request.app["hass"]
@@ -956,6 +1006,7 @@ class MusicAssistantSubitemsView(HomeAssistantView):
     name = "my_music_library:subitems"
     requires_auth = True
 
+    @profiles.user_scoped
     async def get(self, request: web.Request) -> web.Response:
         """Handle subitems request."""
         hass: HomeAssistant = request.app["hass"]
@@ -997,11 +1048,13 @@ class MusicAssistantProvidersView(HomeAssistantView):
     name = "my_music_library:providers"
     requires_auth = True
 
+    @profiles.user_scoped
     async def get(self, request: web.Request) -> web.Response:
         """Handle providers request."""
         hass: HomeAssistant = request.app["hass"]
         providers = await _get_providers_via_ma_client(hass)
-        return web.json_response({"providers": providers or []})
+        providers = profiles.filter_providers(providers or [], profiles.get_ma_user(hass))
+        return web.json_response({"providers": providers})
 
 
 class PlayerQueueView(HomeAssistantView):
@@ -1019,6 +1072,7 @@ class PlayerQueueView(HomeAssistantView):
     name = "my_music_library:queue"
     requires_auth = True
 
+    @profiles.user_scoped
     async def get(self, request: web.Request) -> web.Response:
         """Return the stored queue for a player."""
         hass: HomeAssistant = request.app["hass"]
@@ -1029,6 +1083,7 @@ class PlayerQueueView(HomeAssistantView):
         data = queues.get(player, {"queue": [], "source": None})
         return web.json_response(data)
 
+    @profiles.user_scoped
     async def post(self, request: web.Request) -> web.Response:
         """Save the queue for a player."""
         hass: HomeAssistant = request.app["hass"]
@@ -1047,6 +1102,8 @@ class PlayerQueueView(HomeAssistantView):
         }
         domain_data = hass.data.setdefault(DOMAIN, {})
         domain_data.setdefault("queues", {})[player] = entry
+
+        from . import async_save_store  # noqa: PLC0415 — avoids an import cycle with __init__
 
         await async_save_store(hass)
 
@@ -1073,6 +1130,7 @@ class OutputsView(HomeAssistantView):
     name = "my_music_library:outputs"
     requires_auth = True
 
+    @profiles.user_scoped
     async def get(self, request: web.Request) -> web.Response:
         """Return the outputs and the group presets."""
         hass: HomeAssistant = request.app["hass"]
@@ -1082,6 +1140,7 @@ class OutputsView(HomeAssistantView):
             "presets": outputs.get_presets(hass),
         })
 
+    @profiles.user_scoped
     async def post(self, request: web.Request) -> web.Response:
         """Run an output action."""
         hass: HomeAssistant = request.app["hass"]
@@ -1135,6 +1194,7 @@ class MAQueueView(HomeAssistantView):
     name = "my_music_library:ma_queue"
     requires_auth = True
 
+    @profiles.user_scoped
     async def get(self, request: web.Request) -> web.Response:
         """Return the MA queue items for a player."""
         hass: HomeAssistant = request.app["hass"]
@@ -1163,6 +1223,7 @@ class MAQueueView(HomeAssistantView):
                 f"Failed to get queue items: {err}", HTTPStatus.BAD_GATEWAY,
             )
 
+    @profiles.user_scoped
     async def post(self, request: web.Request) -> web.Response:
         """Execute a queue action (delete_item)."""
         hass: HomeAssistant = request.app["hass"]
@@ -1214,6 +1275,7 @@ class PlayerQueueJumpView(HomeAssistantView):
     name = "my_music_library:queue_jump"
     requires_auth = True
 
+    @profiles.user_scoped
     async def post(self, request: web.Request) -> web.Response:
         """Handle queue jump request."""
         hass: HomeAssistant = request.app["hass"]
