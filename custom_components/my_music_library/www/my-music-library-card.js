@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "4.9.0";
+const CARD_VERSION = "4.10.1";
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -3896,6 +3896,11 @@ class MyMusicLibraryCard extends HTMLElement {
       full = ids.map(id => this._outputFullName(id)).join(" + ");
       icon = ids.length > 1 ? "mdi:speaker-multiple" : this._outputIcon(this._activePlayer);
     }
+    // Nothing to choose with a single player: hide the row. With none, keep it ("no player").
+    const hidden = this._config.show_device_select === false || (this._players || []).length === 1;
+    card.querySelectorAll("#device-row, .mini-device-row").forEach(el => {
+      el.style.display = hidden ? "none" : "";
+    });
     card.querySelectorAll("#device-name, .mini-device-name").forEach(el => {
       el.textContent = text;
       el.title = full;

@@ -4,9 +4,10 @@ Replaces the media_player entities previously provided by the official
 `mass` integration. Feature set is trimmed to exactly what the
 my-music-library-card frontend drives (verified by grep across the JS):
 play/pause/stop/next/prev/seek, volume set/mute/step, shuffle/repeat,
-turn on/off, play_media, join/unjoin. Browse-media, announcements and
-enqueue-via-generic-service are intentionally out of scope for this
-migration (see docs/migration-v4 — deferred functional improvements).
+turn on/off, play_media, join/unjoin, plus announcements (4.10.0: media sources
+such as TTS resolved to a URL, `announce` routed to Music Assistant's own
+announcement). Browse-media and enqueue-via-generic-service are out of scope
+(see docs/migration-v4 — deferred functional improvements).
 """
 from __future__ import annotations
 
@@ -17,7 +18,10 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
+from homeassistant.components import media_source
 from homeassistant.components.media_player import (
+    ATTR_MEDIA_ANNOUNCE,
+    ATTR_MEDIA_EXTRA,
     MediaPlayerDeviceClass,
     MediaPlayerEnqueue,
     MediaPlayerEntity,
@@ -26,6 +30,7 @@ from homeassistant.components.media_player import (
 )
 from homeassistant.components.media_player import MediaType as HAMediaType
 from homeassistant.components.media_player import RepeatMode
+from homeassistant.components.media_player.browse_media import async_process_play_media_url
 from homeassistant.const import STATE_OFF
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
@@ -81,6 +86,7 @@ SUPPORTED_FEATURES = (
     | MediaPlayerEntityFeature.TURN_ON
     | MediaPlayerEntityFeature.TURN_OFF
     | MediaPlayerEntityFeature.PLAY_MEDIA
+    | MediaPlayerEntityFeature.MEDIA_ANNOUNCE
 )
 
 
@@ -431,8 +437,42 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
         enqueue: MediaPlayerEnqueue | None = None,
         **kwargs: Any,
     ) -> None:
-        """Handle the generic media_player.play_media service."""
+        """Handle the generic media_player.play_media service.
+
+        A media source (e.g. what `tts.speak` sends) is resolved to a URL Music Assistant can
+        fetch. With `announce`, the media is played as a Music Assistant announcement: the
+        player stops, plays it, and resumes what it was playing (a paused queue stays paused,
+        at the same position).
+        """
+        if media_source.is_media_source_id(media_id):
+            sourced = await media_source.async_resolve_media(self.hass, media_id, self.entity_id)
+            media_id = async_process_play_media_url(self.hass, sourced.url)
+        if kwargs.get(ATTR_MEDIA_ANNOUNCE):
+            extra: dict[str, Any] = kwargs.get(ATTR_MEDIA_EXTRA) or {}
+            await self._async_play_announcement(
+                media_id,
+                use_pre_announce=extra.get("use_pre_announce"),
+                announce_volume=extra.get("announce_volume"),
+            )
+            return
         await self._async_handle_play_media(media_id=media_id, enqueue=enqueue)
+
+    async def _async_play_announcement(
+        self,
+        url: str,
+        use_pre_announce: bool | None = None,
+        announce_volume: int | None = None,
+    ) -> None:
+        """Play `url` as a Music Assistant announcement (pre-announce chime and volume:
+        the player's Music Assistant settings unless given)."""
+        if not url.startswith("http"):
+            raise HomeAssistantError(f"An announcement needs an http(s) URL, got {url!r}")
+        await self.mass.players.play_announcement(
+            self.player_id,
+            url,
+            pre_announce=use_pre_announce,
+            volume_level=announce_volume,
+        )
 
     @catch_musicassistant_error
     async def async_join_players(self, group_members: list[str]) -> None:

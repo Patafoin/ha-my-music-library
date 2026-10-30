@@ -2,7 +2,7 @@
 
 A full-featured Music Assistant player card for Home Assistant: now playing, live queue, search, library and artist pages, playlists, and an output panel to move or group the music between speakers — with its own `media_player` entities for your automations.
 
-![Version](https://img.shields.io/badge/version-4.9.0-blue)
+![Version](https://img.shields.io/badge/version-4.10.1-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2026.2%2B-brightgreen)
 [![HACS](https://img.shields.io/badge/HACS-default-41BDF5)](https://hacs.xyz/)
 
@@ -46,7 +46,7 @@ Step-by-step guide: **[Upgrading from 3.x](#upgrading-from-3x)**.
 - [Card configuration (YAML)](#card-configuration-yaml) — tabs, library sections, playlist tab, nav bar
 - [Button actions](#button-actions)
 - [Full configuration example](#full-configuration-example)
-- [Actions and entities](#actions-and-entities) — `my_music_library.play_media`, `my_music_library.transfer_queue`
+- [Actions and entities](#actions-and-entities) — announcements and TTS, `my_music_library.play_media`, `my_music_library.transfer_queue`
 - [Troubleshooting](#troubleshooting)
 - [Project structure](#project-structure)
 - [Changelog](#changelog)
@@ -89,7 +89,7 @@ Details: [Changelog](https://github.com/Patafoin/ha-my-music-library/blob/main/C
 - **Discovery tab** — Music Assistant's recommendation folders (recently played, recently added, suggestions…), one section per folder
 - **Artist page** — the artist's favorites from your library, plus their full album catalog, split into albums, EPs, singles and live albums; reachable from search, the library, or the "Artist" button of the player
 - **Playlist tab** — a dedicated tab locked to one playlist (picked in the visual editor), showing every track with list/grid view toggle; tapping a track plays it instantly without leaving the tab, thanks to a compact player bar (transport, progress, volume, output row) pinned at the bottom
-- **Own media players** — one `media_player` entity per Music Assistant player, updated live (push), usable in automations and scripts, plus a `my_music_library.play_media` action
+- **Own media players** — one `media_player` entity per Music Assistant player, updated live (push), usable in automations and scripts, plus a `my_music_library.play_media` action; announcements and `tts.speak` with resume of the music
 - **Output panel** — the output row under the player shows where the music plays ("Living room + Kitchen") and opens a panel over the player with three modes: **Switch** (move the music — same track, same position — to one or more outputs, which then form a group), **Group** (add outputs to the current group or remove them, with a volume slider per output and one for the whole group) and **Control** (see what plays where and pick which output the card controls). Outputs are shown as tiles with an icon, a short name (card alias → Home Assistant area → cleaned-up name; an "i" button shows the full name, entity, model and provider), their state, the group leader's crown, and outputs that can't be grouped together greyed out with the reason. Also: favorite groups ("Whole house"…) saved server-side, turn an output on from its tile, offline outputs hidden behind a link, and a per-device default output (pin)
 - **Profiles** — one Music Assistant account per Home Assistant user: each person sees their own library, music sources and speakers, and plays from their own streaming account (see [Profiles](#profiles--one-music-assistant-account-per-user))
 - **Player exclusion** — hide specific players from the card via integration options; supports wildcard patterns (`media_player.browser_mod_*`)
@@ -147,7 +147,7 @@ What happens when you update:
 
 After the swap, standard `media_player.*` actions (play, pause, stop, volume, shuffle, repeat, `media_player.play_media`, grouping) keep working. **Actions of the official integration** (`music_assistant.play_media`, `music_assistant.play_announcement`, `music_assistant.transfer_queue`…) only work on the official entities: replace `music_assistant.play_media` with `my_music_library.play_media` (see [Actions and entities](#actions-and-entities)).
 
-Queue transfer is available as `my_music_library.transfer_queue` (and in the card's output panel). Announcements (`music_assistant.play_announcement`) are not available in My Music Library yet (planned): keep the official integration if you rely on them. Once nothing uses the official integration anymore, you can disable it, then remove it.
+Queue transfer is available as `my_music_library.transfer_queue` (and in the card's output panel). Announcements work through the standard actions: `tts.speak`, or `media_player.play_media` with `announce: true` (see [Announcements and text-to-speech](#announcements-and-text-to-speech)). Once nothing uses the official integration anymore, you can disable it, then remove it.
 
 **Card changes to know about:**
 
@@ -383,7 +383,7 @@ nav_buttons_right:
 | `default_tab` | `string` | `player` | Tab shown on load: `player`, `search`, or `library` |
 | `height` | `number` or `string` | auto | Fixed card height (e.g. `600`, `"600px"`, `"80vh"`). Omit to fill the container. |
 | `entity` | `string` | — | Pre-select a media_player entity. User's runtime choice is saved in localStorage. |
-| `show_device_select` | `boolean` | `true` | Show the output row at the bottom of the player tab (and in the playlist tab's mini player). Set to `false` to hide it. |
+| `show_device_select` | `boolean` | `true` | Show the output row at the bottom of the player tab (and in the playlist tab's mini player). Set to `false` to hide it. Hidden anyway when only one player is available (nothing to choose); shown with "No player found" when there is none. |
 | `show_other_players` | `boolean` | `false` | Also offer Home Assistant media players that are not Music Assistant players (Echo, TV, browser_mod…) — in the output panel's **Control** mode only, since they can't play Music Assistant's queue or join its groups. |
 | `devices` | `map` | — | Per-output overrides, keyed by entity ID: `name` (short name shown in the card), `icon` (`mdi:…`), `hidden: true` (never offered by this card). Editable in the visual editor's **Outputs** section. |
 
@@ -493,7 +493,39 @@ tabs:
 
 ### Media players
 
-My Music Library creates one `media_player` entity per Music Assistant player (entity ID derived from the player name). They support play / pause / stop, previous / next, seek, volume (set, step, mute), shuffle, repeat, turn on / off, `media_player.play_media` and grouping (join / unjoin, when the player supports it). Each entity exposes a `mass_player_id` attribute (the Music Assistant player ID).
+My Music Library creates one `media_player` entity per Music Assistant player (entity ID derived from the player name). They support play / pause / stop, previous / next, seek, volume (set, step, mute), shuffle, repeat, turn on / off, `media_player.play_media`, announcements (`tts.speak`, `announce: true`) and grouping (join / unjoin, when the player supports it). Each entity exposes a `mass_player_id` attribute (the Music Assistant player ID).
+
+### Announcements and text-to-speech
+
+My Music Library players accept announcements, played by Music Assistant itself: the player stops, the announcement plays, then the music **resumes where it was** (a paused player stays paused, at the same position). The pre-announce chime and the announcement volume follow the player's settings in Music Assistant (**Settings > Players > the player > Announcements**).
+
+Speak a text with any Home Assistant TTS engine:
+
+```yaml
+action: tts.speak
+target:
+  entity_id: tts.piper
+data:
+  media_player_entity_id: media_player.kids_room
+  message: Time for bed!
+```
+
+Or play a sound file (any `http(s)` URL, or a media source such as `media-source://media_source/local/bell.mp3`):
+
+```yaml
+action: media_player.play_media
+target:
+  entity_id: media_player.kids_room
+data:
+  media_content_id: http://192.168.1.10:8123/local/bell.mp3
+  media_content_type: music
+  announce: true
+  extra:
+    use_pre_announce: false   # optional: chime before the announcement
+    announce_volume: 40       # optional: volume (0-100) for the announcement only
+```
+
+Music Assistant downloads the announcement from Home Assistant: Home Assistant's URL (**Settings > System > Network**, local network) must be reachable from the Music Assistant server.
 
 ### `my_music_library.play_media`
 

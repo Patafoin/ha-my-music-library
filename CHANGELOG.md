@@ -2,6 +2,13 @@
 
 > **4.8.2 is the first public release of the 4.x line.** Versions 4.0.0 to 4.8.1 were never published: together, the entries from 4.5.0 to 4.8.2 below describe everything 4.8.2 brings since 3.14.0.
 
+## 4.10.1
+- **Card** — the output row under the player is hidden when only one player is available: there is nothing to choose. With no player at all, it stays visible ("No player found").
+
+## 4.10.0 — Announcements
+- **New** — **announcements and text-to-speech** on My Music Library players: `tts.speak`, and `media_player.play_media` with `announce: true`. Music Assistant plays the announcement, then resumes the music where it was; a paused player stays paused at the same position. Chime and volume follow the player's Music Assistant settings, or `extra: {use_pre_announce, announce_volume}`. Media sources (TTS, local media) are now accepted by `media_player.play_media`. See [Announcements and text-to-speech](README.md#announcements-and-text-to-speech).
+- Before, `tts.speak` on a My Music Library player failed, and the official integration was still needed for announcements.
+
 ## 4.9.0 — Profiles: everyone their own music 🎉
 
 **One Music Assistant account per Home Assistant user.** Until now, everyone in the house saw the same library in the card — the one of the account entered at setup. With **profiles**, each Home Assistant user can browse and play with **their own Music Assistant account**:
