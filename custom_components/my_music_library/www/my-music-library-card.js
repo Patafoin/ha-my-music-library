@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "4.12.0";
+const CARD_VERSION = "4.13.1";
 
 // HA MediaPlayerEntityFeature bits
 const FEATURE_SHUFFLE_SET = 32768;
@@ -1253,7 +1253,7 @@ const STYLES = `
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .out-check {
-    position: absolute; top: 6px; left: 6px; width: 18px; height: 18px; border-radius: 50%;
+    position: absolute; bottom: 8px; right: 8px; width: 18px; height: 18px; border-radius: 50%;
     background: var(--accent); display: flex; align-items: center; justify-content: center;
   }
   .out-check svg { width: 13px; height: 13px; fill: var(--text-primary-on-accent, #fff); }
@@ -1273,7 +1273,7 @@ const STYLES = `
   .out-info { top: 6px; right: 6px; }
   .out-power { bottom: 6px; right: 6px; color: var(--accent); }
   .out-tile .out-pin { top: 6px; left: 6px; opacity: .6; }
-  .out-tile.sel .out-pin { left: auto; right: 34px; }
+  .out-tile.sel .out-power { right: 32px; }
   .out-pin.on { opacity: 1; color: var(--accent); background: color-mix(in srgb, var(--accent) 20%, transparent); }
   .out-info svg, .out-power svg, .out-pin svg { width: 14px; height: 14px; fill: currentColor; }
   .out-info-pop {
@@ -2354,6 +2354,7 @@ class MyMusicLibraryCard extends HTMLElement {
     this._presets = [];            // favorite groups (server-side)
     this._outputPanelOpen = false;
     this._outputMode = "switch";   // switch | group | control
+    this._defaultOutputMode = "switch"; // mode the panel opens on (HA option default_output_mode)
     this._switchSel = new Set();   // switch mode: selected destinations, first = new leader
     this._showOffline = false;
     this._presetEditing = false;
@@ -2618,6 +2619,7 @@ class MyMusicLibraryCard extends HTMLElement {
         this._maUrl = cfg.ma_url.replace(/\/$/, "");
       }
       this._profileDefaultPlayer = cfg?.default_player || null;
+      if (["switch", "group", "control"].includes(cfg?.default_output_mode)) this._defaultOutputMode = cfg.default_output_mode;
       if (Array.isArray(cfg?.excluded_players) || cfg?.allowed_players !== undefined) {
         this._excludedPlayers = Array.isArray(cfg?.excluded_players) ? cfg.excluded_players : this._excludedPlayers;
         this._allowedPlayers = Array.isArray(cfg?.allowed_players) ? new Set(cfg.allowed_players) : null;
@@ -4018,7 +4020,7 @@ class MyMusicLibraryCard extends HTMLElement {
     if (!card.querySelector("#out-panel")) return;
     if (card.querySelector('.tab-panel[data-panel="player"]') && this._tab !== "player") this._setActiveTab("player", card);
     this._outputPanelOpen = true;
-    this._outputMode = mode || this._outputMode || "switch";
+    this._outputMode = mode || this._defaultOutputMode;
     this._switchSel = new Set();
     this._presetEditing = false;
     card.querySelector("#out-panel").hidden = false;

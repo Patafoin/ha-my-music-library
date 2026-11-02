@@ -2,6 +2,13 @@
 
 > **4.8.2 is the first public release of the 4.x line.** Versions 4.0.0 to 4.8.1 were never published: together, the entries from 4.5.0 to 4.8.2 below describe everything 4.8.2 brings since 3.14.0.
 
+## 4.13.1
+- **Card** — the green tick of a selected output moved to the tile's bottom-right corner: it no longer pushes the pin button away from the top-left corner.
+
+## 4.13.0
+- **New** — integration option **Output panel opens on** (Settings > Devices & Services > My Music Library > Configure): the mode the card's output panel shows first — **Switch** (default, as before), **Group** or **Control**. Choose *Control* if you mostly pick which speaker the card controls: one tap less each time.
+- The output panel now always opens on that mode; before, it reopened on the last mode used until the page was reloaded.
+
 ## 4.12.0 — Outputs chosen per Home Assistant user
 - **New** — profile option **Allowed outputs**: the speakers a Home Assistant user may use are now chosen in Home Assistant, on their profile, and **locked** there: the card only offers them, and that user's actions on other outputs are refused — card requests, `my_music_library.play_media` / `transfer_queue` and the standard `media_player.*` actions (automations are not restricted). With none ticked, nothing changes: the player filter of their Music Assistant user applies, as before.
 - **Listen as another profile** now routes the borrowed profile's music to **the caller's own outputs**: a shared tablet plays a child's music on the speakers the tablet may use. Leave the player filter of the Music Assistant accounts empty, so Music Assistant doesn't refuse the playback.

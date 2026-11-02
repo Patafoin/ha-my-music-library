@@ -90,10 +90,12 @@
         "data": {
           "default_player": "Default player device",
           "excluded_players": "Hidden players",
-          "debug_mode": "Enable debug logging"
+          "debug_mode": "Enable debug logging",
+          "default_output_mode": "Output panel opens on"
         },
         "data_description": {
-          "debug_mode": "When enabled, detailed logs appear in HA logs (filter: my_music_library) and in the browser console (F12). When disabled, the level set by `logger:` in configuration.yaml applies (HA default: warning). Disable after debugging."
+          "debug_mode": "When enabled, detailed logs appear in HA logs (filter: my_music_library) and in the browser console (F12). When disabled, the level set by `logger:` in configuration.yaml applies (HA default: warning). Disable after debugging.",
+          "default_output_mode": "Mode shown first when you open the output panel from the card (output row)."
         }
       }
     }
@@ -177,6 +179,13 @@
         "next": "Play next",
         "replace_next": "Replace the queue, play next",
         "add": "Add to the queue"
+      }
+    },
+    "default_output_mode": {
+      "options": {
+        "switch": "Switch",
+        "group": "Group",
+        "control": "Control"
       }
     }
   }

@@ -90,10 +90,12 @@
         "data": {
           "default_player": "Standard-Player",
           "excluded_players": "Ausgeblendete Player",
-          "debug_mode": "Debug-Protokollierung aktivieren"
+          "debug_mode": "Debug-Protokollierung aktivieren",
+          "default_output_mode": "Ausgabe-Panel öffnet mit"
         },
         "data_description": {
-          "debug_mode": "Wenn aktiviert, erscheinen detaillierte Protokolle in den HA-Logs (Filter: my_music_library) und in der Browser-Konsole (F12). Wenn deaktiviert, gilt die mit `logger:` in configuration.yaml festgelegte Stufe (HA-Standard: warning). Nach dem Debugging deaktivieren."
+          "debug_mode": "Wenn aktiviert, erscheinen detaillierte Protokolle in den HA-Logs (Filter: my_music_library) und in der Browser-Konsole (F12). Wenn deaktiviert, gilt die mit `logger:` in configuration.yaml festgelegte Stufe (HA-Standard: warning). Nach dem Debugging deaktivieren.",
+          "default_output_mode": "Modus, der beim Öffnen des Ausgabe-Panels in der Karte (Ausgabezeile) zuerst angezeigt wird."
         }
       }
     }
@@ -177,6 +179,13 @@
         "next": "Als Nächstes abspielen",
         "replace_next": "Warteschlange ersetzen, als Nächstes abspielen",
         "add": "Zur Warteschlange hinzufügen"
+      }
+    },
+    "default_output_mode": {
+      "options": {
+        "switch": "Wechseln",
+        "group": "Gruppieren",
+        "control": "Steuern"
       }
     }
   }

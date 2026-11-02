@@ -25,7 +25,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.loader import async_get_integration
 
 from .api import ImageProxyView, MAThumbnailView, MAQueueView, MusicAssistantBrowseView, MusicAssistantLibraryView, MusicAssistantProvidersView, MusicAssistantRecommendationsView, MusicAssistantSearchView, MusicAssistantSubitemsView, OutputsView, PlayerQueueJumpView, PlayerQueueView
-from .const import CARD_JS_FILENAME, CARD_URL, CONF_DEBUG_MODE, CONF_DEFAULT_PLAYER, CONF_DEFAULT_TAB, CONF_EXCLUDED_PLAYERS, CONF_MA_URL, CONFIG_ENTRY_VERSION, DEFAULT_TAB, DOMAIN, ICON_URL, WS_CONFIG_COMMAND, WS_SUBSCRIBE_QUEUE_COMMAND
+from .const import CARD_JS_FILENAME, CARD_URL, CONF_DEBUG_MODE, CONF_DEFAULT_OUTPUT_MODE, CONF_DEFAULT_PLAYER, CONF_DEFAULT_TAB, CONF_EXCLUDED_PLAYERS, CONF_MA_URL, CONFIG_ENTRY_VERSION, DEFAULT_OUTPUT_MODE, DEFAULT_TAB, DOMAIN, ICON_URL, WS_CONFIG_COMMAND, WS_SUBSCRIBE_QUEUE_COMMAND
 from .duplicates import ISSUE_DUPLICATE_ENTITIES, async_track_duplicates, async_update_issue
 from .mass_connection import MyMusicLibraryConfigEntry, async_connect, async_disconnect
 from .missing_players import async_track_missing
@@ -334,6 +334,7 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
                 "default_player": default_player,
                 "default_tab": entry.data.get(CONF_DEFAULT_TAB, DEFAULT_TAB),
                 "excluded_players": list(entry.options.get(CONF_EXCLUDED_PLAYERS, [])),
+                "default_output_mode": entry.options.get(CONF_DEFAULT_OUTPUT_MODE, DEFAULT_OUTPUT_MODE),
                 "allowed_players": allowed_players,
                 "profile": profile_name,
                 "profile_id": profile_id,

@@ -10,6 +10,8 @@ CONF_MA_URL = "ma_url"
 CONF_MA_TOKEN = "ma_token"
 CONF_DEBUG_MODE = "debug_mode"
 CONF_EXCLUDED_PLAYERS = "excluded_players"
+# Mode the card's output panel opens on (options): switch | group | control
+CONF_DEFAULT_OUTPUT_MODE = "default_output_mode"
 
 # Profiles (config subentries): one Home Assistant user ↔ one Music Assistant token
 SUBENTRY_TYPE_PROFILE = "profile"
@@ -22,6 +24,8 @@ CONF_ALLOWED_PLAYERS = "allowed_players"
 PROFILE_HEADER = "X-MML-Profile"
 
 DEFAULT_TAB = "player"
+OUTPUT_MODES = ("switch", "group", "control")
+DEFAULT_OUTPUT_MODE = "switch"
 
 # Config entry schema version (see async_migrate_entry in __init__.py)
 CONFIG_ENTRY_VERSION = 2

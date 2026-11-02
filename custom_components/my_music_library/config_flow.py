@@ -33,6 +33,7 @@ from .const import (
     CONF_ALLOWED_PLAYERS,
     CONF_CAN_SWITCH_USER,
     CONF_DEBUG_MODE,
+    CONF_DEFAULT_OUTPUT_MODE,
     CONF_DEFAULT_PLAYER,
     CONF_DEFAULT_TAB,
     CONF_EXCLUDED_PLAYERS,
@@ -40,9 +41,11 @@ from .const import (
     CONF_MA_TOKEN,
     CONF_MA_URL,
     CONFIG_ENTRY_VERSION,
+    DEFAULT_OUTPUT_MODE,
     DEFAULT_TAB,
     DOMAIN,
     NAME,
+    OUTPUT_MODES,
     SUBENTRY_TYPE_PROFILE,
 )
 
@@ -226,7 +229,7 @@ class MyMusicLibraryConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class MyMusicLibraryOptionsFlow(OptionsFlow):
-    """Handle options for My Music Library (default player, excluded players, debug)."""
+    """Handle options for My Music Library (default player, excluded players, output panel mode, debug)."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -255,6 +258,10 @@ class MyMusicLibraryOptionsFlow(OptionsFlow):
             self.config_entry.options.get(CONF_DEBUG_MODE, False)
         )
 
+        current_output_mode = self.config_entry.options.get(CONF_DEFAULT_OUTPUT_MODE, DEFAULT_OUTPUT_MODE)
+        if current_output_mode not in OUTPUT_MODES:
+            current_output_mode = DEFAULT_OUTPUT_MODE
+
         player_options = {
             "": "Auto-detect (first available player)",
             **mml_players,
@@ -269,6 +276,13 @@ class MyMusicLibraryOptionsFlow(OptionsFlow):
                         multiple=True,
                         mode=SelectSelectorMode.LIST,
                         custom_value=True,
+                    )
+                ),
+                vol.Optional(CONF_DEFAULT_OUTPUT_MODE, default=current_output_mode): SelectSelector(
+                    SelectSelectorConfig(
+                        options=list(OUTPUT_MODES),
+                        mode=SelectSelectorMode.DROPDOWN,
+                        translation_key=CONF_DEFAULT_OUTPUT_MODE,
                     )
                 ),
                 vol.Optional(CONF_DEBUG_MODE, default=current_debug): bool,

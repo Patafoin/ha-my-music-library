@@ -2,7 +2,7 @@
 
 A full-featured Music Assistant player card for Home Assistant: now playing, live queue, search, library and artist pages, playlists, and an output panel to move or group the music between speakers — with its own `media_player` entities for your automations.
 
-![Version](https://img.shields.io/badge/version-4.12.0-blue)
+![Version](https://img.shields.io/badge/version-4.13.1-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2026.2%2B-brightgreen)
 [![HACS](https://img.shields.io/badge/HACS-default-41BDF5)](https://hacs.xyz/)
 
@@ -40,7 +40,7 @@ Step-by-step guide: **[Upgrading from 3.x](#upgrading-from-3x)**.
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Upgrading from 3.x](#upgrading-from-3x)
-- [Integration options](#integration-options) — default player, hidden players, debug logging
+- [Integration options](#integration-options) — default player, hidden players, output panel mode, debug logging
 - [Profiles — one Music Assistant account per user](#profiles--one-music-assistant-account-per-user)
 - [Adding the card to a dashboard](#adding-the-card-to-a-dashboard)
 - [Card configuration (YAML)](#card-configuration-yaml) — tabs, library sections, playlist tab, nav bar
@@ -172,6 +172,10 @@ The player the card selects when it opens (until the user picks another one, whi
 Select one or more media player entities to hide from the device picker inside the card. This is useful to exclude virtual players, browser tabs, or any device you do not want to see in the list.
 
 You can also type a **wildcard pattern** (e.g. `media_player.browser_mod_*`) and press **Enter** to exclude all matching players at once.
+
+### Output panel opens on
+
+The mode shown first each time the output panel opens: **Switch** (default), **Group** or **Control**. If you mostly pick which speaker the card controls, choose *Control* to save a tap. Open cards pick up the change when they reload.
 
 ### Debug logging
 
@@ -620,7 +624,7 @@ custom_components/my_music_library/
 │                        # debug mode toggle
 ├── manifest.json        # Integration metadata (version, dependencies)
 ├── config_flow.py       # UI configuration flow (setup: URL + token, re-authentication,
-│                        # options: default player, hidden players, debug mode;
+│                        # options: default player, hidden players, output panel mode, debug mode;
 │                        # profiles: Home Assistant user ↔ Music Assistant token)
 ├── mass_connection.py   # Own Music Assistant connections (connect, listen, auto-reload)
 ├── profiles.py          # Profiles: each Home Assistant user's own Music Assistant connection

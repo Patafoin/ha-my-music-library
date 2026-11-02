@@ -90,10 +90,12 @@
         "data": {
           "default_player": "Lecteur par défaut",
           "excluded_players": "Lecteurs masqués",
-          "debug_mode": "Activer les logs de débogage"
+          "debug_mode": "Activer les logs de débogage",
+          "default_output_mode": "Mode d'ouverture du panneau des sorties"
         },
         "data_description": {
-          "debug_mode": "Quand activé, des logs détaillés apparaissent dans les journaux HA (filtre : my_music_library) et dans la console du navigateur (F12). Quand désactivé, c'est le niveau défini par `logger:` dans configuration.yaml qui s'applique (par défaut dans HA : warning). Désactivez après le débogage."
+          "debug_mode": "Quand activé, des logs détaillés apparaissent dans les journaux HA (filtre : my_music_library) et dans la console du navigateur (F12). Quand désactivé, c'est le niveau défini par `logger:` dans configuration.yaml qui s'applique (par défaut dans HA : warning). Désactivez après le débogage.",
+          "default_output_mode": "Mode affiché en premier quand vous ouvrez le panneau des sorties depuis la carte (ligne de sortie)."
         }
       }
     }
@@ -177,6 +179,13 @@
         "next": "Lire ensuite",
         "replace_next": "Remplacer la file, lire ensuite",
         "add": "Ajouter à la file"
+      }
+    },
+    "default_output_mode": {
+      "options": {
+        "switch": "Basculer",
+        "group": "Grouper",
+        "control": "Contrôler"
       }
     }
   }
