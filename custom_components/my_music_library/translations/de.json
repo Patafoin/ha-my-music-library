@@ -45,10 +45,14 @@
           "data": {
             "ha_user": "Home-Assistant-Benutzer",
             "ma_token": "Music-Assistant-API-Token dieses Benutzers",
-            "default_player": "Standard-Player"
+            "default_player": "Standard-Player",
+            "can_switch_user": "Darf den Music-Assistant-Benutzer wechseln",
+            "allowed_players": "Erlaubte Ausgaben"
           },
           "data_description": {
-            "default_player": "Player, der ausgewählt wird, wenn dieser Benutzer die Karte auf einem Gerät öffnet, auf dem noch kein Player gewählt wurde."
+            "default_player": "Player, der ausgewählt wird, wenn dieser Benutzer die Karte auf einem Gerät öffnet, auf dem noch kein Player gewählt wurde.",
+            "can_switch_user": "Im Ausgabe-Panel der Karte kann dieser Benutzer für eine Ausgabe ein anderes Profil wählen und mit dessen Music-Assistant-Konto suchen und abspielen (z. B. ein gemeinsames Tablet, das die Musik eines Kindes in seinem Zimmer startet).",
+            "allowed_players": "Ausgaben, die dieser Benutzer verwenden darf, in der Karte und über seine Aktionen — auch wenn er ein anderes Profil verwendet. Keine angehakt: alle Ausgaben (oder der Player-Filter seines Music-Assistant-Benutzers, falls vorhanden)."
           }
         },
         "reconfigure": {
@@ -56,7 +60,13 @@
           "description": "Lass das Token leer, um das aktuelle zu behalten.",
           "data": {
             "ma_token": "Neues Music-Assistant-API-Token",
-            "default_player": "Standard-Player"
+            "default_player": "Standard-Player",
+            "can_switch_user": "Darf den Music-Assistant-Benutzer wechseln",
+            "allowed_players": "Erlaubte Ausgaben"
+          },
+          "data_description": {
+            "can_switch_user": "Im Ausgabe-Panel der Karte kann dieser Benutzer für eine Ausgabe ein anderes Profil wählen und mit dessen Music-Assistant-Konto suchen und abspielen (z. B. ein gemeinsames Tablet, das die Musik eines Kindes in seinem Zimmer startet).",
+            "allowed_players": "Ausgaben, die dieser Benutzer verwenden darf, in der Karte und über seine Aktionen — auch wenn er ein anderes Profil verwendet. Keine angehakt: alle Ausgaben (oder der Player-Filter seines Music-Assistant-Benutzers, falls vorhanden)."
           }
         }
       },
@@ -141,6 +151,10 @@
         "radio_mode": {
           "name": "Radiomodus",
           "description": "Nach dem Ende der Warteschlange ähnliche Titel weiterspielen."
+        },
+        "profile": {
+          "name": "Profil",
+          "description": "Mit dem Music-Assistant-Konto dieses Profils abspielen (Untereintrags-ID). Nur für Benutzer, deren Profil den Benutzer wechseln darf."
         }
       }
     },

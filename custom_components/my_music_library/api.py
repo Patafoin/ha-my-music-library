@@ -111,6 +111,11 @@ def _serialize_search_results(results: Any) -> dict:
 # (@profiles.user_scoped) and get that user's client here.
 
 
+def _check_outputs(hass: HomeAssistant, *entity_ids: str) -> None:
+    """Raise PlayerNotAllowed (403 in user_scoped views) for an output the caller may not use."""
+    profiles.check_players(hass, profiles.caller_user_id(), entity_ids)
+
+
 def _get_mass_client(hass: HomeAssistant) -> Any | None:
     """Return the MusicAssistantClient of the current user, if connected."""
     if (mass := profiles.get_client(hass)) is not None:
@@ -1079,6 +1084,7 @@ class PlayerQueueView(HomeAssistantView):
         player = request.query.get("player", "").strip()
         if not player:
             return self.json_message("Missing 'player' parameter.", HTTPStatus.BAD_REQUEST)
+        _check_outputs(hass, player)
         queues: dict = hass.data.get(DOMAIN, {}).get("queues", {})
         data = queues.get(player, {"queue": [], "source": None})
         return web.json_response(data)
@@ -1095,6 +1101,7 @@ class PlayerQueueView(HomeAssistantView):
         player = (body.get("player") or "").strip()
         if not player:
             return self.json_message("Missing 'player' field.", HTTPStatus.BAD_REQUEST)
+        _check_outputs(hass, player)
 
         entry = {
             "queue": body.get("queue") or [],
@@ -1135,8 +1142,11 @@ class OutputsView(HomeAssistantView):
         """Return the outputs and the group presets."""
         hass: HomeAssistant = request.app["hass"]
         mass = outputs.get_mass(hass)
+        found = outputs.describe_outputs(hass, mass) if mass else []
+        if (allowed := profiles.allowed_players(hass, profiles.caller_user_id())) is not None:
+            found = [o for o in found if o["entity_id"] in allowed]
         return web.json_response({
-            "outputs": outputs.describe_outputs(hass, mass) if mass else [],
+            "outputs": found,
             "presets": outputs.get_presets(hass),
         })
 
@@ -1154,6 +1164,12 @@ class OutputsView(HomeAssistantView):
 
         action = body.get("action")
         result: dict[str, Any] = {"ok": True}
+        # Every output an action touches must be one of the caller's (403 through user_scoped).
+        _check_outputs(
+            hass,
+            *(body.get(key) or "" for key in ("source", "leader", "player") if isinstance(body.get(key), str)),
+            *(v for key in ("targets", "add", "remove", "members") for v in _list(key)),
+        )
         try:
             if action == "transfer":
                 await outputs.async_transfer(hass, body.get("source") or "", _list("targets"))
@@ -1201,6 +1217,7 @@ class MAQueueView(HomeAssistantView):
         player = request.query.get("player", "").strip()
         if not player:
             return self.json_message("Missing 'player' parameter.", HTTPStatus.BAD_REQUEST)
+        _check_outputs(hass, player)
 
         mass, queue_id = await _resolve_queue_id(hass, player)
         if mass is None or queue_id is None:
@@ -1236,6 +1253,7 @@ class MAQueueView(HomeAssistantView):
         action = (body.get("action") or "").strip()
         if not player or not action:
             return self.json_message("Missing 'player' or 'action'.", HTTPStatus.BAD_REQUEST)
+        _check_outputs(hass, player)
 
         mass, queue_id = await _resolve_queue_id(hass, player)
         if mass is None or queue_id is None:
@@ -1291,6 +1309,7 @@ class PlayerQueueJumpView(HomeAssistantView):
             return self.json_message("Missing or invalid 'index'.", HTTPStatus.BAD_REQUEST)
         if not player or index < 0:
             return self.json_message("Missing 'player' or invalid 'index'.", HTTPStatus.BAD_REQUEST)
+        _check_outputs(hass, player)
 
         ok = await _queue_jump_via_ma_client(hass, player, index)
         if not ok:

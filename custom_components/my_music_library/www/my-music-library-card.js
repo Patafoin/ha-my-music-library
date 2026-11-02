@@ -5,7 +5,11 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "4.10.1";
+const CARD_VERSION = "4.12.0";
+
+// HA MediaPlayerEntityFeature bits
+const FEATURE_SHUFFLE_SET = 32768;
+const FEATURE_REPEAT_SET = 262144;
 
 /* ─── Icons (inline SVG strings) ─────────────────────────── */
 const ICONS = {
@@ -78,7 +82,7 @@ const TRANSLATIONS = {
     },
     btns: {
       shuffle: "Shuffle", prev: "Previous", play_pause: "Play/Pause",
-      next: "Next", repeat: "Repeat", mute: "Mute", play: "Play",
+      next: "Next", repeat: "Repeat", unavailable: "Not available with this source (radio, dynamic playlist)", mute: "Mute", play: "Play",
     },
     search: {
       placeholder: "Artists, albums, tracks…",
@@ -162,6 +166,7 @@ const TRANSLATIONS = {
       details: "Details", info_entity: "Entity", info_area: "Area", info_model: "Model", info_provider: "Provider", info_state: "State",
       browser: "Browser", nothing: "Nothing playing", no_outputs: "No Music Assistant output found.",
       action_failed: "Failed: {msg}",
+      listen_as: "Listen as", listen_as_hint: "Music Assistant account used on {name}: its library, searches and playback.", profile_down: "not connected", listening_as: "{output}: listening as {name}",
     },
     settings: {
       title: "Settings",
@@ -278,7 +283,7 @@ const TRANSLATIONS = {
     },
     btns: {
       shuffle: "Aléatoire", prev: "Précédent", play_pause: "Lecture / Pause",
-      next: "Suivant", repeat: "Répéter", mute: "Muet", play: "Lecture",
+      next: "Suivant", repeat: "Répéter", unavailable: "Indisponible avec cette source (radio, playlist dynamique)", mute: "Muet", play: "Lecture",
     },
     search: {
       placeholder: "Artistes, albums, titres…",
@@ -362,6 +367,7 @@ const TRANSLATIONS = {
       details: "Détails", info_entity: "Entité", info_area: "Pièce", info_model: "Modèle", info_provider: "Fournisseur", info_state: "État",
       browser: "Navigateur", nothing: "Rien en cours de lecture", no_outputs: "Aucune sortie Music Assistant trouvée.",
       action_failed: "Échec : {msg}",
+      listen_as: "Écouter en tant que", listen_as_hint: "Compte Music Assistant utilisé sur {name} : sa bibliothèque, ses recherches et ses lectures.", profile_down: "non connecté", listening_as: "{output} : écoute en tant que {name}",
     },
     settings: {
       title: "Paramètres",
@@ -478,7 +484,7 @@ const TRANSLATIONS = {
     },
     btns: {
       shuffle: "Zufällig", prev: "Zurück", play_pause: "Wiedergabe / Pause",
-      next: "Weiter", repeat: "Wiederholen", mute: "Stummschalten", play: "Abspielen",
+      next: "Weiter", repeat: "Wiederholen", unavailable: "Mit dieser Quelle nicht verfügbar (Radio, dynamische Playlist)", mute: "Stummschalten", play: "Abspielen",
     },
     search: {
       placeholder: "Künstler, Alben, Titel…",
@@ -562,6 +568,7 @@ const TRANSLATIONS = {
       details: "Details", info_entity: "Entität", info_area: "Bereich", info_model: "Modell", info_provider: "Anbieter", info_state: "Status",
       browser: "Browser", nothing: "Keine Wiedergabe", no_outputs: "Keine Music-Assistant-Ausgabe gefunden.",
       action_failed: "Fehlgeschlagen: {msg}",
+      listen_as: "Hören als", listen_as_hint: "Music-Assistant-Konto auf {name}: seine Bibliothek, Suchen und Wiedergabe.", profile_down: "nicht verbunden", listening_as: "{output}: Hören als {name}",
     },
     settings: {
       title: "Einstellungen",
@@ -1088,6 +1095,7 @@ const STYLES = `
   .ctrl-btn:hover { color: var(--text); background: rgba(255,255,255,0.1); }
   .ctrl-btn:active { transform: scale(.9); }
   .ctrl-btn.active { color: var(--accent); }
+  .ctrl-btn:disabled { opacity: .35; cursor: default; background: none; transform: none; }
   /* Prev / Next — slightly larger than secondary controls */
   .ctrl-btn.ctrl-nav { width: 58px; height: 58px; }
   .ctrl-btn.ctrl-nav svg { width: 30px; height: 30px; }
@@ -1292,6 +1300,10 @@ const STYLES = `
     background: var(--bg2); border: 1px solid var(--border); font-size: 12px; font-weight: 600;
   }
   .out-chip svg { width: 14px; height: 14px; fill: #f5b301; }
+  .out-profile ha-icon { --mdc-icon-size: 15px; color: var(--text2); }
+  .out-profile.sel { background: var(--accent); border-color: var(--accent); color: var(--text-primary-on-accent, #fff); }
+  .out-profile.sel ha-icon { color: inherit; }
+  .out-profile.down { opacity: .6; }
   .out-chip-del { background: none; border: none; padding: 0 0 0 2px; cursor: pointer; display: flex; }
   .out-chip-del svg { width: 13px; height: 13px; fill: var(--text2); }
   .out-link { background: none; border: none; color: var(--accent); font-size: 12px; cursor: pointer; padding: 10px 4px 0; }
@@ -2349,6 +2361,12 @@ class MyMusicLibraryCard extends HTMLElement {
     this._excludedPlayers = [];    // entity_ids hidden from the device picker (HA options)
     this._allowedPlayers = null;   // Set of entity_ids this HA user's MA account may see (profiles), null = all
     this._profileDefaultPlayer = null; // default player of this HA user's profile (or of the integration)
+    this._ownProfileId = null;     // subentry id of this HA user's profile
+    this._switchProfiles = null;   // profiles this user may borrow per output [{id, name, connected}], null = may not switch
+    this._outputProfiles = (() => { // entity_id → borrowed profile id, on this device (output panel)
+      try { return JSON.parse(this._loadPref("mml_output_profiles") || "{}") || {}; } catch (_) { return {}; }
+    })();
+    this._identity = null;         // profile id the content requests currently run as (null = own), see _syncIdentity
     // Per-tab library filter state is in this._libTabState[tabId]
     this._rendered = false;
     this._isMobile = this._detectMobile();
@@ -2467,11 +2485,13 @@ class MyMusicLibraryCard extends HTMLElement {
 
   async _callIntegration(method, path, body) {
     this._debugLog(`API ${method} /my_music_library/${path}`, body !== undefined ? body : "");
-    const opts = { method };
+    const opts = { method, headers: {} };
     if (body !== undefined) {
-      opts.headers = { "Content-Type": "application/json" };
+      opts.headers["Content-Type"] = "application/json";
       opts.body = JSON.stringify(body);
     }
+    // Content runs as the profile borrowed for the active output; outputs stay this user's own.
+    if (this._identity && !path.startsWith("outputs")) opts.headers["X-MML-Profile"] = this._identity;
     const resp = await this._hass.fetchWithAuth(`/my_music_library/${path}`, opts);
     if (!resp.ok) {
       const text = await resp.text().catch(() => "");
@@ -2540,6 +2560,7 @@ class MyMusicLibraryCard extends HTMLElement {
         this._debugLog("Player selected:", this._activePlayer, "prev:", prevActive, "saved:", saved, "players:", this._players.map(p => p.entity_id));
         if (this._activePlayer && this._activePlayer !== prevActive) {
           this._loadMAQueue();
+          if (this._switchProfiles) this._syncIdentity();
         }
       }
     }
@@ -2589,6 +2610,9 @@ class MyMusicLibraryCard extends HTMLElement {
       // fetch (cfg undefined) shouldn't itself trigger the banner.
       this._maConnected = cfg?.connected !== false;
       this._updateConnectionBanner();
+      this._ownProfileId = cfg?.profile_id || null;
+      this._switchProfiles = Array.isArray(cfg?.switch_profiles) && cfg.switch_profiles.length > 1 ? cfg.switch_profiles : null;
+      this._identity = this._effectiveProfileId();
       await this._fetchProviders();
       if (cfg?.ma_url) {
         this._maUrl = cfg.ma_url.replace(/\/$/, "");
@@ -3403,11 +3427,13 @@ class MyMusicLibraryCard extends HTMLElement {
             this._hass?.callService("media_player", "media_previous_track", {}, { entity_id: player });
             break;
           case "shuffle": {
+            if (!this._supports(this._hass?.states[player], FEATURE_SHUFFLE_SET)) break;
             const shuffleOn = this._hass?.states[player]?.attributes?.shuffle;
             this._hass?.callService("media_player", "shuffle_set", { shuffle: !shuffleOn }, { entity_id: player });
             break;
           }
           case "repeat": {
+            if (!this._supports(this._hass?.states[player], FEATURE_REPEAT_SET)) break;
             const cur = this._hass?.states[player]?.attributes?.repeat || "off";
             const next = cur === "off" ? "all" : cur === "all" ? "one" : "off";
             this._hass?.callService("media_player", "repeat_set", { repeat: next }, { entity_id: player });
@@ -3534,16 +3560,25 @@ class MyMusicLibraryCard extends HTMLElement {
       btn.innerHTML = isPlaying ? ICONS.pause : ICONS.play;
     });
 
-    // Shuffle
+    // Shuffle / repeat — disabled when the player doesn't offer them right now
+    // (MA queue playing a dynamic source: radio, dynamic playlist)
     const shuffleBtn = card.querySelector("#btn-shuffle");
-    if (shuffleBtn) shuffleBtn.classList.toggle("active", !!attr.shuffle);
+    if (shuffleBtn) {
+      const ok = this._supports(state, FEATURE_SHUFFLE_SET);
+      shuffleBtn.disabled = !ok;
+      shuffleBtn.title = this._t(ok ? "btns.shuffle" : "btns.unavailable");
+      shuffleBtn.classList.toggle("active", ok && !!attr.shuffle);
+    }
 
     // Repeat
     const repeatBtn = card.querySelector("#btn-repeat");
     if (repeatBtn) {
+      const ok = this._supports(state, FEATURE_REPEAT_SET);
       const repeat = attr.repeat || "off";
+      repeatBtn.disabled = !ok;
+      repeatBtn.title = this._t(ok ? "btns.repeat" : "btns.unavailable");
       repeatBtn.innerHTML = repeat === "one" ? ICONS.repeatOne : ICONS.repeat;
-      repeatBtn.classList.toggle("active", repeat !== "off");
+      repeatBtn.classList.toggle("active", ok && repeat !== "off");
     }
 
     // Volume — skip update while user is dragging to prevent snap-back (main + any mini bar)
@@ -3650,15 +3685,21 @@ class MyMusicLibraryCard extends HTMLElement {
     this._callService(state.state === "playing" ? "media_pause" : "media_play");
   }
 
+  // A state without supported_features (unknown player) is assumed to support everything
+  _supports(state, feature) {
+    const f = state?.attributes?.supported_features;
+    return typeof f !== "number" || (f & feature) !== 0;
+  }
+
   _toggleShuffle() {
     const state = this._getActiveState();
-    if (!state) return;
+    if (!state || !this._supports(state, FEATURE_SHUFFLE_SET)) return;
     this._callService("shuffle_set", { shuffle: !state.attributes.shuffle });
   }
 
   _cycleRepeat() {
     const state = this._getActiveState();
-    if (!state) return;
+    if (!state || !this._supports(state, FEATURE_REPEAT_SET)) return;
     const modes = ["off", "all", "one"];
     const cur = state.attributes.repeat || "off";
     const next = modes[(modes.indexOf(cur) + 1) % modes.length];
@@ -3880,6 +3921,60 @@ class MyMusicLibraryCard extends HTMLElement {
     this._loadMAQueue();
     const card = this.shadowRoot?.querySelector(".card-root");
     if (card) this._updatePlayerContent(card);
+    this._syncIdentity();
+  }
+
+  /* ── Profile borrowed per output (profiles that may switch users) ── */
+  _effectiveProfileId() {
+    if (!this._switchProfiles || !this._activePlayer) return null;
+    const id = this._outputProfiles[this._activePlayer];
+    return id && id !== this._ownProfileId && this._switchProfiles.some(p => p.id === id) ? id : null;
+  }
+
+  _identityName(id = this._identity) {
+    return id ? this._switchProfiles?.find(p => p.id === id)?.name || null : null;
+  }
+
+  _setOutputProfile(eid, id) {
+    if (!eid) return;
+    if (!id || id === this._ownProfileId) delete this._outputProfiles[eid];
+    else this._outputProfiles[eid] = id;
+    this._savePref("mml_output_profiles", JSON.stringify(this._outputProfiles));
+    this._syncIdentity();
+  }
+
+  // The account changed (output or its profile): what the card shows came from the other one.
+  _syncIdentity() {
+    const id = this._effectiveProfileId();
+    if (id === this._identity) return;
+    this._identity = id;
+    this._debugLog("Listening as profile:", id || "(own)");
+    this._searchResults = null;
+    this._plLoadedTabs.clear();
+    const card = this.shadowRoot?.querySelector(".card-root");
+    if (card) {
+      this._updateDeviceRow(card);
+      const resultsEl = card.querySelector("#search-results");
+      if (resultsEl && this._searchQuery) this._doSearch(card);
+      const tabDef = this._resolvedTabs?.find(t => t.id === this._tab);
+      if (tabDef?.type === "playlist") this._loadPlaylistTab(tabDef);
+    }
+    // Re-reads the providers, then reloads the library and discovery tabs already loaded.
+    this._fetchProviders();
+  }
+
+  _renderProfilePicker() {
+    if (!this._switchProfiles || !this._activePlayer) return "";
+    const current = this._identity || this._ownProfileId;
+    const name = this._outputName(this._activePlayer);
+    return `
+      <div class="out-section-title">${this._t("outputs.listen_as")}</div>
+      <div class="out-presets out-profiles" title="${this._esc(this._tf("outputs.listen_as_hint", { name }))}">
+        ${this._switchProfiles.map(p => `
+          <span class="out-chip out-profile${p.id === current ? " sel" : ""}${p.connected ? "" : " down"}" data-profile="${this._esc(p.id)}">
+            <ha-icon icon="mdi:account"></ha-icon><span>${this._esc(p.name)}${p.connected ? "" : ` (${this._t("outputs.profile_down")})`}</span>
+          </span>`).join("")}
+      </div>`;
   }
 
   /* ── Output row (player tab + mini player bar) ── */
@@ -3897,7 +3992,13 @@ class MyMusicLibraryCard extends HTMLElement {
       icon = ids.length > 1 ? "mdi:speaker-multiple" : this._outputIcon(this._activePlayer);
     }
     // Nothing to choose with a single player: hide the row. With none, keep it ("no player").
-    const hidden = this._config.show_device_select === false || (this._players || []).length === 1;
+    if (this._identity && this._activePlayer) {
+      const who = this._identityName();
+      text = `${text} · ${who}`;
+      full = `${full} · ${who}`;
+    }
+    const hidden = this._config.show_device_select === false
+      || ((this._players || []).length === 1 && !this._switchProfiles);
     card.querySelectorAll("#device-row, .mini-device-row").forEach(el => {
       el.style.display = hidden ? "none" : "";
     });
@@ -3957,7 +4058,7 @@ class MyMusicLibraryCard extends HTMLElement {
         <button type="button" class="out-close" title="${this._t("outputs.close")}">${ICONS.close}</button>
       </div>
       <div class="out-hint">${this._t(`outputs.hint_${mode}`)}</div>
-      <div class="out-body">${body}</div>
+      <div class="out-body">${this._renderProfilePicker()}${body}</div>
       ${this._renderOutFooter(mode)}
       <div class="out-info-pop" hidden></div>`;
     panel.querySelector(".out-body").scrollTop = scroll;
@@ -4228,6 +4329,14 @@ class MyMusicLibraryCard extends HTMLElement {
       } else if ((el = btn(".out-mute"))) {
         const eid = el.dataset.mute;
         this._hass.callService("media_player", "volume_mute", { entity_id: eid, is_volume_muted: !this._hass.states[eid]?.attributes?.is_volume_muted });
+      } else if ((el = btn(".out-profile"))) {
+        const eid = this._activePlayer;
+        this._setOutputProfile(eid, el.dataset.profile);
+        this._showToast(this._tf("outputs.listening_as", {
+          output: this._outputName(eid),
+          name: this._identityName() || this._switchProfiles.find(p => p.id === this._ownProfileId)?.name || "",
+        }));
+        this._renderOutputPanel(card);
       } else if ((el = btn(".out-chip-del"))) {
         e.stopPropagation();
         const preset = this._presets.find(p => p.id === el.dataset.delPreset);
@@ -4275,7 +4384,9 @@ class MyMusicLibraryCard extends HTMLElement {
       this._outputAction({ action: "set_members", leader, [inGroup ? "remove" : "add"]: [eid] });
     } else if (action === "control") {
       this._setActivePlayerTo(eid);
-      this._closeOutputPanel(card);
+      // With profiles to borrow, stay open: the account for this output is picked right above.
+      if (this._switchProfiles) this._renderOutputPanel(card);
+      else this._closeOutputPanel(card);
     }
   }
 
@@ -5958,6 +6069,9 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   _callServiceSilent(domain, service, data) {
+    if (domain === "my_music_library" && service === "play_media" && this._identity) {
+      data = { ...data, profile: this._identity };
+    }
     return this._hass.connection.sendMessagePromise({
       type: "call_service",
       domain,

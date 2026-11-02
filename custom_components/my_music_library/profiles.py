@@ -17,6 +17,18 @@ The current user travels in a ContextVar, set by `user_scoped` (HTTP views)
 or `acting_user` (WebSocket commands, entity services), so the many helpers
 of api.py and outputs.py keep calling `get_client(hass)` without a user
 argument.
+
+Outputs are locked per Home Assistant user: a profile's `allowed_players`
+(our media_player entity_ids; empty: no restriction set in Home Assistant, the
+Music Assistant user's player filter then applies, as before 4.12) is checked
+for the *calling* user on every card request and entity action that targets an
+output — never for a borrowed profile, so a shared tablet routes a child's music
+to the tablet's own outputs.
+
+A profile with `can_switch_user` may borrow another profile's account: the
+card names that profile (subentry id) in the `X-MML-Profile` header or the
+`profile` field of `play_media`, and the request then runs as that profile's
+Home Assistant user. The right is checked here, on every request.
 """
 from __future__ import annotations
 
@@ -24,17 +36,30 @@ from collections.abc import Awaitable, Callable, Iterable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 import functools
+from http import HTTPStatus
 import logging
 from typing import TYPE_CHECKING, Any
 
 from aiohttp import web
 
-from homeassistant.components.http import KEY_HASS_USER
+from homeassistant.components.http import KEY_HASS, KEY_HASS_USER
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.helpers import entity_registry as er
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, HomeAssistantError
 
-from .const import CONF_DEFAULT_PLAYER, CONF_HA_USER, CONF_MA_TOKEN, CONF_MA_URL, DOMAIN, SUBENTRY_TYPE_PROFILE
+from .const import (
+    CONF_ALLOWED_PLAYERS,
+    CONF_CAN_SWITCH_USER,
+    CONF_DEFAULT_PLAYER,
+    CONF_HA_USER,
+    CONF_MA_TOKEN,
+    CONF_MA_URL,
+    DOMAIN,
+    PROFILE_HEADER,
+    SUBENTRY_TYPE_PROFILE,
+)
+from .entity import UNIQUE_ID_PREFIX
 from .mass_connection import (
     MAUser,
     MMLRuntimeData,
@@ -51,6 +76,34 @@ _LOGGER = logging.getLogger(__name__)
 
 # Id of the Home Assistant user the current request / service call is made for.
 _current_user_id: ContextVar[str | None] = ContextVar("my_music_library_user_id", default=None)
+# Id of the Home Assistant user really making the request (not a borrowed profile's): output access.
+_caller_user_id: ContextVar[str | None] = ContextVar("my_music_library_caller_id", default=None)
+
+
+class ProfileSwitchDenied(HomeAssistantError):
+    """A user asked for a profile they may not borrow."""
+
+
+class PlayerNotAllowed(HomeAssistantError):
+    """A user targeted an output their profile may not use."""
+
+
+def resolve_user(hass: HomeAssistant, user_id: str | None, as_profile: str | None) -> str | None:
+    """Home Assistant user a request runs as: `user_id`, or the one behind `as_profile`.
+
+    `as_profile` (a profile's subentry id) is only honoured when `user_id` has a
+    profile allowed to switch users; anything else raises ProfileSwitchDenied.
+    """
+    if not as_profile:
+        return user_id
+    runtime_data = _loaded_runtime_data(hass)
+    own = runtime_data.profiles.get(user_id) if runtime_data is not None and user_id is not None else None
+    if own is None or not own.can_switch_user:
+        raise ProfileSwitchDenied("This user may not switch Music Assistant users")
+    for profile_user_id, profile in runtime_data.profiles.items():
+        if profile.subentry_id == as_profile:
+            return profile_user_id
+    raise ProfileSwitchDenied(f"Unknown profile {as_profile!r}")
 
 
 @contextmanager
@@ -66,13 +119,28 @@ def acting_user(user_id: str | None) -> Iterator[None]:
 def user_scoped(
     handler: Callable[..., Awaitable[web.StreamResponse]],
 ) -> Callable[..., Awaitable[web.StreamResponse]]:
-    """Decorate an authenticated HTTP view method: run it for the requesting user."""
+    """Decorate an authenticated HTTP view method: run it for the requesting user.
+
+    Or for the profile named by the X-MML-Profile header, if that user may switch.
+    """
 
     @functools.wraps(handler)
     async def wrapper(view: Any, request: web.Request, *args: Any, **kwargs: Any) -> web.StreamResponse:
         user = request.get(KEY_HASS_USER)
-        with acting_user(user.id if user is not None else None):
-            return await handler(view, request, *args, **kwargs)
+        try:
+            user_id = resolve_user(
+                request.app[KEY_HASS], user.id if user is not None else None, request.headers.get(PROFILE_HEADER)
+            )
+        except ProfileSwitchDenied as err:
+            return view.json_message(str(err), HTTPStatus.FORBIDDEN)
+        caller = _caller_user_id.set(user.id if user is not None else None)
+        try:
+            with acting_user(user_id):
+                return await handler(view, request, *args, **kwargs)
+        except PlayerNotAllowed as err:
+            return view.json_message(str(err), HTTPStatus.FORBIDDEN)
+        finally:
+            _caller_user_id.reset(caller)
 
     return wrapper
 
@@ -91,6 +159,57 @@ def get_profile(hass: HomeAssistant, user_id: str | None = None) -> ProfileConne
     if runtime_data is None or user_id is None:
         return None
     return runtime_data.profiles.get(user_id)
+
+
+def switchable_profiles(hass: HomeAssistant, user_id: str | None) -> list[dict[str, Any]] | None:
+    """Profiles `user_id` may borrow (their own first), or None when they may not switch."""
+    runtime_data = _loaded_runtime_data(hass)
+    own = runtime_data.profiles.get(user_id) if runtime_data is not None and user_id is not None else None
+    if own is None or not own.can_switch_user:
+        return None
+    others = sorted((p for p in runtime_data.profiles.values() if p is not own), key=lambda p: p.title.lower())
+    return [
+        {"id": profile.subentry_id, "name": profile.title, "connected": bool(profile.connected)}
+        for profile in (own, *others)
+    ]
+
+
+def caller_user_id() -> str | None:
+    """Home Assistant user really making the current card request (see user_scoped)."""
+    return _caller_user_id.get()
+
+
+def allowed_players(hass: HomeAssistant, user_id: str | None) -> frozenset[str] | None:
+    """Outputs (our media_player entity_ids) `user_id` may use, or None: all of them.
+
+    The list set on their profile in Home Assistant; without one, the player filter
+    of the Music Assistant user behind them (their profile's, else the main account).
+    Automations and system calls (no user) are never restricted.
+    """
+    runtime_data = _loaded_runtime_data(hass)
+    if runtime_data is None or user_id is None:
+        return None
+    profile = runtime_data.profiles.get(user_id)
+    if profile is not None and profile.allowed_players:
+        return profile.allowed_players
+    mass, ma_user = (profile.mass, profile.ma_user) if profile is not None else (runtime_data.mass, runtime_data.ma_user)
+    if mass is None or (player_ids := visible_player_ids(mass, ma_user)) is None:
+        return None
+    registry = er.async_get(hass)
+    return frozenset(
+        eid
+        for pid in player_ids
+        if (eid := registry.async_get_entity_id("media_player", DOMAIN, f"{UNIQUE_ID_PREFIX}{pid}"))
+    )
+
+
+def check_players(hass: HomeAssistant, user_id: str | None, entity_ids: Iterable[str]) -> None:
+    """Raise PlayerNotAllowed when `user_id` may not use one of these outputs."""
+    if (allowed := allowed_players(hass, user_id)) is None:
+        return
+    for entity_id in entity_ids:
+        if entity_id and entity_id not in allowed:
+            raise PlayerNotAllowed(f"{entity_id} is not one of this user's outputs")
 
 
 def get_client(hass: HomeAssistant) -> MusicAssistantClient | None:
@@ -224,6 +343,8 @@ async def async_connect_profiles(hass: HomeAssistant, entry: MyMusicLibraryConfi
             subentry_id=subentry_id,
             title=subentry.title,
             default_player=subentry.data.get(CONF_DEFAULT_PLAYER) or None,
+            can_switch_user=bool(subentry.data.get(CONF_CAN_SWITCH_USER)),
+            allowed_players=frozenset(subentry.data.get(CONF_ALLOWED_PLAYERS) or ()),
         )
         profiles[subentry.data[CONF_HA_USER]] = profile
         try:

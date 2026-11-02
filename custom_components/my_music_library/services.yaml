@@ -22,6 +22,10 @@ play_media:
     radio_mode:
       selector:
         boolean:
+    profile:
+      advanced: true
+      selector:
+        text:
 transfer_queue:
   target:
     entity:

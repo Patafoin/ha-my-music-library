@@ -45,10 +45,14 @@
           "data": {
             "ha_user": "Home Assistant user",
             "ma_token": "Music Assistant API token of this user",
-            "default_player": "Default player"
+            "default_player": "Default player",
+            "can_switch_user": "Can switch Music Assistant user",
+            "allowed_players": "Allowed outputs"
           },
           "data_description": {
-            "default_player": "Player selected when this user opens the card on a device where no player was chosen yet."
+            "default_player": "Player selected when this user opens the card on a device where no player was chosen yet.",
+            "can_switch_user": "In the card's output panel, this user can pick another profile for an output, to browse and play with that profile's Music Assistant account (e.g. a shared tablet starting a child's own music in their room).",
+            "allowed_players": "Outputs this user may use, in the card and through their actions — also when they borrow another profile. None ticked: every output (or the player filter of their Music Assistant user, if it has one)."
           }
         },
         "reconfigure": {
@@ -56,7 +60,13 @@
           "description": "Leave the token empty to keep the current one.",
           "data": {
             "ma_token": "New Music Assistant API token",
-            "default_player": "Default player"
+            "default_player": "Default player",
+            "can_switch_user": "Can switch Music Assistant user",
+            "allowed_players": "Allowed outputs"
+          },
+          "data_description": {
+            "can_switch_user": "In the card's output panel, this user can pick another profile for an output, to browse and play with that profile's Music Assistant account (e.g. a shared tablet starting a child's own music in their room).",
+            "allowed_players": "Outputs this user may use, in the card and through their actions — also when they borrow another profile. None ticked: every output (or the player filter of their Music Assistant user, if it has one)."
           }
         }
       },
@@ -141,6 +151,10 @@
         "radio_mode": {
           "name": "Radio mode",
           "description": "Keep playing similar tracks once the queue is finished."
+        },
+        "profile": {
+          "name": "Profile",
+          "description": "Play with this profile's Music Assistant account (subentry id). Only for callers whose profile may switch users."
         }
       }
     },

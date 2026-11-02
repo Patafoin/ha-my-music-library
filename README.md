@@ -2,7 +2,7 @@
 
 A full-featured Music Assistant player card for Home Assistant: now playing, live queue, search, library and artist pages, playlists, and an output panel to move or group the music between speakers — with its own `media_player` entities for your automations.
 
-![Version](https://img.shields.io/badge/version-4.10.1-blue)
+![Version](https://img.shields.io/badge/version-4.12.0-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2026.2%2B-brightgreen)
 [![HACS](https://img.shields.io/badge/HACS-default-41BDF5)](https://hacs.xyz/)
 
@@ -82,7 +82,7 @@ Details: [Changelog](https://github.com/Patafoin/ha-my-music-library/blob/main/C
 <img src="https://raw.githubusercontent.com/Patafoin/ha-my-music-library/main/images/mobile.png" alt="Phone layout" width="280" align="right">
 
 - **Now Playing** — album art, track title, artist, progress bar, volume control
-- **Playback controls** — play/pause, previous, next, shuffle, repeat (off / all / one)
+- **Playback controls** — play/pause, previous, next, shuffle, repeat (off / all / one) — shuffle and repeat are greyed out while Music Assistant plays a dynamic source (radio, dynamic playlist), which it doesn't allow
 - **Queue** — live queue display alongside the player, updated as soon as Music Assistant changes it (pushed, no polling), persisted server-side per player across page reloads and devices
 - **Search** — full-text search across artists, albums, tracks and playlists via Music Assistant; also searches local library (filenames) for more complete results
 - **Library** — your Music Assistant favorites (artists, albums, playlists, tracks, radios…) with a source filter (All / Local / Streaming); **Browse mode** to navigate the filesystem directory tree and play folders
@@ -208,7 +208,7 @@ By default, every Home Assistant user sees the same thing in the card: the libra
 1. In Music Assistant, add the music sources of this person if they have their own — e.g. a second **Deezer** provider logged in with *their* account, a **local folder** provider for their files.
 2. Go to **Settings > Users**, create the user (role **User**), and set their filters:
    - **Music sources (providers)** — the sources this user may use, e.g. *Deezer (child)* and *Stories*.
-   - **Players** — the speakers this user may use. Leave it empty to allow all speakers.
+   - **Players** — leave it **empty** (all speakers). Since 4.12, the speakers a person may use are chosen in Home Assistant, on their profile (step 4): a Music Assistant player filter would also block a shared tablet that plays this person's music on its own speakers.
 3. Do the same for **the account you entered at setup** if it should not see the other sources (e.g. exclude the child's Deezer from the parents' account). My Music Library applies these filters even to a Music Assistant admin.
 
 ### Step 2 — Music Assistant: create a token for that user
@@ -225,18 +225,21 @@ In **Settings > People**, add a person with **Allow person to login** (or create
 
 1. Go to **Settings > Devices & Services > My Music Library** and click **Add profile**.
 2. Choose the **Home Assistant user**, paste the **Music Assistant token** from step 2, and optionally a **default player** (selected when this user opens the card on a device where no player was chosen yet).
+   Tick the **Allowed outputs** this user may use (none ticked: all of them). Home Assistant locks them: the card only offers these outputs, and the user's actions on other outputs are refused (card, `my_music_library.*` and `media_player.*` actions; automations are not restricted).
+   Tick **Can switch Music Assistant user** for a shared device (see [Listening as another profile](#listening-as-another-profile-shared-tablet)).
 3. Submit: the integration checks the token and reconnects by itself — no restart needed.
 
 Then log in to the Home Assistant app on their device **with their account**. Done.
 
-To change the token or the default player later: on the integration page, open the profile's menu (**⋮**) > **Reconfigure** (leave the token empty to keep it). Deleting a profile sends that user back to the setup account.
+To change the token, the default player, the allowed outputs or the switch option later: on the integration page, open the profile's menu (**⋮**) > **Reconfigure** (leave the token empty to keep it). Deleting a profile sends that user back to the setup account.
 
 ### How it works
 
 | | User **with** a profile | User **without** a profile |
 |---|---|---|
 | Library, search, browse, discovery | their Music Assistant account | the setup account |
-| Music sources and speakers offered | their account's filters | the setup account's filters |
+| Music sources offered | their account's filters | the setup account's filters |
+| Speakers offered and usable | their profile's **Allowed outputs** (none ticked: their account's player filter, if any) | the setup account's player filter, if any |
 | Playback started from the card | from their account (streaming account, history) | from the setup account |
 | If their connection is down (token revoked…) | "not connected" banner — **never** someone else's library | — |
 
@@ -246,6 +249,16 @@ Good to know:
 - **Player controls** (play/pause, next, volume…) and automations go through the setup account; starting a playback from the card goes through the user's own account.
 - **Same speaker, two people**: a speaker allowed to both plays whoever started the music last.
 - **Favorites**: Music Assistant shares one library and one "favorite" flag between accounts; My Music Library only shows each user the items that are in *their own* library.
+
+### Listening as another profile (shared tablet)
+
+*New in 4.11.* A profile with **Can switch Music Assistant user** may pick, **per output**, the profile whose Music Assistant account is used there.
+
+**Example** — the kitchen tablet is logged in as *Tablet*, a profile on the parents' Music Assistant account. A child asks for their music in the bathroom: open the output panel, choose the bathroom speaker (in **Control** mode the panel stays open), then under **Listen as** choose the child's profile. While that output is selected, the card shows the child's library, search and discovery, and starts the playback from the child's account. Back on the kitchen speaker, the card is on the tablet's own account again.
+
+- The choice is remembered **on this device**, for that output, until you pick another profile (or your own) under **Listen as**. The output row shows the profile in use: "Bathroom · Child".
+- Every profile is offered as long as the option is ticked; the right is checked by Home Assistant on each request, not just hidden in the card.
+- The outputs offered are always **the tablet's own** (its profile's **Allowed outputs**), never the borrowed profile's: the child's music goes to the speakers the tablet may use. Leave the **Players** filter of the borrowed Music Assistant account empty, or Music Assistant refuses the playback on a speaker outside it.
 
 ---
 
@@ -493,7 +506,7 @@ tabs:
 
 ### Media players
 
-My Music Library creates one `media_player` entity per Music Assistant player (entity ID derived from the player name). They support play / pause / stop, previous / next, seek, volume (set, step, mute), shuffle, repeat, turn on / off, `media_player.play_media`, announcements (`tts.speak`, `announce: true`) and grouping (join / unjoin, when the player supports it). Each entity exposes a `mass_player_id` attribute (the Music Assistant player ID).
+My Music Library creates one `media_player` entity per Music Assistant player (entity ID derived from the player name). They support play / pause / stop, previous / next, seek, volume (set, step, mute), shuffle, repeat (not while the queue plays a dynamic source: radio, dynamic playlist), turn on / off, `media_player.play_media`, announcements (`tts.speak`, `announce: true`) and grouping (join / unjoin, when the player supports it). Each entity exposes a `mass_player_id` attribute (the Music Assistant player ID).
 
 ### Announcements and text-to-speech
 
@@ -536,6 +549,7 @@ Plays a Music Assistant item on one of these players.
 | `media_id` | yes | URI of a Music Assistant item (e.g. `library://playlist/16`), a stream URL, or a name to look up |
 | `enqueue` | no | `play` (default), `replace`, `next`, `replace_next` or `add` |
 | `radio_mode` | no | Keep playing similar tracks once the queue is finished |
+| `profile` | no | Play with that profile's Music Assistant account (profile id). Only for users whose profile [may switch users](#listening-as-another-profile-shared-tablet); used by the card |
 
 ```yaml
 action: my_music_library.play_media
@@ -590,7 +604,7 @@ If something isn't working as expected:
 | Library is empty | The library only shows favorites: favorite some items in Music Assistant, or use Search / Browse mode; also try the source filter (All / Local / Streaming) |
 | No players found | Make sure at least one My Music Library media player entity is enabled and not `unavailable` |
 | Old copies of a player (`_2`, `_3`, unavailable) after a device came back | Music Assistant saw it under a new identifier (for Squeezelite: its MAC address — set a fixed one in the player's settings). Delete the old ones from Settings > Repairs, or from their device page |
-| Players missing from picker | Check that they're not in the hidden players list (integration options), and — with [profiles](#profiles--one-music-assistant-account-per-user) — that the user's Music Assistant account may use them (player filter in Music Assistant) |
+| Players missing from picker | Check that they're not in the hidden players list (integration options), and — with [profiles](#profiles--one-music-assistant-account-per-user) — that they're ticked in the user's profile (**Allowed outputs**), or, with none ticked, allowed by the player filter of their Music Assistant account |
 | A user sees someone else's library | They have no profile (they use the setup account), or their profile's token was created by another Music Assistant user: create the token while logged in as them (see [Profiles](#profiles--one-music-assistant-account-per-user)) |
 | "Not connected" banner for one user only | Their profile's token was revoked or expired (Music Assistant tokens last one year): open the profile (⋮ > Reconfigure) and paste a new token |
 

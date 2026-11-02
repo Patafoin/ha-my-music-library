@@ -40,6 +40,8 @@ class ProfileConnection:
     subentry_id: str
     title: str
     default_player: str | None
+    can_switch_user: bool = False
+    allowed_players: frozenset[str] = frozenset()
     mass: MusicAssistantClient | None = None
     listen_task: asyncio.Task | None = None
     ma_user: MAUser | None = None

@@ -29,15 +29,15 @@ from .const import CARD_JS_FILENAME, CARD_URL, CONF_DEBUG_MODE, CONF_DEFAULT_PLA
 from .duplicates import ISSUE_DUPLICATE_ENTITIES, async_track_duplicates, async_update_issue
 from .mass_connection import MyMusicLibraryConfigEntry, async_connect, async_disconnect
 from .missing_players import async_track_missing
-from .outputs import entity_id_for
 from .profiles import (
     acting_user,
+    allowed_players as profiles_allowed_players,
     async_connect_profiles,
     async_refresh_ma_user,
     get_client,
     get_profile,
     profiles_signature,
-    visible_player_ids,
+    switchable_profiles,
 )
 from .queue_push import async_relay_queue_events, ws_subscribe_queue
 from .queue_watchdog import QueueWatchdog
@@ -295,8 +295,10 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
         """Return the integration config to the card, for the connected user.
 
         With a profile, `connected` is the state of that user's own connection,
-        `default_player` the profile's, and `allowed_players` the entity_ids of
-        the players their Music Assistant user may see (None: no restriction).
+        `default_player` the profile's, and `allowed_players` the outputs this
+        Home Assistant user may use (profiles.allowed_players; None: no restriction).
+        `switch_profiles` lists the profiles the card may borrow for an output
+        (own first, `profile_id`), or None when this user's profile may not switch.
         """
         entries = hass.config_entries.async_entries(DOMAIN)
         if not entries:
@@ -307,20 +309,22 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
         connected = entry.state == ConfigEntryState.LOADED
         default_player = entry.options.get(CONF_DEFAULT_PLAYER) or None
         profile_name: str | None = None
+        profile_id: str | None = None
+        switch_profiles: list[dict[str, Any]] | None = None
         allowed_players: list[str] | None = None
 
         with acting_user(connection.user.id if connection.user else None):
             if connected and (profile := get_profile(hass)) is not None:
                 profile_name = profile.title
+                profile_id = profile.subentry_id
                 default_player = profile.default_player or default_player
+                switch_profiles = switchable_profiles(hass, connection.user.id)
             mass = get_client(hass) if connected else None
             connected = mass is not None
             if mass is not None:
-                ma_user = await async_refresh_ma_user(hass)
-                if (player_ids := visible_player_ids(mass, ma_user)) is not None:
-                    allowed_players = [
-                        eid for pid in player_ids if (eid := entity_id_for(hass, pid))
-                    ]
+                await async_refresh_ma_user(hass)
+                if (allowed := profiles_allowed_players(hass, connection.user.id if connection.user else None)) is not None:
+                    allowed_players = sorted(allowed)
 
         connection.send_result(
             msg["id"],
@@ -332,6 +336,8 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
                 "excluded_players": list(entry.options.get(CONF_EXCLUDED_PLAYERS, [])),
                 "allowed_players": allowed_players,
                 "profile": profile_name,
+                "profile_id": profile_id,
+                "switch_profiles": switch_profiles,
                 "debug_mode": bool(entry.options.get(CONF_DEBUG_MODE, False)),
             },
         )

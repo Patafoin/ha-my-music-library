@@ -14,6 +14,12 @@ CONF_EXCLUDED_PLAYERS = "excluded_players"
 # Profiles (config subentries): one Home Assistant user ↔ one Music Assistant token
 SUBENTRY_TYPE_PROFILE = "profile"
 CONF_HA_USER = "ha_user"
+# A profile allowed to borrow another profile's Music Assistant account from the card
+CONF_CAN_SWITCH_USER = "can_switch_user"
+# Outputs (our media_player entity_ids) a profile's user may use; empty: all, see profiles.allowed_players
+CONF_ALLOWED_PLAYERS = "allowed_players"
+# Header the card sends with the profile (subentry id) it borrows, see profiles.user_scoped
+PROFILE_HEADER = "X-MML-Profile"
 
 DEFAULT_TAB = "player"
 
@@ -40,6 +46,7 @@ SERVICE_PLAY_MEDIA = "play_media"
 ATTR_MEDIA_ID = "media_id"
 ATTR_ENQUEUE = "enqueue"
 ATTR_RADIO_MODE = "radio_mode"
+ATTR_PROFILE = "profile"
 SERVICE_TRANSFER_QUEUE = "transfer_queue"
 ATTR_TARGETS = "targets"
 

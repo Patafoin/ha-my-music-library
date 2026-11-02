@@ -30,6 +30,8 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import (
+    CONF_ALLOWED_PLAYERS,
+    CONF_CAN_SWITCH_USER,
     CONF_DEBUG_MODE,
     CONF_DEFAULT_PLAYER,
     CONF_DEFAULT_TAB,
@@ -286,7 +288,7 @@ class ProfileSubentryFlow(ConfigSubentryFlow):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        """Choose the Home Assistant user, their Music Assistant token and default player."""
+        """Choose the Home Assistant user, their Music Assistant token, default player and switch right."""
         entry = self._get_entry()
         taken = {subentry.data.get(CONF_HA_USER) for subentry in entry.subentries.values()}
         users = {
@@ -311,6 +313,8 @@ class ProfileSubentryFlow(ConfigSubentryFlow):
                         CONF_HA_USER: ha_user,
                         CONF_MA_TOKEN: user_input[CONF_MA_TOKEN],
                         CONF_DEFAULT_PLAYER: user_input.get(CONF_DEFAULT_PLAYER, ""),
+                        CONF_CAN_SWITCH_USER: user_input.get(CONF_CAN_SWITCH_USER, False),
+                        CONF_ALLOWED_PLAYERS: user_input.get(CONF_ALLOWED_PLAYERS, []),
                     },
                     unique_id=ha_user,
                 )
@@ -327,6 +331,8 @@ class ProfileSubentryFlow(ConfigSubentryFlow):
                     TextSelectorConfig(type=TextSelectorType.PASSWORD)
                 ),
                 **_default_player_field(self.hass, ""),
+                **_allowed_players_field(self.hass, []),
+                vol.Optional(CONF_CAN_SWITCH_USER, default=False): bool,
             }
         )
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
@@ -334,7 +340,7 @@ class ProfileSubentryFlow(ConfigSubentryFlow):
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        """Change a profile's token (left empty: kept) or default player."""
+        """Change a profile's token (left empty: kept), default player or switch right."""
         entry = self._get_entry()
         subentry = self._get_reconfigure_subentry()
         errors: dict[str, str] = {}
@@ -345,14 +351,20 @@ class ProfileSubentryFlow(ConfigSubentryFlow):
                 errors["base"] = error
             else:
                 # The entry's update listener reloads it: profile connections are opened at setup.
-                return self.async_update_and_abort(
+                # Not async_update_and_abort: since HA 2026.10 its default reason is resolved from
+                # Home Assistant's own strings ("Reconfiguration was successful"), not from ours.
+                self.hass.config_entries.async_update_subentry(
                     entry,
                     subentry,
-                    data_updates={
+                    data={
+                        **subentry.data,
                         CONF_MA_TOKEN: token,
                         CONF_DEFAULT_PLAYER: user_input.get(CONF_DEFAULT_PLAYER, ""),
+                        CONF_CAN_SWITCH_USER: user_input.get(CONF_CAN_SWITCH_USER, False),
+                        CONF_ALLOWED_PLAYERS: user_input.get(CONF_ALLOWED_PLAYERS, []),
                     },
                 )
+                return self.async_abort(reason="reconfigure_successful")
 
         schema = vol.Schema(
             {
@@ -360,9 +372,30 @@ class ProfileSubentryFlow(ConfigSubentryFlow):
                     TextSelectorConfig(type=TextSelectorType.PASSWORD)
                 ),
                 **_default_player_field(self.hass, subentry.data.get(CONF_DEFAULT_PLAYER, "")),
+                **_allowed_players_field(self.hass, subentry.data.get(CONF_ALLOWED_PLAYERS) or []),
+                vol.Optional(
+                    CONF_CAN_SWITCH_USER, default=bool(subentry.data.get(CONF_CAN_SWITCH_USER, False))
+                ): bool,
             }
         )
         return self.async_show_form(step_id="reconfigure", data_schema=schema, errors=errors)
+
+
+def _allowed_players_field(hass: HomeAssistant, current: list[str]) -> dict[Any, Any]:
+    """Outputs this profile's user may use, among our own media_players (none ticked: all)."""
+    players = _get_mml_players(hass)
+    return {
+        vol.Optional(CONF_ALLOWED_PLAYERS, default=[eid for eid in current if eid in players]): SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    {"value": eid, "label": name}
+                    for eid, name in sorted(players.items(), key=lambda x: x[1].lower())
+                ],
+                multiple=True,
+                mode=SelectSelectorMode.LIST,
+            )
+        )
+    }
 
 
 def _default_player_field(hass: HomeAssistant, current: str) -> dict[Any, Any]:

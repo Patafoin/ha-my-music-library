@@ -2,6 +2,20 @@
 
 > **4.8.2 is the first public release of the 4.x line.** Versions 4.0.0 to 4.8.1 were never published: together, the entries from 4.5.0 to 4.8.2 below describe everything 4.8.2 brings since 3.14.0.
 
+## 4.12.0 — Outputs chosen per Home Assistant user
+- **New** — profile option **Allowed outputs**: the speakers a Home Assistant user may use are now chosen in Home Assistant, on their profile, and **locked** there: the card only offers them, and that user's actions on other outputs are refused — card requests, `my_music_library.play_media` / `transfer_queue` and the standard `media_player.*` actions (automations are not restricted). With none ticked, nothing changes: the player filter of their Music Assistant user applies, as before.
+- **Listen as another profile** now routes the borrowed profile's music to **the caller's own outputs**: a shared tablet plays a child's music on the speakers the tablet may use. Leave the player filter of the Music Assistant accounts empty, so Music Assistant doesn't refuse the playback.
+
+## 4.11.1
+- **Fix** — saving a profile (⋮ > Reconfigure) ended on Home Assistant's generic "Reconfiguration was successful" in English since Home Assistant 2026.10, instead of the integration's translated "Profile updated".
+
+## 4.11.0 — Listen as another profile
+- **New** — profile option **Can switch Music Assistant user**. On a shared device (kitchen tablet…), a user whose profile has it picks, in the card's output panel, **which profile's Music Assistant account is used for each output**: choose the bathroom speaker and the child's profile, and the card shows the child's library and plays from the child's account there, while the other outputs stay on the tablet's own account. The choice is remembered on the device, per output; the output row shows the profile in use. Home Assistant checks the right on every request. See [Listening as another profile](README.md#listening-as-another-profile-shared-tablet).
+- `my_music_library.play_media` accepts an optional `profile` field (used by the card; same right required).
+
+## 4.10.2
+- **Fix** — the repeat and shuffle buttons showed an "Invalid or unsupported command" error while Music Assistant plays a dynamic source (radio, dynamic playlist): Music Assistant doesn't allow them there. The player entities no longer offer shuffle and repeat during such playback, and the card greys out both buttons (tooltip "Not available with this source"). They come back as soon as a normal queue plays.
+
 ## 4.10.1
 - **Card** — the output row under the player is hidden when only one player is available: there is nothing to choose. With no player at all, it stays visible ("No player found").
 

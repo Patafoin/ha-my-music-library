@@ -50,6 +50,7 @@ from .const import (
     ATTR_ENQUEUE,
     ATTR_MASS_PLAYER_ID,
     ATTR_MEDIA_ID,
+    ATTR_PROFILE,
     ATTR_RADIO_MODE,
     ATTR_TARGETS,
     DOMAIN,
@@ -93,10 +94,15 @@ SUPPORTED_FEATURES = (
 def catch_musicassistant_error[_R, **P](
     func: Callable[..., Awaitable[_R]],
 ) -> Callable[..., Coroutine[Any, Any, _R | None]]:
-    """Convert Music Assistant errors into HomeAssistantError."""
+    """Convert Music Assistant errors into HomeAssistantError.
+
+    Also locks the entity's actions to the users whose profile may use this
+    output (profiles.check_players; automations and system calls are free).
+    """
 
     @functools.wraps(func)
     async def wrapper(self: MusicAssistantPlayer, *args: P.args, **kwargs: P.kwargs) -> _R | None:
+        profiles.check_players(self.hass, self._caller_user_id(), [self.entity_id])
         try:
             return await func(self, *args, **kwargs)
         except MusicAssistantError as err:
@@ -143,6 +149,7 @@ async def async_setup_entry(
             vol.Required(ATTR_MEDIA_ID): str,
             vol.Optional(ATTR_ENQUEUE): str,
             vol.Optional(ATTR_RADIO_MODE): bool,
+            vol.Optional(ATTR_PROFILE): str,
         },
         "_async_handle_play_media",
     )
@@ -234,11 +241,26 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
             player.volume_level / 100 if player.volume_level is not None else None
         )
         self._attr_is_volume_muted = player.volume_muted
+        self._update_supported_features(active_queue)
         cur_item = active_queue.current_item if active_queue else None
         if self._is_bounce_back(cur_item.queue_item_id if cur_item else None):
             return
         self._update_media_attributes(player, active_queue)
         self._update_media_image_url(player, active_queue)
+
+    def _update_supported_features(self, queue: PlayerQueue | None) -> None:
+        """Drop shuffle/repeat while the queue plays a dynamic source (radio, dynamic playlist).
+
+        Music Assistant (2.10.8+) refuses both on a dynamic queue ("Invalid or unsupported
+        command"); without the features, HA rejects the call and the card greys the buttons out.
+        `is_dynamic` is missing from older models (client 1.3.3): never dynamic there.
+        """
+        features = self._attr_supported_features
+        if queue is not None and getattr(queue, "is_dynamic", False):
+            features &= ~(MediaPlayerEntityFeature.SHUFFLE_SET | MediaPlayerEntityFeature.REPEAT_SET)
+        else:
+            features |= MediaPlayerEntityFeature.SHUFFLE_SET | MediaPlayerEntityFeature.REPEAT_SET
+        self._attr_supported_features = features
 
     def _is_bounce_back(self, item_id: str | None) -> bool:
         """Tell whether the queue just went back to the track it left (see BOUNCE_WINDOW)."""
@@ -477,6 +499,7 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
     @catch_musicassistant_error
     async def async_join_players(self, group_members: list[str]) -> None:
         """Join `group_members` as a player group with the current player."""
+        profiles.check_players(self.hass, self._caller_user_id(), group_members)
         entity_registry = er.async_get(self.hass)
         player_ids: list[str] = []
         for child_entity_id in group_members:
@@ -497,13 +520,15 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
         media_id: str,
         enqueue: str | MediaPlayerEnqueue | None = None,
         radio_mode: bool | None = None,
+        profile: str | None = None,
     ) -> None:
         """Resolve `media_id` to a URI and send it to the player's queue.
 
         Schema intentionally trimmed to what the card calls today: a single
         media_id (URI or free-text name), an enqueue mode, and radio_mode.
+        `profile`: play with that profile's account (callers allowed to switch users).
         """
-        mass = self._caller_mass()
+        mass = self._caller_mass(profile)
         if "://" in media_id:
             uri = media_id
         elif item := await mass.music.get_item_by_name(name=media_id):
@@ -521,6 +546,7 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
 
     async def _async_handle_transfer_queue(self, targets: list[str]) -> None:
         """Move what this player plays to `targets` (see outputs.async_transfer)."""
+        profiles.check_players(self.hass, self._caller_user_id(), [self.entity_id, *targets])
         with profiles.acting_user(self._caller_user_id()):
             await outputs.async_transfer(self.hass, self.entity_id, targets)
 
@@ -528,13 +554,15 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
         """Home Assistant user who called the running action (None: automation, system)."""
         return self._context.user_id if self._context is not None else None
 
-    def _caller_mass(self) -> MusicAssistantClient:
+    def _caller_mass(self, as_profile: str | None = None) -> MusicAssistantClient:
         """Connection to start playback with: the caller's profile's, else the main one.
 
         Music Assistant streams from, and records the history of, the user whose
         connection starts the playback: a profile's playback must go through it.
+        With `as_profile`, the borrowed profile's (see profiles.resolve_user).
         """
-        with profiles.acting_user(self._caller_user_id()):
+        user_id = profiles.resolve_user(self.hass, self._caller_user_id(), as_profile)
+        with profiles.acting_user(user_id):
             mass = profiles.get_client(self.hass)
         if mass is None:
             raise HomeAssistantError("The Music Assistant connection of this user's profile is down")

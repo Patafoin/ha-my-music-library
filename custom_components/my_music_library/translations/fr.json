@@ -45,10 +45,14 @@
           "data": {
             "ha_user": "Utilisateur Home Assistant",
             "ma_token": "Jeton d'API Music Assistant de cet utilisateur",
-            "default_player": "Lecteur par défaut"
+            "default_player": "Lecteur par défaut",
+            "can_switch_user": "Peut changer d'utilisateur Music Assistant",
+            "allowed_players": "Sorties autorisées"
           },
           "data_description": {
-            "default_player": "Lecteur sélectionné quand cet utilisateur ouvre la carte sur un appareil où aucun lecteur n'a encore été choisi."
+            "default_player": "Lecteur sélectionné quand cet utilisateur ouvre la carte sur un appareil où aucun lecteur n'a encore été choisi.",
+            "can_switch_user": "Dans le panneau des sorties de la carte, cet utilisateur peut choisir un autre profil pour une sortie, et parcourir et écouter avec le compte Music Assistant de ce profil (ex. une tablette partagée qui lance la musique d'un enfant dans sa chambre).",
+            "allowed_players": "Sorties que cet utilisateur peut utiliser, dans la carte et par ses actions — y compris quand il emprunte un autre profil. Aucune cochée : toutes les sorties (ou le filtre de lecteurs de son utilisateur Music Assistant, s'il en a un)."
           }
         },
         "reconfigure": {
@@ -56,7 +60,13 @@
           "description": "Laissez le jeton vide pour garder l'actuel.",
           "data": {
             "ma_token": "Nouveau jeton d'API Music Assistant",
-            "default_player": "Lecteur par défaut"
+            "default_player": "Lecteur par défaut",
+            "can_switch_user": "Peut changer d'utilisateur Music Assistant",
+            "allowed_players": "Sorties autorisées"
+          },
+          "data_description": {
+            "can_switch_user": "Dans le panneau des sorties de la carte, cet utilisateur peut choisir un autre profil pour une sortie, et parcourir et écouter avec le compte Music Assistant de ce profil (ex. une tablette partagée qui lance la musique d'un enfant dans sa chambre).",
+            "allowed_players": "Sorties que cet utilisateur peut utiliser, dans la carte et par ses actions — y compris quand il emprunte un autre profil. Aucune cochée : toutes les sorties (ou le filtre de lecteurs de son utilisateur Music Assistant, s'il en a un)."
           }
         }
       },
@@ -141,6 +151,10 @@
         "radio_mode": {
           "name": "Mode radio",
           "description": "Continuer avec des titres similaires une fois la file terminée."
+        },
+        "profile": {
+          "name": "Profil",
+          "description": "Lire avec le compte Music Assistant de ce profil (identifiant de sous-entrée). Réservé aux utilisateurs dont le profil peut changer d'utilisateur."
         }
       }
     },
