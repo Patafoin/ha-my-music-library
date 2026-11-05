@@ -4,11 +4,11 @@ A full-featured Music Assistant player card for Home Assistant: now playing, liv
 
 ![Version](https://img.shields.io/badge/version-4.13.1-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2026.2%2B-brightgreen)
-[![HACS](https://img.shields.io/badge/HACS-default-41BDF5)](https://hacs.xyz/)
+[![Marketplace (HACS)](https://img.shields.io/badge/Marketplace%20%28HACS%29-default-41BDF5)](https://hacs.xyz/)
 
 ![Player with the live queue](https://raw.githubusercontent.com/Patafoin/ha-my-music-library/main/images/player.png)
 
-[![Open your Home Assistant instance and open this repository inside HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Patafoin&repository=ha-my-music-library&category=integration)
+[![Open your Home Assistant instance and open this repository inside the Marketplace (HACS).](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Patafoin&repository=ha-my-music-library&category=integration)
 
 💬 Questions, feedback, ideas: [discussion on the Home Assistant Community forum](https://community.home-assistant.io/t/my-music-library-a-full-music-assistant-player-card-with-speaker-switching-and-grouping/1028632).
 
@@ -113,16 +113,17 @@ The official Music Assistant integration for Home Assistant is **not** required:
 
 ## Installation
 
-### Via HACS
+### Via the Marketplace (HACS)
 
-1. Open HACS, search for **My Music Library** and install it.
-2. Restart Home Assistant.
-3. In the Music Assistant web UI, create a long-lived API token: **Settings > your user > API tokens**, e.g. named `my_music_library`.
-4. Go to **Settings > Devices & Services > Add Integration** and search for **My Music Library**.
-5. Enter the Music Assistant server URL (e.g. `http://192.168.1.10:8095`) and the token. The connection is tested before the entry is created.
-6. Optionally pick a **default player** in the integration options (see below) — it can only be chosen once the player entities exist.
+1. Settings → **Marketplace**, search for **My Music Library** and select **Install**. Before Home Assistant 2026.11, do the same search in **HACS**, download it, then restart Home Assistant.
+2. In the Music Assistant web UI, create a long-lived API token: **Settings > your user > API tokens**, e.g. named `my_music_library`.
+3. Go to **Settings > Devices & Services > Add Integration** and search for **My Music Library**.
+4. Enter the Music Assistant server URL (e.g. `http://192.168.1.10:8095`) and the token. The connection is tested before the entry is created.
+5. Optionally pick a **default player** in the integration options (see below) — it can only be chosen once the player entities exist.
 
 > The Lovelace card resource is registered automatically — no manual resource addition required.
+
+If the search does not find it, add the repository by its link: in the Marketplace, **Add from link** → `https://github.com/Patafoin/ha-my-music-library`; in HACS, ⋮ → **Custom repositories** → the same URL, type **Integration**.
 
 If the token is later revoked or the server URL changes, Home Assistant shows a **re-authentication** prompt: enter the new URL and/or token there, no need to remove the integration.
 
