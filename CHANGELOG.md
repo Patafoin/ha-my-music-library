@@ -2,6 +2,9 @@
 
 > **4.8.2 is the first public release of the 4.x line.** Versions 4.0.0 to 4.8.1 were never published: together, the entries from 4.5.0 to 4.8.2 below describe everything 4.8.2 brings since 3.14.0.
 
+## 4.13.2
+- Bound the allowed range of `music-assistant-client` to below `1.9` (was below `2`), so a future major-ish release of the client can't be pulled in automatically before we've tested it. No behavior change.
+
 ## 4.13.1
 - **Card** — the green tick of a selected output moved to the tile's bottom-right corner: it no longer pushes the pin button away from the top-left corner.
 
