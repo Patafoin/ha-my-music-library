@@ -41,9 +41,12 @@ class MusicAssistantBaseEntity(Entity):
             sw_version=self.player.device_info.software_version,
             model_id=self.player.device_info.model_id,
         )
-        if self.player.device_info.mac_address:
+        # music-assistant-models >=1.1.237 dropped mac_address/ip_address from device_info
+        # (kept in device_info.identifiers instead); getattr keeps us working either way.
+        mac_address = getattr(self.player.device_info, "mac_address", None)
+        if mac_address:
             self._attr_device_info["connections"] = {
-                ("mac", self.player.device_info.mac_address),
+                ("mac", mac_address),
             }
 
     async def async_added_to_hass(self) -> None:

@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "4.13.2";
+const CARD_VERSION = "4.13.3";
 
 // HA MediaPlayerEntityFeature bits
 const FEATURE_SHUFFLE_SET = 32768;
