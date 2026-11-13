@@ -59,7 +59,7 @@ Step-by-step guide: **[Upgrading from 3.x](#upgrading-from-3x)**.
 - **Profiles** (4.9) — each Home Assistant user can browse and play with their own Music Assistant account: their own library, music sources and speakers, and playback from their own streaming account. See [Profiles](#profiles--one-music-assistant-account-per-user).
 - **Own Music Assistant connection and players** — no dependency on the official integration; live `media_player` entities usable in automations, with `my_music_library.play_media` and `my_music_library.transfer_queue` ("the music follows me").
 - **Instant queue** — the queue updates as soon as Music Assistant changes it (pushed, no more delays).
-- **Playback that keeps going** — works around a Music Assistant bug that sometimes stopped an album or playlist after its first track.
+- **Playback that keeps going** — with Music Assistant 2.10.5 or earlier, an album or playlist that stops after its first track is resumed automatically (fixed in Music Assistant 2.10.6, see [music-assistant/support#6562](https://github.com/music-assistant/support/issues/6562)).
 - **Artist page** — favorites and full catalog split into albums, EPs, singles and live albums, reachable from search, the library or the new **Artist** button of the player.
 - **Discovery tab** — Music Assistant's recommendation folders.
 - **Safer setup** — connection test, re-authentication prompt, a clear banner when Music Assistant is unreachable, a Repairs flow for duplicate players.
@@ -632,7 +632,7 @@ custom_components/my_music_library/
 ├── entity.py            # Base entity for Music Assistant players
 ├── media_player.py      # media_player platform + play_media / transfer_queue actions
 ├── queue_push.py        # Relays Music Assistant queue events to the card (WebSocket subscription)
-├── queue_watchdog.py    # Resumes queues Music Assistant leaves stopped after a track (MA bug workaround)
+├── queue_watchdog.py    # Resumes queues stopped after a track (Music Assistant 2.10.5 and earlier)
 ├── duplicates.py        # Detects duplicates with the official integration, swaps entity IDs
 ├── missing_players.py   # Media players whose Music Assistant player is gone (removal, Repairs issue)
 ├── repairs.py           # Repairs fix flows (duplicates, players that no longer exist)

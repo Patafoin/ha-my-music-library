@@ -96,7 +96,7 @@ Also in 4.9.0:
 - **New** — **`my_music_library.transfer_queue`** action, for automations ("the music follows me").
 
 ## 4.7.1
-- **Fix (workaround for a Music Assistant bug)** — **playback stopped after the first track** of an album or playlist, with the rest still in the queue ("next" worked). Music Assistant (seen on 2.10.4) hands the next track to the player while the current one starts, and skips that step when the queue was empty just before — typically right after a launch that failed and emptied the queue (e.g. a Deezer "Flow" with nothing to play). Nothing retries it, so the player stops at the end of the first track. The integration now watches the queues: when one stops on a track played to its end while a next track is waiting (not at the end of the queue, not in "repeat one", not stopped by you mid-track), it waits 6 seconds, then skips to the next track — what you would do by pressing "next". Logged as a warning.
+- **Fix** — **playback stopped after the first track** of an album or playlist, with the rest still in the queue ("next" worked). On Music Assistant 2.10.4 (fixed in 2.10.6, [music-assistant/support#6562](https://github.com/music-assistant/support/issues/6562)), the server hands the next track to the player while the current one starts, and skips that step when the queue was empty just before — typically right after a launch that failed and emptied the queue (e.g. a Deezer "Flow" with nothing to play). Nothing retries it, so the player stops at the end of the first track. The integration now watches the queues: when one stops on a track played to its end while a next track is waiting (not at the end of the queue, not in "repeat one", not stopped by you mid-track), it waits 6 seconds, then skips to the next track — what you would do by pressing "next". Logged as a warning.
 
 ## 4.7.0
 - **New** — **"Artist" button on the player tab**: opens the page of the artist of the track being played (favorite albums and full catalog). The back button returns to the player. New `track_artist` action on the `/my_music_library/subitems` view (main artist of a track, library version when the artist is in the library).
@@ -171,7 +171,7 @@ First 4.x version (never published on its own) — everything below is new since
 - **Fix** — **FR translation**: corrected anglicism "sélection du device" → "sélection de l'appareil".
 
 ## 3.10.2
-- **Fix** — **provider filter server-side post-filter**: MA's library API silently ignores the `provider` parameter (absorbed by `**kwargs`), returning all items instead of filtering by provider instance. Added a server-side post-filter that verifies each returned item's `provider_instances` contains the requested provider, ensuring items from disabled providers (e.g., a second Deezer account) are excluded.
+- **Fix** — **provider filter server-side post-filter**: the `provider` parameter is not applied by MA's library API (it ends up in `**kwargs`), which returns all items instead of filtering by provider instance. Added a server-side post-filter that verifies each returned item's `provider_instances` contains the requested provider, ensuring items from disabled providers (e.g., a second Deezer account) are excluded.
 
 ## 3.10.1
 - **Fix** — **provider filter race condition**: library could load before providers were fetched, causing `_activeProviderFilter()` to always return `null` and bypassing server-side per-provider queries. Provider fetch is now awaited before proceeding, and library tabs are invalidated when providers arrive late.
