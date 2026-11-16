@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "4.13.3";
+const CARD_VERSION = "4.14.0";
 
 // HA MediaPlayerEntityFeature bits
 const FEATURE_SHUFFLE_SET = 32768;
@@ -65,7 +65,7 @@ const ICONS = {
 /* ─── i18n ────────────────────────────────────────────────── */
 const TRANSLATIONS = {
   en: {
-    tabs: { player: "Player", search: "Search", library: "Library", playlist: "Playlist", settings: "Settings", discovery: "Discovery" },
+    tabs: { player: "Player", search: "Search", library: "Library", playlist: "Playlist", settings: "Settings", discovery: "Discovery", queue: "Queue" },
     player: {
       nothing_playing: "Nothing playing",
       select_player: "Select a player",
@@ -195,6 +195,7 @@ const TRANSLATIONS = {
       tab_icon: "Icon",
       tab_icon_hint: "e.g. mdi:play-circle",
       tab_show_in_nav: "Show in nav bar",
+      player_show_queue: "Show the queue",
       advanced_config: "Advanced (YAML)",
       advanced_config_hint: "Extra properties not covered above, e.g. tap_action data/target",
       sections_title: "Library sections",
@@ -219,6 +220,7 @@ const TRANSLATIONS = {
       type_search: "Search",
       type_library: "Library",
       type_discovery: "Discovery",
+      type_queue: "Queue",
       type_playlist: "Playlist",
       type_settings: "Settings",
       type_button: "Button",
@@ -263,10 +265,11 @@ const TRANSLATIONS = {
       nav_bar_align_center: "Center",
       nav_bar_align_end: "End",
       nav_bar_align_space_between: "Space between",
+      nav_bar_hidden: "Hide the nav bar",
     },
   },
   fr: {
-    tabs: { player: "Lecteur", search: "Recherche", library: "Bibliothèque", playlist: "Playlist", settings: "Paramètres", discovery: "Découverte" },
+    tabs: { player: "Lecteur", search: "Recherche", library: "Bibliothèque", playlist: "Playlist", settings: "Paramètres", discovery: "Découverte", queue: "File d'attente" },
     player: {
       nothing_playing: "Rien en cours de lecture",
       select_player: "Sélectionnez un lecteur",
@@ -396,6 +399,7 @@ const TRANSLATIONS = {
       tab_icon: "Icône",
       tab_icon_hint: "ex. mdi:play-circle",
       tab_show_in_nav: "Afficher dans la barre de nav",
+      player_show_queue: "Afficher la file d'attente",
       advanced_config: "Avancé (YAML)",
       advanced_config_hint: "Propriétés supplémentaires non couvertes ci-dessus, ex. data/target de tap_action",
       sections_title: "Sections de la bibliothèque",
@@ -420,6 +424,7 @@ const TRANSLATIONS = {
       type_search: "Recherche",
       type_library: "Bibliothèque",
       type_discovery: "Découverte",
+      type_queue: "File d'attente",
       type_playlist: "Playlist",
       type_settings: "Paramètres",
       type_button: "Bouton",
@@ -464,10 +469,11 @@ const TRANSLATIONS = {
       nav_bar_align_center: "Centre",
       nav_bar_align_end: "Fin",
       nav_bar_align_space_between: "Réparti",
+      nav_bar_hidden: "Masquer la barre d'onglets",
     },
   },
   de: {
-    tabs: { player: "Wiedergabe", search: "Suche", library: "Bibliothek", playlist: "Playlist", settings: "Einstellungen", discovery: "Entdecken" },
+    tabs: { player: "Wiedergabe", search: "Suche", library: "Bibliothek", playlist: "Playlist", settings: "Einstellungen", discovery: "Entdecken", queue: "Warteschlange" },
     player: {
       nothing_playing: "Nichts wird abgespielt",
       select_player: "Player auswählen",
@@ -597,6 +603,7 @@ const TRANSLATIONS = {
       tab_icon: "Symbol",
       tab_icon_hint: "z.B. mdi:play-circle",
       tab_show_in_nav: "In Navigationsleiste anzeigen",
+      player_show_queue: "Warteschlange anzeigen",
       advanced_config: "Erweitert (YAML)",
       advanced_config_hint: "Zusätzliche Eigenschaften, die oben nicht abgedeckt sind, z.B. tap_action data/target",
       sections_title: "Bibliotheksbereiche",
@@ -621,6 +628,7 @@ const TRANSLATIONS = {
       type_search: "Suche",
       type_library: "Bibliothek",
       type_discovery: "Entdecken",
+      type_queue: "Warteschlange",
       type_playlist: "Playlist",
       type_settings: "Einstellungen",
       type_button: "Schaltfläche",
@@ -665,6 +673,7 @@ const TRANSLATIONS = {
       nav_bar_align_center: "Mitte",
       nav_bar_align_end: "Ende",
       nav_bar_align_space_between: "Verteilt",
+      nav_bar_hidden: "Navigationsleiste ausblenden",
     },
   },
 };
@@ -1940,6 +1949,7 @@ const STYLES = `
 
   /* ── Queue (Up Next) — visual styles only, layout via media queries below ── */
   .queue-section { overflow-y: auto; min-height: 0; min-width: 0; }
+  .queue-tab-body { flex: 1; min-height: 0; overflow-y: auto; }
 
   /* ═══════════════════════════════════════════
      RESPONSIVE LAYOUT — MOBILE (<640px)
@@ -2233,7 +2243,7 @@ function throttle(fn, ms) {
 function _buildResolvedTabs(config) {
   const DEFAULT_SECTIONS = ["artists", "albums", "playlists", "tracks"];
   const VALID_SECTIONS = ["artists", "albums", "playlists", "tracks", "radios", "recently_played", "recently_added", "recommended", "flows"];
-  const TAB_ICONS = { player: "player", search: "search", library: "library", playlist: "playlist", settings: "settings", discovery: "sparkle" };
+  const TAB_ICONS = { player: "player", search: "search", library: "library", playlist: "playlist", settings: "settings", discovery: "sparkle", queue: "queue" };
 
   if (config.tabs && Array.isArray(config.tabs)) {
     let idx = 0;
@@ -2264,6 +2274,9 @@ function _buildResolvedTabs(config) {
         tab.sections = sections && sections.length ? sections : DEFAULT_SECTIONS;
         const VALID_LAYOUTS = ["lanes", "grid", "columns", "auto"];
         tab.layout = VALID_LAYOUTS.includes(t.layout) ? t.layout : "lanes";
+      }
+      if (type === "player") {
+        tab.show_queue = t.show_queue !== false;
       }
       if (type === "search") {
         tab.search_layout = t.search_layout === "columns" ? "columns" : "rows";
@@ -2508,9 +2521,11 @@ class MyMusicLibraryCard extends HTMLElement {
   setConfig(config) {
     this._config = { default_tab: "player", ...config };
     this._resolvedTabs = _buildResolvedTabs(config);
-    const firstPanel = this._resolvedTabs.find(t => t.type !== "button");
-    const defaultTab = this._config.default_tab || (firstPanel ? firstPanel.id : "player");
-    this._tab = defaultTab;
+    // A default tab without a panel (e.g. "player" on a queue-only card) would leave the card empty.
+    const panelIds = this._resolvedTabs
+      .filter(t => !["button", "custom_element", "settings"].includes(t.type)).map(t => t.id);
+    const defaultTab = this._config.default_tab;
+    this._tab = panelIds.includes(defaultTab) ? defaultTab : (panelIds[0] || "player");
     if (config.height != null && config.height !== "") {
       const h = typeof config.height === "number" ? `${config.height}px` : String(config.height);
       this.style.setProperty("--mml-height", h);
@@ -2757,7 +2772,8 @@ class MyMusicLibraryCard extends HTMLElement {
 
     const panels = this._resolvedTabs.filter(t => t.type !== "button" && t.type !== "custom_element");
     const panelRenderers = {
-      player: (t) => this._renderPlayerTab(),
+      player: (t) => this._renderPlayerTab(t),
+      queue: (t) => this._renderQueueTab(t),
       search: (t) => this._renderSearchTab(),
       library: (t) => this._renderLibraryTab(t),
       playlist: (t) => this._renderPlaylistTab(t),
@@ -2830,6 +2846,7 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   _renderNav() {
+    if (this._config.nav_bar?.hidden) return "";
     const align = this._config.nav_bar?.align || "start";
     const items = this._resolvedTabs.filter(t => t.show_in_nav !== false).map(t => {
       if (t.type === "custom_element") {
@@ -2893,7 +2910,8 @@ class MyMusicLibraryCard extends HTMLElement {
       </button>`;
   }
 
-  _renderPlayerTab() {
+  _renderPlayerTab(tabDef) {
+    const showQueue = tabDef?.show_queue !== false;
     return `
       <div class="tab-panel" data-panel="player">
         <div class="player-tab-body">
@@ -2922,7 +2940,7 @@ class MyMusicLibraryCard extends HTMLElement {
                 <button class="ctrl-btn primary" id="btn-playpause" title="${this._t("btns.play_pause")}">${ICONS.play}</button>
                 <button class="ctrl-btn ctrl-nav" id="btn-next" title="${this._t("btns.next")}">${ICONS.next}</button>
                 <button class="ctrl-btn" id="btn-repeat" title="${this._t("btns.repeat")}">${ICONS.repeat}</button>
-                <button class="queue-toggle-btn ${this._queueVisible ? "active" : ""}" id="btn-queue-toggle" title="${this._t("queue.toggle")}">${ICONS.queue}</button>
+                ${showQueue ? `<button class="queue-toggle-btn ${this._queueVisible ? "active" : ""}" id="btn-queue-toggle" title="${this._t("queue.toggle")}">${ICONS.queue}</button>` : ""}
               </div>
               <div class="volume-row">
                 <button class="ctrl-btn" id="btn-mute" title="${this._t("btns.mute")}">${ICONS.volumeHigh}</button>
@@ -2936,15 +2954,32 @@ class MyMusicLibraryCard extends HTMLElement {
             </div>
             <div class="out-panel" id="out-panel" hidden></div>
           </div>
+          ${showQueue ? `
           <div class="queue-backdrop ${this._isMobile && this._queueVisible ? "open" : ""}" id="queue-backdrop"></div>
           <div class="queue-section ${this._isMobile && this._queueVisible ? "mml-queue-open" : ""}" id="queue-section" style="${!this._isMobile && !this._queueVisible ? "display:none" : ""}">
             <div class="queue-header">
               <span class="queue-header-label">${this._t("queue.up_next")}</span>
               ${this._isMobile ? `<button class="queue-close-btn" id="queue-close-btn">${ICONS.close}</button>` : ""}
             </div>
-            <div id="queue-list">
+            <div class="queue-list" id="queue-list">
               <div class="queue-empty">${this._t("queue.empty")}</div>
             </div>
+          </div>` : ""}
+        </div>
+      </div>`;
+  }
+
+  /* Queue alone, full size: no player, no mobile bottom sheet, never hidden by the
+     player's queue toggle. Filled by _updateQueueDisplay like the player's queue. */
+  _renderQueueTab(tabDef) {
+    return `
+      <div class="tab-panel" data-panel="${tabDef.id}">
+        <div class="queue-tab-body">
+          <div class="queue-header">
+            <span class="queue-header-label">${this._t("queue.up_next")}</span>
+          </div>
+          <div class="queue-list">
+            <div class="queue-empty">${this._t("queue.empty")}</div>
           </div>
         </div>
       </div>`;
@@ -5706,10 +5741,12 @@ class MyMusicLibraryCard extends HTMLElement {
     this._refreshQueueSoon(1500);
   }
 
+  /* Fills every queue list of the card: the player tab's and each queue tab's. */
   _updateQueueDisplay(card) {
-    const section = card.querySelector("#queue-section");
-    if (!section) return;
-    const list = section.querySelector("#queue-list");
+    card.querySelectorAll(".queue-list").forEach(list => this._renderQueueList(list));
+  }
+
+  _renderQueueList(list) {
     if (!this._maQueueItems.length) {
       list.innerHTML = `<div class="queue-empty">${this._t("queue.empty")}</div>`;
       return;
@@ -6324,7 +6361,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
         </div>
         ${this._showAddMenu ? `
           <div class="add-tab-menu">
-            ${["player","search","library","discovery","playlist","settings","button","custom_element"].map(type => `
+            ${["player","queue","search","library","discovery","playlist","settings","button","custom_element"].map(type => `
               <button data-add-type="${type}">${this._tabTypeLabel(type)}</button>
             `).join("")}
           </div>` : `
@@ -6382,6 +6419,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
     const cfg = this._config;
     const navPos = cfg.nav_bar?.position || "top";
     const navAlign = cfg.nav_bar?.align || "start";
+    const navHidden = !!cfg.nav_bar?.hidden;
     return `
       <div class="editor-section">
         <div class="editor-row">
@@ -6425,6 +6463,10 @@ class MyMusicLibraryCardEditor extends HTMLElement {
               `<option value="${a}" ${navAlign === a ? "selected" : ""}>${this._t(`editor.nav_bar_align_${a.replace("-","_")}`)}</option>`
             ).join("")}
           </select>
+        </div>
+        <div class="editor-row">
+          <label>${this._t("editor.nav_bar_hidden")}</label>
+          <input id="ed-nav-hidden" type="checkbox" ${navHidden ? "checked" : ""}>
         </div>
       </div>`;
   }
@@ -6524,7 +6566,8 @@ class MyMusicLibraryCardEditor extends HTMLElement {
      advanced block only shows/edits whatever is left over, so nothing is
      ever edited in two places at once. */
   static _HANDLED_KEYS = {
-    player: ["type", "label", "icon", "show_in_nav"],
+    player: ["type", "label", "icon", "show_in_nav", "show_queue"],
+    queue: ["type", "label", "icon", "show_in_nav"],
     search: ["type", "label", "icon", "show_in_nav", "search_layout"],
     library: ["type", "label", "icon", "show_in_nav", "sections", "layout"],
     discovery: ["type", "label", "icon", "show_in_nav"],
@@ -6535,12 +6578,17 @@ class MyMusicLibraryCardEditor extends HTMLElement {
   };
 
   _renderShowInNavField(tab, index) {
-    const checked = tab.show_in_nav !== false;
+    return this._renderTabToggle(tab, index, "show_in_nav", "editor.tab_show_in_nav");
+  }
+
+  /* Boolean tab property that defaults to true: only stored when false (see [data-field-checkbox]). */
+  _renderTabToggle(tab, index, field, labelKey) {
+    const checked = tab[field] !== false;
     return `
       <div class="editor-row">
-        <label>${this._t("editor.tab_show_in_nav")}</label>
+        <label>${this._t(labelKey)}</label>
         <label class="toggle-switch">
-          <input type="checkbox" data-field-checkbox="show_in_nav" data-idx="${index}"${checked ? " checked" : ""}>
+          <input type="checkbox" data-field-checkbox="${field}" data-idx="${index}"${checked ? " checked" : ""}>
           <span class="toggle-track"></span>
         </label>
       </div>`;
@@ -6577,6 +6625,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
           <input data-field="icon" data-idx="${index}" type="text" value="${this._esc(tab.icon || "")}" placeholder="${this._t("editor.tab_icon_hint")}">
         </div>
         ${this._renderShowInNavField(tab, index)}`;
+    if (tab.type === "player") body += this._renderTabToggle(tab, index, "show_queue", "editor.player_show_queue");
     if (tab.type === "library") body += this._renderSectionsEditor(tab, index);
     if (tab.type === "search") body += this._renderSearchLayoutEditor(tab, index);
     if (tab.type === "playlist") body += this._renderPlaylistEditor(tab, index);
@@ -6771,6 +6820,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
     };
     wrap.querySelector("#ed-nav-pos")?.addEventListener("change", (e) => _setNavBar("position", e.target.value, "top"));
     wrap.querySelector("#ed-nav-align")?.addEventListener("change", (e) => _setNavBar("align", e.target.value, "start"));
+    wrap.querySelector("#ed-nav-hidden")?.addEventListener("change", (e) => _setNavBar("hidden", e.target.checked, false));
 
     // Toggle expand
     wrap.querySelectorAll("[data-toggle-idx]").forEach(el => {
@@ -6840,7 +6890,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
       });
     });
 
-    // show_in_nav toggle (defaults to true, so it's only stored when false)
+    // show_in_nav / show_queue toggles (default to true, so they're only stored when false)
     wrap.querySelectorAll("[data-field-checkbox]").forEach(input => {
       input.addEventListener("change", () => {
         const idx = parseInt(input.dataset.idx);

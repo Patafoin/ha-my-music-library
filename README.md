@@ -2,7 +2,7 @@
 
 A full-featured Music Assistant player card for Home Assistant: now playing, live queue, search, library and artist pages, playlists, and an output panel to move or group the music between speakers — with its own `media_player` entities for your automations.
 
-![Version](https://img.shields.io/badge/version-4.13.3-blue)
+![Version](https://img.shields.io/badge/version-4.14.0-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2026.2%2B-brightgreen)
 [![Marketplace (HACS)](https://img.shields.io/badge/Marketplace%20%28HACS%29-default-41BDF5)](https://hacs.xyz/)
 
@@ -146,7 +146,7 @@ What happens when you update:
 - if you confirm, each official entity is renamed `<id>_music_assistant` (and optionally disabled), and the My Music Library entity takes the original ID — so automations, scripts and dashboards now drive My Music Library;
 - both renames can be undone from each entity's settings.
 
-After the swap, standard `media_player.*` actions (play, pause, stop, volume, shuffle, repeat, `media_player.play_media`, grouping) keep working. **Actions of the official integration** (`music_assistant.play_media`, `music_assistant.play_announcement`, `music_assistant.transfer_queue`…) only work on the official entities: replace `music_assistant.play_media` with `my_music_library.play_media` (see [Actions and entities](#actions-and-entities)).
+After the swap, standard `media_player.*` actions (play, pause, stop, volume, shuffle, repeat, `media_player.play_media`, `media_player.clear_playlist`, grouping) keep working. **Actions of the official integration** (`music_assistant.play_media`, `music_assistant.play_announcement`, `music_assistant.transfer_queue`…) only work on the official entities: replace `music_assistant.play_media` with `my_music_library.play_media` (see [Actions and entities](#actions-and-entities)).
 
 Queue transfer is available as `my_music_library.transfer_queue` (and in the card's output panel). Announcements work through the standard actions: `tts.speak`, or `media_player.play_media` with `announce: true` (see [Announcements and text-to-speech](#announcements-and-text-to-speech)). Once nothing uses the official integration anymore, you can disable it, then remove it.
 
@@ -322,7 +322,8 @@ tabs:
 
 | Type | Description |
 |---|---|
-| `player` | Now playing, controls, queue |
+| `player` | Now playing, controls, queue (`show_queue: false` removes the queue and its button) |
+| `queue` | The queue alone ("Up next"), full size, on every screen width |
 | `search` | Full-text search |
 | `library` | Your Music Assistant favorites, with a source filter (All / Local / Streaming) and Browse mode |
 | `discovery` | Music Assistant recommendation folders, one section per folder (no options) |
@@ -347,6 +348,28 @@ tabs:
 ```
 
 In the visual editor, `element` / `element_config` are edited in the tab's **Advanced (YAML)** block.
+
+#### Queue only
+
+To show nothing but the queue, use a single `queue` tab and hide the nav bar:
+
+```yaml
+type: custom:my-music-library-card
+tabs:
+  - type: queue
+nav_bar:
+  hidden: true
+```
+
+The queue is the one of the card's active player, as on the player tab — the output last chosen on this device: tap a track to play it, ✕ to remove it. When `default_tab` names a tab the card doesn't have, the card opens on its first panel tab.
+
+To keep the player without its queue (for instance next to a queue-only card), set `show_queue: false` on the player tab:
+
+```yaml
+tabs:
+  - type: player
+    show_queue: false
+```
 
 #### Library sections
 
@@ -419,6 +442,7 @@ Control the position and alignment of the navigation bar with the `nav_bar` obje
 |---|---|---|---|---|
 | `nav_bar.position` | `string` | `top` | `top` / `bottom` / `left` / `right` | Where the nav bar is rendered relative to the card content |
 | `nav_bar.align` | `string` | `start` | `start` / `center` / `end` / `space-between` | How tabs are distributed along the nav bar |
+| `nav_bar.hidden` | `boolean` | `false` | `true` / `false` | Hides the nav bar entirely: the card shows its default tab only |
 
 ```yaml
 nav_bar:
@@ -511,7 +535,7 @@ tabs:
 
 ### Media players
 
-My Music Library creates one `media_player` entity per Music Assistant player (entity ID derived from the player name). They support play / pause / stop, previous / next, seek, volume (set, step, mute), shuffle, repeat (not while the queue plays a dynamic source: radio, dynamic playlist), turn on / off, `media_player.play_media`, announcements (`tts.speak`, `announce: true`) and grouping (join / unjoin, when the player supports it). Each entity exposes a `mass_player_id` attribute (the Music Assistant player ID).
+My Music Library creates one `media_player` entity per Music Assistant player (entity ID derived from the player name). They support play / pause / stop, previous / next, seek, volume (set, step, mute), shuffle, repeat (not while the queue plays a dynamic source: radio, dynamic playlist), turn on / off, `media_player.play_media`, `media_player.clear_playlist` (empties the queue), announcements (`tts.speak`, `announce: true`) and grouping (join / unjoin, when the player supports it). Each entity exposes a `mass_player_id` attribute (the Music Assistant player ID).
 
 ### Announcements and text-to-speech
 

@@ -2,6 +2,13 @@
 
 > **4.8.2 is the first public release of the 4.x line.** Versions 4.0.0 to 4.8.1 were never published: together, the entries from 4.5.0 to 4.8.2 below describe everything 4.8.2 brings since 3.14.0.
 
+## 4.14.0 — Queue on its own
+- **New** — tab type **`queue`**: the queue alone ("Up next"), full size, on every screen width. With `nav_bar: { hidden: true }` and a single `queue` tab, the card shows nothing but the queue. See [Queue only](README.md#queue-only).
+- **New** — card option **`nav_bar.hidden`** (visual editor: *Hide the nav bar*): no nav bar at all; the card shows its default tab.
+- **New** — player tab option **`show_queue: false`** (visual editor: *Show the queue*): no queue and no queue button on the player tab, the player takes the full width.
+- **New** — the player entities support the standard **`media_player.clear_playlist`** action: it empties the player's Music Assistant queue, as with the official integration. Before, Home Assistant refused it ("does not support action media_player.clear_playlist").
+- **Fix** — a card whose `default_tab` names a tab it doesn't have (by default `player`) opened on an empty area; it now opens on its first panel tab.
+
 ## 4.13.3
 - **Fix** — the player device's MAC address is now read defensively: `music-assistant-models` 1.1.237 dropped `device_info.mac_address`/`ip_address` from the Music Assistant player model, which would have raised an error creating a player entity once a future client picks up that change. No behavior change on providers that still report it.
 

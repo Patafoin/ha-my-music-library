@@ -88,6 +88,7 @@ SUPPORTED_FEATURES = (
     | MediaPlayerEntityFeature.TURN_OFF
     | MediaPlayerEntityFeature.PLAY_MEDIA
     | MediaPlayerEntityFeature.MEDIA_ANNOUNCE
+    | MediaPlayerEntityFeature.CLEAR_PLAYLIST
 )
 
 
@@ -450,6 +451,12 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
         if not self.active_queue:
             return
         await self.mass.player_queues.repeat(self.active_queue.queue_id, MassRepeatMode(repeat))
+
+    @catch_musicassistant_error
+    async def async_clear_playlist(self) -> None:
+        """Clear the active queue (the player's own queue when none is active)."""
+        queue_id = queue.queue_id if (queue := self.active_queue) else self.player_id
+        await self.mass.player_queues.clear(queue_id)
 
     @catch_musicassistant_error
     async def async_play_media(
