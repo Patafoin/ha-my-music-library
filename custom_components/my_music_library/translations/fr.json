@@ -41,32 +41,40 @@
       "step": {
         "user": {
           "title": "Ajouter un profil",
-          "description": "Un profil permet à un utilisateur Home Assistant de parcourir et d'écouter avec son propre compte Music Assistant : la carte affiche alors la bibliothèque, les sources musicales et les lecteurs de ce compte.\n\nCréez le jeton **en étant connecté à Music Assistant avec cet utilisateur** (Paramètres → votre utilisateur → Jetons d'API) : Music Assistant applique les filtres de l'utilisateur à qui appartient le jeton. Les utilisateurs sans profil gardent le compte principal de l'intégration.",
+          "description": "Un profil, c'est un compte Music Assistant et les utilisateurs Home Assistant qui peuvent l'utiliser : la carte affiche alors la bibliothèque, les sources musicales et les lecteurs de ce compte.\n\nCréez le jeton **en étant connecté à Music Assistant avec ce compte** (Paramètres → votre utilisateur → Jetons d'API) : Music Assistant applique les filtres de l'utilisateur à qui appartient le jeton.\n\nUn utilisateur Home Assistant peut utiliser plusieurs profils (ex. un seul utilisateur partagé par toutes les tablettes de la maison) : chaque carte indique alors son profil (option `profile` de la carte), ou l'utilisateur en choisit un par sortie dans le panneau des sorties. Les utilisateurs sans profil gardent le compte principal de l'intégration.",
           "data": {
-            "ha_user": "Utilisateur Home Assistant",
-            "ma_token": "Jeton d'API Music Assistant de cet utilisateur",
+            "name": "Nom du profil",
+            "ma_token": "Jeton d'API Music Assistant de ce compte",
+            "ha_user": "Profil par défaut de",
+            "ha_users": "Également utilisable par",
             "default_player": "Lecteur par défaut",
-            "can_switch_user": "Peut changer d'utilisateur Music Assistant",
             "allowed_players": "Sorties autorisées"
           },
           "data_description": {
-            "default_player": "Lecteur sélectionné quand cet utilisateur ouvre la carte sur un appareil où aucun lecteur n'a encore été choisi.",
-            "can_switch_user": "Dans le panneau des sorties de la carte, cet utilisateur peut choisir un autre profil pour une sortie, et parcourir et écouter avec le compte Music Assistant de ce profil (ex. une tablette partagée qui lance la musique d'un enfant dans sa chambre).",
-            "allowed_players": "Sorties que cet utilisateur peut utiliser, dans la carte et par ses actions — y compris quand il emprunte un autre profil. Aucune cochée : toutes les sorties (ou le filtre de lecteurs de son utilisateur Music Assistant, s'il en a un)."
+            "name": "Affiché dans le panneau des sorties de la carte ; c'est aussi la valeur de l'option `profile` de la carte.",
+            "ha_user": "L'utilisateur Home Assistant qui a ce profil par défaut (un utilisateur a au plus un profil par défaut).",
+            "ha_users": "Autres utilisateurs Home Assistant qui peuvent utiliser ce profil : par l'option `profile` de leur carte, ou en le choisissant pour une sortie dans le panneau des sorties (ex. une tablette partagée qui lance la musique d'un enfant dans sa chambre).",
+            "default_player": "Lecteur sélectionné quand ce profil ouvre la carte sur un appareil où aucun lecteur n'a encore été choisi.",
+            "allowed_players": "Sorties que l'utilisateur par défaut de ce profil peut utiliser, dans la carte et par ses actions — y compris quand il utilise un autre profil. Aucune cochée : toutes les sorties (ou le filtre de lecteurs de son utilisateur Music Assistant, s'il en a un)."
           }
         },
         "reconfigure": {
           "title": "Modifier le profil",
           "description": "Laissez le jeton vide pour garder l'actuel.",
           "data": {
+            "name": "Nom du profil",
             "ma_token": "Nouveau jeton d'API Music Assistant",
+            "ha_user": "Profil par défaut de",
+            "ha_users": "Également utilisable par",
             "default_player": "Lecteur par défaut",
-            "can_switch_user": "Peut changer d'utilisateur Music Assistant",
             "allowed_players": "Sorties autorisées"
           },
           "data_description": {
-            "can_switch_user": "Dans le panneau des sorties de la carte, cet utilisateur peut choisir un autre profil pour une sortie, et parcourir et écouter avec le compte Music Assistant de ce profil (ex. une tablette partagée qui lance la musique d'un enfant dans sa chambre).",
-            "allowed_players": "Sorties que cet utilisateur peut utiliser, dans la carte et par ses actions — y compris quand il emprunte un autre profil. Aucune cochée : toutes les sorties (ou le filtre de lecteurs de son utilisateur Music Assistant, s'il en a un)."
+            "name": "Affiché dans le panneau des sorties de la carte ; c'est aussi la valeur de l'option `profile` de la carte.",
+            "ha_user": "L'utilisateur Home Assistant qui a ce profil par défaut (un utilisateur a au plus un profil par défaut).",
+            "ha_users": "Autres utilisateurs Home Assistant qui peuvent utiliser ce profil : par l'option `profile` de leur carte, ou en le choisissant pour une sortie dans le panneau des sorties (ex. une tablette partagée qui lance la musique d'un enfant dans sa chambre).",
+            "default_player": "Lecteur sélectionné quand ce profil ouvre la carte sur un appareil où aucun lecteur n'a encore été choisi.",
+            "allowed_players": "Sorties que l'utilisateur par défaut de ce profil peut utiliser, dans la carte et par ses actions — y compris quand il utilise un autre profil. Aucune cochée : toutes les sorties (ou le filtre de lecteurs de son utilisateur Music Assistant, s'il en a un)."
           }
         }
       },
@@ -74,10 +82,13 @@
         "cannot_connect": "Impossible de se connecter au serveur Music Assistant",
         "invalid_auth": "Échec de l'authentification — vérifiez le jeton d'API",
         "invalid_server_version": "Cette version du serveur Music Assistant n'est pas compatible",
-        "unknown_user": "Utilisateur Home Assistant inconnu"
+        "unknown_user": "Utilisateur Home Assistant inconnu",
+        "name_required": "Donnez un nom au profil",
+        "user_has_profile": "Cet utilisateur a déjà un profil par défaut",
+        "no_user_selected": "Choisissez au moins un utilisateur Home Assistant"
       },
       "abort": {
-        "no_users": "Tous les utilisateurs Home Assistant ont déjà un profil.",
+        "no_users": "Aucun utilisateur Home Assistant à qui donner un profil.",
         "reconfigure_successful": "Profil mis à jour"
       }
     }

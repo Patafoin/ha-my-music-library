@@ -2,7 +2,7 @@
 
 A full-featured Music Assistant player card for Home Assistant: now playing, live queue, search, library and artist pages, playlists, and an output panel to move or group the music between speakers — with its own `media_player` entities for your automations.
 
-![Version](https://img.shields.io/badge/version-4.14.0-blue)
+![Version](https://img.shields.io/badge/version-4.15.0-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2026.2%2B-brightgreen)
 [![Marketplace (HACS)](https://img.shields.io/badge/Marketplace%20%28HACS%29-default-41BDF5)](https://hacs.xyz/)
 
@@ -91,7 +91,7 @@ Details: [Changelog](https://github.com/Patafoin/ha-my-music-library/blob/main/C
 - **Playlist tab** — a dedicated tab locked to one playlist (picked in the visual editor), showing every track with list/grid view toggle; tapping a track plays it instantly without leaving the tab, thanks to a compact player bar (transport, progress, volume, output row) pinned at the bottom
 - **Own media players** — one `media_player` entity per Music Assistant player, updated live (push), usable in automations and scripts, plus a `my_music_library.play_media` action; announcements and `tts.speak` with resume of the music
 - **Output panel** — the output row under the player shows where the music plays ("Living room + Kitchen") and opens a panel over the player with three modes: **Switch** (move the music — same track, same position — to one or more outputs, which then form a group), **Group** (add outputs to the current group or remove them, with a volume slider per output and one for the whole group) and **Control** (see what plays where and pick which output the card controls). Outputs are shown as tiles with an icon, a short name (card alias → Home Assistant area → cleaned-up name; an "i" button shows the full name, entity, model and provider), their state, the group leader's crown, and outputs that can't be grouped together greyed out with the reason. Also: favorite groups ("Whole house"…) saved server-side, turn an output on from its tile, offline outputs hidden behind a link, and a per-device default output (pin)
-- **Profiles** — one Music Assistant account per Home Assistant user: each person sees their own library, music sources and speakers, and plays from their own streaming account (see [Profiles](#profiles--one-music-assistant-account-per-user))
+- **Profiles** — Music Assistant accounts given to Home Assistant users: each person sees their own library, music sources and speakers, and plays from their own streaming account; one user can use several profiles, e.g. a user shared by every tablet, each card naming its own (see [Profiles](#profiles--one-music-assistant-account-per-user))
 - **Player exclusion** — hide specific players from the card via integration options; supports wildcard patterns (`media_player.browser_mod_*`)
 - **Fully configurable tabs** — reorder, rename, re-icon any tab; add action buttons in the tab bar; control which library sections appear and in what order; style any tab's nav button with a custom element (e.g. `button-card`)
 - **Visual card editor** — WYSIWYG editor in the Lovelace UI: drag-and-drop tab reorder, live preview, no YAML needed
@@ -206,7 +206,7 @@ By default, every Home Assistant user sees the same thing in the card: the libra
 ### What you need
 
 - Music Assistant with user accounts (tested with 2.10) — the server is shared, each person gets an account.
-- One Home Assistant **user** per person who gets a profile (a login account; a *person* is not needed).
+- One Home Assistant **user** per person who gets a profile (a login account; a *person* is not needed) — or a single user shared by several devices, each card naming its profile (see [One Home Assistant user, several profiles](#one-home-assistant-user-several-profiles-shared-tablets)).
 
 ### Step 1 — Music Assistant: create the user and choose what they may use
 
@@ -228,23 +228,27 @@ In **Settings > People**, add a person with **Allow person to login** (or create
 
 ### Step 4 — Home Assistant: add the profile
 
+A profile is **a Music Assistant account and the Home Assistant users who may use it**.
+
 1. Go to **Settings > Devices & Services > My Music Library** and click **Add profile**.
-2. Choose the **Home Assistant user**, paste the **Music Assistant token** from step 2, and optionally a **default player** (selected when this user opens the card on a device where no player was chosen yet).
-   Tick the **Allowed outputs** this user may use (none ticked: all of them). Home Assistant locks them: the card only offers these outputs, and the user's actions on other outputs are refused (card, `my_music_library.*` and `media_player.*` actions; automations are not restricted).
-   Tick **Can switch Music Assistant user** for a shared device (see [Listening as another profile](#listening-as-another-profile-shared-tablet)).
-3. Submit: the integration checks the token and reconnects by itself — no restart needed.
+2. Give it a **name** (shown in the card, and the value of the card's [`profile`](#one-home-assistant-user-several-profiles-shared-tablets) option) and paste the **Music Assistant token** from step 2.
+3. Choose its users:
+   - **Default profile of** — the Home Assistant user who gets this profile by default (a user has one default profile at most).
+   - **Also usable by** — other Home Assistant users who may use it too: by naming it in their card, or by picking it per output (see [One Home Assistant user, several profiles](#one-home-assistant-user-several-profiles-shared-tablets)).
+4. Optionally a **default player** (selected when the card opens on this profile on a device where no player was chosen yet), and the **Allowed outputs** its default user may use (none ticked: all of them). Home Assistant locks them: the card only offers these outputs, and the user's actions on other outputs are refused (card, `my_music_library.*` and `media_player.*` actions; automations are not restricted).
+5. Submit: the integration checks the token and reconnects by itself — no restart needed.
 
 Then log in to the Home Assistant app on their device **with their account**. Done.
 
-To change the token, the default player, the allowed outputs or the switch option later: on the integration page, open the profile's menu (**⋮**) > **Reconfigure** (leave the token empty to keep it). Deleting a profile sends that user back to the setup account.
+To change the name, the token, the users, the default player or the allowed outputs later: on the integration page, open the profile's menu (**⋮**) > **Reconfigure** (leave the token empty to keep it). Deleting a profile sends its users back to their other profiles, or to the setup account.
 
 ### How it works
 
-| | User **with** a profile | User **without** a profile |
+| | User **on** a profile | User **on no** profile |
 |---|---|---|
 | Library, search, browse, discovery | their Music Assistant account | the setup account |
 | Music sources offered | their account's filters | the setup account's filters |
-| Speakers offered and usable | their profile's **Allowed outputs** (none ticked: their account's player filter, if any) | the setup account's player filter, if any |
+| Speakers offered and usable | their default profile's **Allowed outputs** (none ticked: its account's player filter, if any) | the setup account's player filter, if any |
 | Playback started from the card | from their account (streaming account, history) | from the setup account |
 | If their connection is down (token revoked…) | "not connected" banner — **never** someone else's library | — |
 
@@ -255,15 +259,30 @@ Good to know:
 - **Same speaker, two people**: a speaker allowed to both plays whoever started the music last.
 - **Favorites**: Music Assistant shares one library and one "favorite" flag between accounts; My Music Library only shows each user the items that are in *their own* library.
 
-### Listening as another profile (shared tablet)
+### One Home Assistant user, several profiles (shared tablets)
 
-*New in 4.11.* A profile with **Can switch Music Assistant user** may pick, **per output**, the profile whose Music Assistant account is used there.
+*New in 4.15* (before: the **Can switch Music Assistant user** option, migrated automatically). A Home Assistant user may use **every profile they're a user of** — e.g. a single Home Assistant user shared by every tablet of the home (casting dashboards with DashCast, which only knows one user), while each tablet should show its own person's music.
 
-**Example** — the kitchen tablet is logged in as *Tablet*, a profile on the parents' Music Assistant account. A child asks for their music in the bathroom: open the output panel, choose the bathroom speaker (in **Control** mode the panel stays open), then under **Listen as** choose the child's profile. While that output is selected, the card shows the child's library, search and discovery, and starts the playback from the child's account. Back on the kitchen speaker, the card is on the tablet's own account again.
+**One card per tablet: name its profile.** In each tablet's card, set the **Music Assistant profile** (visual editor) or `profile:` (YAML, the profile's name):
+
+```yaml
+type: custom:my-music-library-card
+profile: Alice                       # this card runs as Alice's profile
+entity: media_player.alice_bedroom   # with show_device_select: false, the output is fixed too
+show_device_select: false
+```
+
+Everything this card shows and plays goes through that profile's Music Assistant account, whatever the device remembers. A card naming a profile its user may not use (or that doesn't exist) shows a warning, and Home Assistant refuses its requests: it never falls back to another account.
+
+**Or pick it per output.** Without `profile` in the card, a user who may use several profiles picks, **per output**, the profile whose account is used there.
+
+**Example** — the kitchen tablet is logged in as *Tablet*, whose default profile is on the parents' Music Assistant account, and which is also a user of the child's profile. A child asks for their music in the bathroom: open the output panel, choose the bathroom speaker (in **Control** mode the panel stays open), then under **Listen as** choose the child's profile. While that output is selected, the card shows the child's library, search and discovery, and starts the playback from the child's account. Back on the kitchen speaker, the card is on the tablet's own account again.
 
 - The choice is remembered **on this device**, for that output, until you pick another profile (or your own) under **Listen as**. The output row shows the profile in use: "Bathroom · Child".
-- Every profile is offered as long as the option is ticked; the right is checked by Home Assistant on each request, not just hidden in the card.
-- The outputs offered are always **the tablet's own** (its profile's **Allowed outputs**), never the borrowed profile's: the child's music goes to the speakers the tablet may use. Leave the **Players** filter of the borrowed Music Assistant account empty, or Music Assistant refuses the playback on a speaker outside it.
+- Only the profiles this user may use are offered; the right is checked by Home Assistant on each request, not just hidden in the card.
+- A user with no default profile of their own (**Default profile of** left empty everywhere) starts on the first of their profiles by name.
+- The outputs offered are always **the user's own** (their default profile's **Allowed outputs**), never those of the profile in use: the child's music goes to the speakers the tablet may use. Leave the **Players** filter of these Music Assistant accounts empty, or Music Assistant refuses the playback on a speaker outside it.
+- Every user of a profile can use it: opening a profile to several users is a choice you make in the integration.
 
 ---
 
@@ -423,7 +442,8 @@ nav_buttons_right:
 |---|---|---|---|
 | `default_tab` | `string` | `player` | Tab shown on load: `player`, `search`, or `library` |
 | `height` | `number` or `string` | auto | Fixed card height (e.g. `600`, `"600px"`, `"80vh"`). Omit to fill the container. |
-| `entity` | `string` | — | Pre-select a media_player entity. User's runtime choice is saved in localStorage. |
+| `entity` | `string` | — | Pre-select a media_player entity. User's runtime choice is saved in localStorage. With `show_device_select: false`, this output is fixed: it wins over the device's saved or pinned output. |
+| `profile` | `string` | — | Name (or id) of the [profile](#one-home-assistant-user-several-profiles-shared-tablets) this card runs as, among those its Home Assistant user may use. Empty: the user's default profile. |
 | `show_device_select` | `boolean` | `true` | Show the output row at the bottom of the player tab (and in the playlist tab's mini player). Set to `false` to hide it. Hidden anyway when only one player is available (nothing to choose); shown with "No player found" when there is none. |
 | `show_other_players` | `boolean` | `false` | Also offer Home Assistant media players that are not Music Assistant players (Echo, TV, browser_mod…) — in the output panel's **Control** mode only, since they can't play Music Assistant's queue or join its groups. |
 | `devices` | `map` | — | Per-output overrides, keyed by entity ID: `name` (short name shown in the card), `icon` (`mdi:…`), `hidden: true` (never offered by this card). Editable in the visual editor's **Outputs** section. |
@@ -578,7 +598,7 @@ Plays a Music Assistant item on one of these players.
 | `media_id` | yes | URI of a Music Assistant item (e.g. `library://playlist/16`), a stream URL, or a name to look up |
 | `enqueue` | no | `play` (default), `replace`, `next`, `replace_next` or `add` |
 | `radio_mode` | no | Keep playing similar tracks once the queue is finished |
-| `profile` | no | Play with that profile's Music Assistant account (profile id). Only for users whose profile [may switch users](#listening-as-another-profile-shared-tablet); used by the card |
+| `profile` | no | Play with that profile's Music Assistant account (profile id). Only one of the profiles the calling user [may use](#one-home-assistant-user-several-profiles-shared-tablets); used by the card |
 
 ```yaml
 action: my_music_library.play_media
@@ -650,9 +670,9 @@ custom_components/my_music_library/
 ├── manifest.json        # Integration metadata (version, dependencies)
 ├── config_flow.py       # UI configuration flow (setup: URL + token, re-authentication,
 │                        # options: default player, hidden players, output panel mode, debug mode;
-│                        # profiles: Home Assistant user ↔ Music Assistant token)
+│                        # profiles: Music Assistant token ↔ Home Assistant users)
 ├── mass_connection.py   # Own Music Assistant connections (connect, listen, auto-reload)
-├── profiles.py          # Profiles: each Home Assistant user's own Music Assistant connection
+├── profiles.py          # Profiles: one Music Assistant connection per profile, per-request profile
 ├── entity.py            # Base entity for Music Assistant players
 ├── media_player.py      # media_player platform + play_media / transfer_queue actions
 ├── queue_push.py        # Relays Music Assistant queue events to the card (WebSocket subscription)

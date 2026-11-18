@@ -533,7 +533,7 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
 
         Schema intentionally trimmed to what the card calls today: a single
         media_id (URI or free-text name), an enqueue mode, and radio_mode.
-        `profile`: play with that profile's account (callers allowed to switch users).
+        `profile`: play with that profile's account (one of the profiles the caller may use).
         """
         mass = self._caller_mass(profile)
         if "://" in media_id:
@@ -562,14 +562,15 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
         return self._context.user_id if self._context is not None else None
 
     def _caller_mass(self, as_profile: str | None = None) -> MusicAssistantClient:
-        """Connection to start playback with: the caller's profile's, else the main one.
+        """Connection to start playback with: the caller's default profile's, else the main one.
 
         Music Assistant streams from, and records the history of, the user whose
         connection starts the playback: a profile's playback must go through it.
-        With `as_profile`, the borrowed profile's (see profiles.resolve_user).
+        With `as_profile`, that profile's (see profiles.resolve_profile).
         """
-        user_id = profiles.resolve_user(self.hass, self._caller_user_id(), as_profile)
-        with profiles.acting_user(user_id):
+        user_id = self._caller_user_id()
+        profile_id = profiles.resolve_profile(self.hass, user_id, as_profile)
+        with profiles.acting_user(user_id, profile_id):
             mass = profiles.get_client(self.hass)
         if mass is None:
             raise HomeAssistantError("The Music Assistant connection of this user's profile is down")

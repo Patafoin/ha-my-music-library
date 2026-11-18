@@ -25,19 +25,21 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.loader import async_get_integration
 
 from .api import ImageProxyView, MAThumbnailView, MAQueueView, MusicAssistantBrowseView, MusicAssistantLibraryView, MusicAssistantProvidersView, MusicAssistantRecommendationsView, MusicAssistantSearchView, MusicAssistantSubitemsView, OutputsView, PlayerQueueJumpView, PlayerQueueView
-from .const import CARD_JS_FILENAME, CARD_URL, CONF_DEBUG_MODE, CONF_DEFAULT_OUTPUT_MODE, CONF_DEFAULT_PLAYER, CONF_DEFAULT_TAB, CONF_EXCLUDED_PLAYERS, CONF_MA_URL, CONFIG_ENTRY_VERSION, DEFAULT_OUTPUT_MODE, DEFAULT_TAB, DOMAIN, ICON_URL, WS_CONFIG_COMMAND, WS_SUBSCRIBE_QUEUE_COMMAND
+from .const import CARD_JS_FILENAME, CARD_URL, CONF_CAN_SWITCH_USER, CONF_DEBUG_MODE, CONF_DEFAULT_OUTPUT_MODE, CONF_DEFAULT_PLAYER, CONF_DEFAULT_TAB, CONF_EXCLUDED_PLAYERS, CONF_HA_USER, CONF_HA_USERS, CONF_MA_URL, CONFIG_ENTRY_VERSION, DEFAULT_OUTPUT_MODE, DEFAULT_TAB, DOMAIN, ICON_URL, WS_CONFIG_COMMAND, WS_SUBSCRIBE_QUEUE_COMMAND
 from .duplicates import ISSUE_DUPLICATE_ENTITIES, async_track_duplicates, async_update_issue
 from .mass_connection import MyMusicLibraryConfigEntry, async_connect, async_disconnect
 from .missing_players import async_track_missing
 from .profiles import (
     acting_user,
+    all_profiles,
     allowed_players as profiles_allowed_players,
     async_connect_profiles,
     async_refresh_ma_user,
     get_client,
     get_profile,
+    profile_subentries,
     profiles_signature,
-    switchable_profiles,
+    usable_profiles,
 )
 from .queue_push import async_relay_queue_events, ws_subscribe_queue
 from .queue_watchdog import QueueWatchdog
@@ -221,7 +223,10 @@ async def async_migrate_entry(hass: HomeAssistant, entry: MyMusicLibraryConfigEn
     4.x ones (URL + token in `data`, default player already in `options`).
     Version 2 keeps the default player in `options` only. A 3.x entry has no
     token yet: setup then raises ConfigEntryAuthFailed, which sends the user
-    through the reauth step to enter one.
+    through the reauth step to enter one. Version 3 (4.15.0) replaces the
+    profiles' `can_switch_user` right (borrow every other profile) with the
+    `ha_users` each profile is open to: a user who could switch is added to
+    every other profile.
     """
     if entry.version > CONFIG_ENTRY_VERSION:
         # Downgrade from a newer, unknown schema.
@@ -235,6 +240,20 @@ async def async_migrate_entry(hass: HomeAssistant, entry: MyMusicLibraryConfigEn
             options[CONF_DEFAULT_PLAYER] = legacy_player
         hass.config_entries.async_update_entry(entry, data=data, options=options, version=2)
         _LOGGER.info("Migrated config entry %s to version 2", entry.entry_id)
+
+    if entry.version == 2:
+        subentries = profile_subentries(entry)
+        switchers = {
+            subentry.data[CONF_HA_USER]
+            for subentry in subentries.values()
+            if subentry.data.get(CONF_CAN_SWITCH_USER) and subentry.data.get(CONF_HA_USER)
+        }
+        for subentry in subentries.values():
+            data = {k: v for k, v in subentry.data.items() if k != CONF_CAN_SWITCH_USER}
+            data[CONF_HA_USERS] = sorted(switchers - {data.get(CONF_HA_USER)})
+            hass.config_entries.async_update_subentry(entry, subentry, data=data)
+        hass.config_entries.async_update_entry(entry, version=3)
+        _LOGGER.info("Migrated config entry %s to version 3", entry.entry_id)
 
     return True
 
@@ -294,11 +313,13 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
     ) -> None:
         """Return the integration config to the card, for the connected user.
 
-        With a profile, `connected` is the state of that user's own connection,
-        `default_player` the profile's, and `allowed_players` the outputs this
-        Home Assistant user may use (profiles.allowed_players; None: no restriction).
-        `switch_profiles` lists the profiles the card may borrow for an output
-        (own first, `profile_id`), or None when this user's profile may not switch.
+        With a profile, `connected` is the state of that user's default profile's
+        connection, `default_player` the profile's, and `allowed_players` the
+        outputs this Home Assistant user may use (profiles.allowed_players; None:
+        no restriction). `switch_profiles` lists the profiles this user may use
+        (default one first, `profile_id`; the card names one in its `profile`
+        option or picks one per output), or None when they are on no profile.
+        `all_profiles`: every profile, for an administrator's card editor.
         """
         entries = hass.config_entries.async_entries(DOMAIN)
         if not entries:
@@ -313,17 +334,19 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
         switch_profiles: list[dict[str, Any]] | None = None
         allowed_players: list[str] | None = None
 
-        with acting_user(connection.user.id if connection.user else None):
+        user_id = connection.user.id if connection.user else None
+        is_admin = bool(connection.user and connection.user.is_admin)
+        with acting_user(user_id):
             if connected and (profile := get_profile(hass)) is not None:
                 profile_name = profile.title
                 profile_id = profile.subentry_id
                 default_player = profile.default_player or default_player
-                switch_profiles = switchable_profiles(hass, connection.user.id)
+                switch_profiles = usable_profiles(hass, user_id)
             mass = get_client(hass) if connected else None
             connected = mass is not None
             if mass is not None:
                 await async_refresh_ma_user(hass)
-                if (allowed := profiles_allowed_players(hass, connection.user.id if connection.user else None)) is not None:
+                if (allowed := profiles_allowed_players(hass, user_id)) is not None:
                     allowed_players = sorted(allowed)
 
         connection.send_result(
@@ -339,6 +362,7 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
                 "profile": profile_name,
                 "profile_id": profile_id,
                 "switch_profiles": switch_profiles,
+                "all_profiles": all_profiles(hass) if is_admin and entry.state == ConfigEntryState.LOADED else None,
                 "debug_mode": bool(entry.options.get(CONF_DEBUG_MODE, False)),
             },
         )

@@ -13,14 +13,18 @@ CONF_EXCLUDED_PLAYERS = "excluded_players"
 # Mode the card's output panel opens on (options): switch | group | control
 CONF_DEFAULT_OUTPUT_MODE = "default_output_mode"
 
-# Profiles (config subentries): one Home Assistant user ↔ one Music Assistant token
+# Profiles (config subentries): one Music Assistant account (token) ↔ the Home Assistant users who may use it
 SUBENTRY_TYPE_PROFILE = "profile"
+CONF_PROFILE_NAME = "name"
+# Home Assistant user whose default profile this is (one profile per user at most; "" = none)
 CONF_HA_USER = "ha_user"
-# A profile allowed to borrow another profile's Music Assistant account from the card
+# Other Home Assistant users who may use this profile (named by their card, or chosen per output)
+CONF_HA_USERS = "ha_users"
+# Up to config entry version 2: a profile allowed to borrow every other profile (migrated to ha_users)
 CONF_CAN_SWITCH_USER = "can_switch_user"
-# Outputs (our media_player entity_ids) a profile's user may use; empty: all, see profiles.allowed_players
+# Outputs (our media_player entity_ids) a profile's default users may use; empty: all, see profiles.allowed_players
 CONF_ALLOWED_PLAYERS = "allowed_players"
-# Header the card sends with the profile (subentry id) it borrows, see profiles.user_scoped
+# Header the card sends with the profile (subentry id) it runs as, see profiles.user_scoped
 PROFILE_HEADER = "X-MML-Profile"
 
 DEFAULT_TAB = "player"
@@ -28,7 +32,7 @@ OUTPUT_MODES = ("switch", "group", "control")
 DEFAULT_OUTPUT_MODE = "switch"
 
 # Config entry schema version (see async_migrate_entry in __init__.py)
-CONFIG_ENTRY_VERSION = 2
+CONFIG_ENTRY_VERSION = 3
 
 CARD_JS_FILENAME = "my-music-library-card.js"
 CARD_URL = f"/my_music_library/{CARD_JS_FILENAME}"

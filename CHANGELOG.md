@@ -2,6 +2,12 @@
 
 > **4.8.2 is the first public release of the 4.x line.** Versions 4.0.0 to 4.8.1 were never published: together, the entries from 4.5.0 to 4.8.2 below describe everything 4.8.2 brings since 3.14.0.
 
+## 4.15.0 — Several profiles per Home Assistant user
+- **New** — a profile is now **a Music Assistant account and the Home Assistant users who may use it**: a **name**, its token, **Default profile of** (the user who gets it by default, one default profile per user at most) and **Also usable by** (other users). One Home Assistant user can use several profiles — e.g. a single user shared by every tablet of the home (DashCast only knows one user), each tablet showing its own person's music. See [One Home Assistant user, several profiles](README.md#one-home-assistant-user-several-profiles-shared-tablets).
+- **New** — card option **`profile`** (visual editor: *Music Assistant profile*): the profile this card runs as (its name), among those its user may use. No per-output choice on such a card; a profile the user may not use shows a warning and is refused by Home Assistant, never replaced by another account.
+- **Changed** — the profile option **Can switch Music Assistant user** is gone: existing profiles are migrated automatically, a user who could switch becomes a user of every other profile. **Listen as** in the output panel offers the profiles the user may use.
+- **Fix** — a card with `entity` and `show_device_select: false` now always uses that output; before, an output saved or pinned on the device could win over it, with no way to change it from that card.
+
 ## 4.14.0 — Queue on its own
 - **New** — tab type **`queue`**: the queue alone ("Up next"), full size, on every screen width. With `nav_bar: { hidden: true }` and a single `queue` tab, the card shows nothing but the queue. See [Queue only](README.md#queue-only).
 - **New** — card option **`nav_bar.hidden`** (visual editor: *Hide the nav bar*): no nav bar at all; the card shows its default tab.

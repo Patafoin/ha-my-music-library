@@ -41,32 +41,40 @@
       "step": {
         "user": {
           "title": "Add a profile",
-          "description": "A profile lets a Home Assistant user browse and play with their own Music Assistant account: the card then shows that account's library, music sources and players.\n\nCreate the token **while logged in to Music Assistant as that user** (Settings → your user → API tokens): Music Assistant applies the filters of the user the token belongs to. Users without a profile keep the integration's main account.",
+          "description": "A profile is a Music Assistant account and the Home Assistant users who may use it: the card then shows that account's library, music sources and players.\n\nCreate the token **while logged in to Music Assistant as that account** (Settings → your user → API tokens): Music Assistant applies the filters of the user the token belongs to.\n\nA Home Assistant user can use several profiles (e.g. one user shared by every tablet of the home): each card then names its profile (card option `profile`), or the user picks one per output in the card's output panel. Users on no profile keep the integration's main account.",
           "data": {
-            "ha_user": "Home Assistant user",
-            "ma_token": "Music Assistant API token of this user",
+            "name": "Profile name",
+            "ma_token": "Music Assistant API token of this account",
+            "ha_user": "Default profile of",
+            "ha_users": "Also usable by",
             "default_player": "Default player",
-            "can_switch_user": "Can switch Music Assistant user",
             "allowed_players": "Allowed outputs"
           },
           "data_description": {
-            "default_player": "Player selected when this user opens the card on a device where no player was chosen yet.",
-            "can_switch_user": "In the card's output panel, this user can pick another profile for an output, to browse and play with that profile's Music Assistant account (e.g. a shared tablet starting a child's own music in their room).",
-            "allowed_players": "Outputs this user may use, in the card and through their actions — also when they borrow another profile. None ticked: every output (or the player filter of their Music Assistant user, if it has one)."
+            "name": "Shown in the card's output panel; also the value of the card's `profile` option.",
+            "ha_user": "The Home Assistant user who gets this profile by default (a user has one default profile at most).",
+            "ha_users": "Other Home Assistant users who may use this profile: from their card's `profile` option, or by picking it for an output in the card's output panel (e.g. a shared tablet starting a child's own music in their room).",
+            "default_player": "Player selected when this profile opens the card on a device where no player was chosen yet.",
+            "allowed_players": "Outputs the default user of this profile may use, in the card and through their actions — also when they use another profile. None ticked: every output (or the player filter of their Music Assistant user, if it has one)."
           }
         },
         "reconfigure": {
           "title": "Edit the profile",
           "description": "Leave the token empty to keep the current one.",
           "data": {
+            "name": "Profile name",
             "ma_token": "New Music Assistant API token",
+            "ha_user": "Default profile of",
+            "ha_users": "Also usable by",
             "default_player": "Default player",
-            "can_switch_user": "Can switch Music Assistant user",
             "allowed_players": "Allowed outputs"
           },
           "data_description": {
-            "can_switch_user": "In the card's output panel, this user can pick another profile for an output, to browse and play with that profile's Music Assistant account (e.g. a shared tablet starting a child's own music in their room).",
-            "allowed_players": "Outputs this user may use, in the card and through their actions — also when they borrow another profile. None ticked: every output (or the player filter of their Music Assistant user, if it has one)."
+            "name": "Shown in the card's output panel; also the value of the card's `profile` option.",
+            "ha_user": "The Home Assistant user who gets this profile by default (a user has one default profile at most).",
+            "ha_users": "Other Home Assistant users who may use this profile: from their card's `profile` option, or by picking it for an output in the card's output panel (e.g. a shared tablet starting a child's own music in their room).",
+            "default_player": "Player selected when this profile opens the card on a device where no player was chosen yet.",
+            "allowed_players": "Outputs the default user of this profile may use, in the card and through their actions — also when they use another profile. None ticked: every output (or the player filter of their Music Assistant user, if it has one)."
           }
         }
       },
@@ -74,10 +82,13 @@
         "cannot_connect": "Failed to connect to the Music Assistant server",
         "invalid_auth": "Authentication failed — check the API token",
         "invalid_server_version": "This Music Assistant server version is not compatible",
-        "unknown_user": "Unknown Home Assistant user"
+        "unknown_user": "Unknown Home Assistant user",
+        "name_required": "Give the profile a name",
+        "user_has_profile": "This user already has a default profile",
+        "no_user_selected": "Choose at least one Home Assistant user"
       },
       "abort": {
-        "no_users": "Every Home Assistant user already has a profile.",
+        "no_users": "There is no Home Assistant user to give a profile to.",
         "reconfigure_successful": "Profile updated"
       }
     }

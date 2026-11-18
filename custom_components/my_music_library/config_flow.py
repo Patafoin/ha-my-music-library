@@ -31,15 +31,16 @@ from homeassistant.helpers.selector import (
 
 from .const import (
     CONF_ALLOWED_PLAYERS,
-    CONF_CAN_SWITCH_USER,
     CONF_DEBUG_MODE,
     CONF_DEFAULT_OUTPUT_MODE,
     CONF_DEFAULT_PLAYER,
     CONF_DEFAULT_TAB,
     CONF_EXCLUDED_PLAYERS,
     CONF_HA_USER,
+    CONF_HA_USERS,
     CONF_MA_TOKEN,
     CONF_MA_URL,
+    CONF_PROFILE_NAME,
     CONFIG_ENTRY_VERSION,
     DEFAULT_OUTPUT_MODE,
     DEFAULT_TAB,
@@ -293,60 +294,51 @@ class MyMusicLibraryOptionsFlow(OptionsFlow):
 
 
 class ProfileSubentryFlow(ConfigSubentryFlow):
-    """Add or edit a profile: a Home Assistant user browses and plays with their own MA account.
+    """Add or edit a profile: a Music Assistant account and the Home Assistant users who may use it.
 
-    The token must be created while logged in to Music Assistant as that user,
-    so that Music Assistant applies that user's filters (see profiles.py).
+    The token must be created while logged in to Music Assistant as that account,
+    so that Music Assistant applies its filters (see profiles.py). `ha_user`
+    gets the profile by default (one profile per user at most), `ha_users` may
+    use it too: from their card's `profile` option or the output panel.
     """
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        """Choose the Home Assistant user, their Music Assistant token, default player and switch right."""
+        """Name the profile, its Music Assistant token, its users, default player and outputs."""
         entry = self._get_entry()
-        taken = {subentry.data.get(CONF_HA_USER) for subentry in entry.subentries.values()}
-        users = {
-            user.id: user.name or user.id
-            for user in await self.hass.auth.async_get_users()
-            if user.is_active and not user.system_generated and user.id not in taken
-        }
+        users = await _ha_users(self.hass)
         if not users:
             return self.async_abort(reason="no_users")
 
         errors: dict[str, str] = {}
         if user_input is not None:
-            ha_user = user_input[CONF_HA_USER]
-            if ha_user not in users:
-                errors[CONF_HA_USER] = "unknown_user"
+            data, error = _profile_users(entry, None, users, user_input)
+            if error:
+                errors[error[0]] = error[1]
             elif error := await _test_connection(self.hass, entry.data[CONF_MA_URL], user_input[CONF_MA_TOKEN]):
                 errors["base"] = error
             else:
                 return self.async_create_entry(
-                    title=users[ha_user],
+                    title=user_input[CONF_PROFILE_NAME].strip(),
                     data={
-                        CONF_HA_USER: ha_user,
+                        **data,
                         CONF_MA_TOKEN: user_input[CONF_MA_TOKEN],
                         CONF_DEFAULT_PLAYER: user_input.get(CONF_DEFAULT_PLAYER, ""),
-                        CONF_CAN_SWITCH_USER: user_input.get(CONF_CAN_SWITCH_USER, False),
                         CONF_ALLOWED_PLAYERS: user_input.get(CONF_ALLOWED_PLAYERS, []),
                     },
-                    unique_id=ha_user,
                 )
 
+        current = user_input or {}
         schema = vol.Schema(
             {
-                vol.Required(CONF_HA_USER): SelectSelector(
-                    SelectSelectorConfig(
-                        options=[{"value": k, "label": v} for k, v in users.items()],
-                        mode=SelectSelectorMode.DROPDOWN,
-                    )
-                ),
+                vol.Required(CONF_PROFILE_NAME, default=current.get(CONF_PROFILE_NAME, "")): str,
                 vol.Required(CONF_MA_TOKEN): TextSelector(
                     TextSelectorConfig(type=TextSelectorType.PASSWORD)
                 ),
-                **_default_player_field(self.hass, ""),
-                **_allowed_players_field(self.hass, []),
-                vol.Optional(CONF_CAN_SWITCH_USER, default=False): bool,
+                **_users_fields(entry, None, users, current),
+                **_default_player_field(self.hass, current.get(CONF_DEFAULT_PLAYER, "")),
+                **_allowed_players_field(self.hass, current.get(CONF_ALLOWED_PLAYERS) or []),
             }
         )
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
@@ -354,14 +346,18 @@ class ProfileSubentryFlow(ConfigSubentryFlow):
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        """Change a profile's token (left empty: kept), default player or switch right."""
+        """Change a profile's name, token (left empty: kept), users, default player or outputs."""
         entry = self._get_entry()
         subentry = self._get_reconfigure_subentry()
+        users = await _ha_users(self.hass)
         errors: dict[str, str] = {}
 
         if user_input is not None:
             token = user_input.get(CONF_MA_TOKEN) or subentry.data[CONF_MA_TOKEN]
-            if error := await _test_connection(self.hass, entry.data[CONF_MA_URL], token):
+            data, error = _profile_users(entry, subentry.subentry_id, users, user_input)
+            if error:
+                errors[error[0]] = error[1]
+            elif error := await _test_connection(self.hass, entry.data[CONF_MA_URL], token):
                 errors["base"] = error
             else:
                 # The entry's update listener reloads it: profile connections are opened at setup.
@@ -370,33 +366,98 @@ class ProfileSubentryFlow(ConfigSubentryFlow):
                 self.hass.config_entries.async_update_subentry(
                     entry,
                     subentry,
+                    title=(user_input.get(CONF_PROFILE_NAME) or "").strip() or subentry.title,
                     data={
                         **subentry.data,
+                        **data,
                         CONF_MA_TOKEN: token,
                         CONF_DEFAULT_PLAYER: user_input.get(CONF_DEFAULT_PLAYER, ""),
-                        CONF_CAN_SWITCH_USER: user_input.get(CONF_CAN_SWITCH_USER, False),
                         CONF_ALLOWED_PLAYERS: user_input.get(CONF_ALLOWED_PLAYERS, []),
                     },
                 )
                 return self.async_abort(reason="reconfigure_successful")
 
+        current = user_input or {
+            CONF_HA_USER: subentry.data.get(CONF_HA_USER) or "",
+            CONF_HA_USERS: subentry.data.get(CONF_HA_USERS) or [],
+        }
         schema = vol.Schema(
             {
+                vol.Required(CONF_PROFILE_NAME, default=subentry.title): str,
                 vol.Optional(CONF_MA_TOKEN): TextSelector(
                     TextSelectorConfig(type=TextSelectorType.PASSWORD)
                 ),
+                **_users_fields(entry, subentry.subentry_id, users, current),
                 **_default_player_field(self.hass, subentry.data.get(CONF_DEFAULT_PLAYER, "")),
                 **_allowed_players_field(self.hass, subentry.data.get(CONF_ALLOWED_PLAYERS) or []),
-                vol.Optional(
-                    CONF_CAN_SWITCH_USER, default=bool(subentry.data.get(CONF_CAN_SWITCH_USER, False))
-                ): bool,
             }
         )
         return self.async_show_form(step_id="reconfigure", data_schema=schema, errors=errors)
 
 
+async def _ha_users(hass: HomeAssistant) -> dict[str, str]:
+    """Home Assistant users a profile can be given to: {user id: name}, by name."""
+    users = {
+        user.id: user.name or user.id
+        for user in await hass.auth.async_get_users()
+        if user.is_active and not user.system_generated
+    }
+    return dict(sorted(users.items(), key=lambda x: x[1].lower()))
+
+
+def _owners(entry: ConfigEntry, except_subentry: str | None) -> set[str]:
+    """Home Assistant users whose default profile is another profile than `except_subentry`."""
+    return {
+        owner
+        for subentry_id, subentry in entry.subentries.items()
+        if subentry.subentry_type == SUBENTRY_TYPE_PROFILE
+        and subentry_id != except_subentry
+        and (owner := subentry.data.get(CONF_HA_USER))
+    }
+
+
+def _users_fields(
+    entry: ConfigEntry, subentry_id: str | None, users: dict[str, str], current: dict[str, Any]
+) -> dict[Any, Any]:
+    """The profile's default user (users without a default profile yet) and its other users."""
+    taken = _owners(entry, subentry_id)
+    owner = current.get(CONF_HA_USER) or ""
+    others = [uid for uid in current.get(CONF_HA_USERS) or [] if uid in users]
+    return {
+        vol.Optional(CONF_HA_USER, default=owner if owner in users else ""): vol.In(
+            {"": "—", **{uid: name for uid, name in users.items() if uid not in taken}}
+        ),
+        vol.Optional(CONF_HA_USERS, default=others): SelectSelector(
+            SelectSelectorConfig(
+                options=[{"value": uid, "label": name} for uid, name in users.items()],
+                multiple=True,
+                mode=SelectSelectorMode.LIST,
+            )
+        ),
+    }
+
+
+def _profile_users(
+    entry: ConfigEntry, subentry_id: str | None, users: dict[str, str], user_input: dict[str, Any]
+) -> tuple[dict[str, Any], tuple[str, str] | None]:
+    """Validate the users of a profile: ({ha_user, ha_users}, None) or ({}, (field, error key))."""
+    if not (user_input.get(CONF_PROFILE_NAME) or "").strip():
+        return {}, (CONF_PROFILE_NAME, "name_required")
+    owner = user_input.get(CONF_HA_USER) or ""
+    if owner and owner not in users:
+        return {}, (CONF_HA_USER, "unknown_user")
+    if owner and owner in _owners(entry, subentry_id):
+        return {}, (CONF_HA_USER, "user_has_profile")
+    others = [uid for uid in user_input.get(CONF_HA_USERS) or [] if uid != owner]
+    if any(uid not in users for uid in others):
+        return {}, (CONF_HA_USERS, "unknown_user")
+    if not owner and not others:
+        return {}, ("base", "no_user_selected")
+    return {CONF_HA_USER: owner, CONF_HA_USERS: others}, None
+
+
 def _allowed_players_field(hass: HomeAssistant, current: list[str]) -> dict[Any, Any]:
-    """Outputs this profile's user may use, among our own media_players (none ticked: all)."""
+    """Outputs this profile's default user may use, among our own media_players (none ticked: all)."""
     players = _get_mml_players(hass)
     return {
         vol.Optional(CONF_ALLOWED_PLAYERS, default=[eid for eid in current if eid in players]): SelectSelector(

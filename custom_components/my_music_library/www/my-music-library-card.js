@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "4.14.0";
+const CARD_VERSION = "4.15.0";
 
 // HA MediaPlayerEntityFeature bits
 const FEATURE_SHUFFLE_SET = 32768;
@@ -139,6 +139,8 @@ const TRANSLATIONS = {
       title: "Music Assistant reconnection needed",
       desc: "The connection to Music Assistant is down — search, library and playback won't work until this is fixed.",
       action: "Reconfigure",
+      profile_missing_title: "Music Assistant profile “{name}” not available",
+      profile_missing_desc: "This card names a profile that doesn't exist or that this Home Assistant user may not use: check the card's profile option and the profile's users in the integration.",
     },
     nav: { back: "← Back" },
     outputs: {
@@ -235,6 +237,8 @@ const TRANSLATIONS = {
       search_layout_columns: "Columns",
       show_device_select: "Show the output row",
       show_other_players: "Offer other Home Assistant players (Control mode)",
+      profile: "Music Assistant profile",
+      profile_default: "Default profile of the user",
       outputs_title: "Outputs",
       outputs_hint: "Short name, icon (mdi:…) and visibility of each output in the output panel.",
       outputs_alias: "Short name",
@@ -343,6 +347,8 @@ const TRANSLATIONS = {
       title: "Reconnexion à Music Assistant nécessaire",
       desc: "La connexion à Music Assistant est coupée — recherche, bibliothèque et lecture ne fonctionneront pas tant que ce n'est pas résolu.",
       action: "Reconfigurer",
+      profile_missing_title: "Profil Music Assistant « {name} » indisponible",
+      profile_missing_desc: "Cette carte indique un profil qui n'existe pas ou que cet utilisateur Home Assistant ne peut pas utiliser : vérifiez l'option profil de la carte et les utilisateurs du profil dans l'intégration.",
     },
     nav: { back: "← Retour" },
     outputs: {
@@ -439,6 +445,8 @@ const TRANSLATIONS = {
       search_layout_columns: "Colonnes",
       show_device_select: "Afficher la ligne de sortie",
       show_other_players: "Proposer les autres lecteurs Home Assistant (mode Contrôler)",
+      profile: "Profil Music Assistant",
+      profile_default: "Profil par défaut de l'utilisateur",
       outputs_title: "Sorties",
       outputs_hint: "Nom court, icône (mdi:…) et visibilité de chaque sortie dans le panneau des sorties.",
       outputs_alias: "Nom court",
@@ -547,6 +555,8 @@ const TRANSLATIONS = {
       title: "Erneute Verbindung zu Music Assistant erforderlich",
       desc: "Die Verbindung zu Music Assistant ist unterbrochen — Suche, Bibliothek und Wiedergabe funktionieren erst wieder, wenn dies behoben ist.",
       action: "Neu konfigurieren",
+      profile_missing_title: "Music-Assistant-Profil „{name}“ nicht verfügbar",
+      profile_missing_desc: "Diese Karte nennt ein Profil, das nicht existiert oder das dieser Home-Assistant-Benutzer nicht verwenden darf: Prüfe die Profiloption der Karte und die Benutzer des Profils in der Integration.",
     },
     nav: { back: "← Zurück" },
     outputs: {
@@ -643,6 +653,8 @@ const TRANSLATIONS = {
       search_layout_columns: "Spalten",
       show_device_select: "Ausgabezeile anzeigen",
       show_other_players: "Andere Home-Assistant-Player anbieten (Modus Steuern)",
+      profile: "Music-Assistant-Profil",
+      profile_default: "Standardprofil des Benutzers",
       outputs_title: "Ausgaben",
       outputs_hint: "Kurzname, Symbol (mdi:…) und Sichtbarkeit jeder Ausgabe im Ausgabenbereich.",
       outputs_alias: "Kurzname",
@@ -2375,8 +2387,10 @@ class MyMusicLibraryCard extends HTMLElement {
     this._excludedPlayers = [];    // entity_ids hidden from the device picker (HA options)
     this._allowedPlayers = null;   // Set of entity_ids this HA user's MA account may see (profiles), null = all
     this._profileDefaultPlayer = null; // default player of this HA user's profile (or of the integration)
-    this._ownProfileId = null;     // subentry id of this HA user's profile
-    this._switchProfiles = null;   // profiles this user may borrow per output [{id, name, connected}], null = may not switch
+    this._ownProfileId = null;     // subentry id of this HA user's default profile
+    this._usableProfiles = [];     // profiles this HA user may use [{id, name, connected, default_player}], default first
+    this._switchProfiles = null;   // the same when they can be picked per output (2+, no card `profile`), else null
+    this._profileMissing = false;  // the card's `profile` option names no profile this user may use
     this._outputProfiles = (() => { // entity_id → borrowed profile id, on this device (output panel)
       try { return JSON.parse(this._loadPref("mml_output_profiles") || "{}") || {}; } catch (_) { return {}; }
     })();
@@ -2568,8 +2582,10 @@ class MyMusicLibraryCard extends HTMLElement {
         const pinned = this._loadPref("mml_default_player");
         const prevActive = this._activePlayer;
         const known = (eid) => eid && this._players.find(p => p.entity_id === eid) ? eid : null;
-        // Pinned output of this device (output panel, Control mode) wins over the last one used.
-        this._activePlayer = known(pinned) || known(saved)
+        // Pinned output of this device (output panel, Control mode) wins over the last one used,
+        // except on a card whose output is fixed (its entity, output row hidden).
+        const fixedOutput = this._config.show_device_select === false ? known(this._config.entity) : null;
+        this._activePlayer = fixedOutput || known(pinned) || known(saved)
           || this._config.entity
           || known(this._profileDefaultPlayer)
           || (this._players.find(p => p.state === "playing") || this._players[0])?.entity_id;
@@ -2625,15 +2641,20 @@ class MyMusicLibraryCard extends HTMLElement {
       // Only flip to "disconnected" on an explicit false — a missing/failed
       // fetch (cfg undefined) shouldn't itself trigger the banner.
       this._maConnected = cfg?.connected !== false;
-      this._updateConnectionBanner();
       this._ownProfileId = cfg?.profile_id || null;
-      this._switchProfiles = Array.isArray(cfg?.switch_profiles) && cfg.switch_profiles.length > 1 ? cfg.switch_profiles : null;
+      this._usableProfiles = Array.isArray(cfg?.switch_profiles) ? cfg.switch_profiles : [];
+      // A card naming its profile runs as that one only: no per-output choice.
+      this._switchProfiles = !this._config.profile && this._usableProfiles.length > 1 ? this._usableProfiles : null;
+      const fixed = this._fixedProfile();
+      this._profileMissing = fixed === null;
+      if (fixed) this._maConnected = !!fixed.connected;
+      this._updateConnectionBanner();
       this._identity = this._effectiveProfileId();
       await this._fetchProviders();
       if (cfg?.ma_url) {
         this._maUrl = cfg.ma_url.replace(/\/$/, "");
       }
-      this._profileDefaultPlayer = cfg?.default_player || null;
+      this._profileDefaultPlayer = fixed?.default_player || cfg?.default_player || null;
       if (["switch", "group", "control"].includes(cfg?.default_output_mode)) this._defaultOutputMode = cfg.default_output_mode;
       if (Array.isArray(cfg?.excluded_players) || cfg?.allowed_players !== undefined) {
         this._excludedPlayers = Array.isArray(cfg?.excluded_players) ? cfg.excluded_players : this._excludedPlayers;
@@ -2789,6 +2810,13 @@ class MyMusicLibraryCard extends HTMLElement {
         </div>
         <a class="mml-connection-banner-action" href="/config/integrations/integration/my_music_library">${this._t("connection.action")}</a>
       </div>
+      <div class="mml-connection-banner" id="mml-profile-banner" hidden>
+        ${ICONS.warning}
+        <div class="mml-connection-banner-text">
+          <strong>${this._esc(this._tf("connection.profile_missing_title", { name: this._config.profile ?? "" }))}</strong>
+          <span>${this._t("connection.profile_missing_desc")}</span>
+        </div>
+      </div>
       ${this._renderNav()}
       <div class="content">
         ${panels.map(t => panelRenderers[t.type] ? panelRenderers[t.type](t) : "").join("")}
@@ -2822,9 +2850,12 @@ class MyMusicLibraryCard extends HTMLElement {
 
   /* ── Show/hide the "needs reconfiguration" banner based on _maConnected ── */
   _updateConnectionBanner(card) {
-    const el = (card || this.shadowRoot?.querySelector(".card-root"))?.querySelector("#mml-connection-banner");
+    const root = card || this.shadowRoot?.querySelector(".card-root");
+    const el = root?.querySelector("#mml-connection-banner");
     if (!el) return;
-    el.hidden = this._maConnected !== false;
+    el.hidden = this._maConnected !== false || this._profileMissing;
+    const profileEl = root.querySelector("#mml-profile-banner");
+    if (profileEl) profileEl.hidden = !this._profileMissing;
   }
 
   /* `asPanelTab`: for a real panel (player/search/library/...) that carries its
@@ -3962,7 +3993,21 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   /* ── Profile borrowed per output (profiles that may switch users) ── */
+  // Profile named by the card's `profile` option (name or id): undefined without one, null when not usable.
+  _fixedProfile() {
+    const want = this._config?.profile;
+    if (want === undefined || want === null || want === "") return undefined;
+    const name = String(want).trim().toLowerCase();
+    return this._usableProfiles.find(p => p.id === want || String(p.name || "").trim().toLowerCase() === name) || null;
+  }
+
   _effectiveProfileId() {
+    if (this._config?.profile) {
+      const fixed = this._fixedProfile();
+      // Not usable: still named, so the server refuses it rather than serve another account.
+      if (!fixed) return String(this._config.profile);
+      return fixed.id === this._ownProfileId ? null : fixed.id;
+    }
     if (!this._switchProfiles || !this._activePlayer) return null;
     const id = this._outputProfiles[this._activePlayer];
     return id && id !== this._ownProfileId && this._switchProfiles.some(p => p.id === id) ? id : null;
@@ -6285,10 +6330,38 @@ class MyMusicLibraryCardEditor extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
+    if (this._editorProfiles === undefined) this._loadEditorProfiles();
     // The Outputs section lists the players from hass: render again once they are known
     // (setConfig often comes first) or when the list changes — not on every state update.
     const outputsKey = this._outputsKey();
     if (this.shadowRoot && (!this.shadowRoot.querySelector(".editor") || outputsKey !== this._renderedOutputsKey)) this._render();
+  }
+
+  // Profiles offered by the `profile` field: every profile for an administrator, else this user's.
+  async _loadEditorProfiles() {
+    this._editorProfiles = null;
+    try {
+      const cfg = await this._hass.callWS({ type: "my_music_library/config" });
+      this._editorProfiles = cfg?.all_profiles || cfg?.switch_profiles || [];
+    } catch (_) {
+      this._editorProfiles = [];
+    }
+    if (this.shadowRoot?.querySelector(".editor")) this._render();
+  }
+
+  _renderProfileField() {
+    const current = this._config.profile ?? "";
+    const names = (this._editorProfiles || []).map(p => p.name);
+    if (!names.length && !current) return "";
+    if (current && !names.includes(current)) names.push(current);
+    return `
+        <div class="editor-row">
+          <label>${this._t("editor.profile")}</label>
+          <select id="ed-profile">
+            <option value="">${this._t("editor.profile_default")}</option>
+            ${names.map(n => `<option value="${this._esc(n)}" ${n === current ? "selected" : ""}>${this._esc(n)}</option>`).join("")}
+          </select>
+        </div>`;
   }
 
   _outputsKey() {
@@ -6432,6 +6505,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
           <label>${this._t("editor.entity")}</label>
           <input id="ed-entity" type="text" value="${cfg.entity || ""}" placeholder="${this._t("editor.entity_hint")}">
         </div>
+        ${this._renderProfileField()}
         <div class="editor-row">
           <label>${this._t("editor.height")}</label>
           <input id="ed-height" type="text" value="${cfg.height || ""}" placeholder="${this._t("editor.height_hint")}">
@@ -6776,6 +6850,11 @@ class MyMusicLibraryCardEditor extends HTMLElement {
       const val = e.target.value.trim();
       this._config = { ...this._config };
       if (val) this._config.entity = val; else delete this._config.entity;
+      this._fireChanged();
+    });
+    wrap.querySelector("#ed-profile")?.addEventListener("change", (e) => {
+      this._config = { ...this._config };
+      if (e.target.value) this._config.profile = e.target.value; else delete this._config.profile;
       this._fireChanged();
     });
     wrap.querySelector("#ed-height")?.addEventListener("change", (e) => {

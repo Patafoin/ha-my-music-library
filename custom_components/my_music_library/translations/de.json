@@ -41,32 +41,40 @@
       "step": {
         "user": {
           "title": "Profil hinzufügen",
-          "description": "Mit einem Profil durchsucht und hört ein Home-Assistant-Benutzer mit seinem eigenen Music-Assistant-Konto: Die Karte zeigt dann die Bibliothek, die Musikquellen und die Player dieses Kontos.\n\nErstelle das Token **angemeldet in Music Assistant als dieser Benutzer** (Einstellungen → dein Benutzer → API-Tokens): Music Assistant wendet die Filter des Benutzers an, dem das Token gehört. Benutzer ohne Profil behalten das Hauptkonto der Integration.",
+          "description": "Ein Profil ist ein Music-Assistant-Konto mit den Home-Assistant-Benutzern, die es verwenden dürfen: Die Karte zeigt dann die Bibliothek, die Musikquellen und die Player dieses Kontos.\n\nErstelle das Token **angemeldet in Music Assistant mit diesem Konto** (Einstellungen → dein Benutzer → API-Tokens): Music Assistant wendet die Filter des Benutzers an, dem das Token gehört.\n\nEin Home-Assistant-Benutzer kann mehrere Profile verwenden (z. B. ein Benutzer für alle Tablets im Haus): Jede Karte nennt dann ihr Profil (Kartenoption `profile`), oder der Benutzer wählt eines pro Ausgabe im Ausgabe-Panel. Benutzer ohne Profil behalten das Hauptkonto der Integration.",
           "data": {
-            "ha_user": "Home-Assistant-Benutzer",
-            "ma_token": "Music-Assistant-API-Token dieses Benutzers",
+            "name": "Profilname",
+            "ma_token": "Music-Assistant-API-Token dieses Kontos",
+            "ha_user": "Standardprofil von",
+            "ha_users": "Auch verwendbar von",
             "default_player": "Standard-Player",
-            "can_switch_user": "Darf den Music-Assistant-Benutzer wechseln",
             "allowed_players": "Erlaubte Ausgaben"
           },
           "data_description": {
-            "default_player": "Player, der ausgewählt wird, wenn dieser Benutzer die Karte auf einem Gerät öffnet, auf dem noch kein Player gewählt wurde.",
-            "can_switch_user": "Im Ausgabe-Panel der Karte kann dieser Benutzer für eine Ausgabe ein anderes Profil wählen und mit dessen Music-Assistant-Konto suchen und abspielen (z. B. ein gemeinsames Tablet, das die Musik eines Kindes in seinem Zimmer startet).",
-            "allowed_players": "Ausgaben, die dieser Benutzer verwenden darf, in der Karte und über seine Aktionen — auch wenn er ein anderes Profil verwendet. Keine angehakt: alle Ausgaben (oder der Player-Filter seines Music-Assistant-Benutzers, falls vorhanden)."
+            "name": "Wird im Ausgabe-Panel der Karte angezeigt; auch der Wert der Kartenoption `profile`.",
+            "ha_user": "Der Home-Assistant-Benutzer, der dieses Profil standardmäßig hat (ein Benutzer hat höchstens ein Standardprofil).",
+            "ha_users": "Weitere Home-Assistant-Benutzer, die dieses Profil verwenden dürfen: über die Option `profile` ihrer Karte oder durch Auswahl für eine Ausgabe im Ausgabe-Panel (z. B. ein gemeinsames Tablet, das die Musik eines Kindes in seinem Zimmer startet).",
+            "default_player": "Player, der ausgewählt wird, wenn dieses Profil die Karte auf einem Gerät öffnet, auf dem noch kein Player gewählt wurde.",
+            "allowed_players": "Ausgaben, die der Standardbenutzer dieses Profils verwenden darf, in der Karte und über seine Aktionen — auch wenn er ein anderes Profil verwendet. Keine angehakt: alle Ausgaben (oder der Player-Filter seines Music-Assistant-Benutzers, falls vorhanden)."
           }
         },
         "reconfigure": {
           "title": "Profil bearbeiten",
           "description": "Lass das Token leer, um das aktuelle zu behalten.",
           "data": {
+            "name": "Profilname",
             "ma_token": "Neues Music-Assistant-API-Token",
+            "ha_user": "Standardprofil von",
+            "ha_users": "Auch verwendbar von",
             "default_player": "Standard-Player",
-            "can_switch_user": "Darf den Music-Assistant-Benutzer wechseln",
             "allowed_players": "Erlaubte Ausgaben"
           },
           "data_description": {
-            "can_switch_user": "Im Ausgabe-Panel der Karte kann dieser Benutzer für eine Ausgabe ein anderes Profil wählen und mit dessen Music-Assistant-Konto suchen und abspielen (z. B. ein gemeinsames Tablet, das die Musik eines Kindes in seinem Zimmer startet).",
-            "allowed_players": "Ausgaben, die dieser Benutzer verwenden darf, in der Karte und über seine Aktionen — auch wenn er ein anderes Profil verwendet. Keine angehakt: alle Ausgaben (oder der Player-Filter seines Music-Assistant-Benutzers, falls vorhanden)."
+            "name": "Wird im Ausgabe-Panel der Karte angezeigt; auch der Wert der Kartenoption `profile`.",
+            "ha_user": "Der Home-Assistant-Benutzer, der dieses Profil standardmäßig hat (ein Benutzer hat höchstens ein Standardprofil).",
+            "ha_users": "Weitere Home-Assistant-Benutzer, die dieses Profil verwenden dürfen: über die Option `profile` ihrer Karte oder durch Auswahl für eine Ausgabe im Ausgabe-Panel (z. B. ein gemeinsames Tablet, das die Musik eines Kindes in seinem Zimmer startet).",
+            "default_player": "Player, der ausgewählt wird, wenn dieses Profil die Karte auf einem Gerät öffnet, auf dem noch kein Player gewählt wurde.",
+            "allowed_players": "Ausgaben, die der Standardbenutzer dieses Profils verwenden darf, in der Karte und über seine Aktionen — auch wenn er ein anderes Profil verwendet. Keine angehakt: alle Ausgaben (oder der Player-Filter seines Music-Assistant-Benutzers, falls vorhanden)."
           }
         }
       },
@@ -74,10 +82,13 @@
         "cannot_connect": "Verbindung zum Music-Assistant-Server fehlgeschlagen",
         "invalid_auth": "Authentifizierung fehlgeschlagen — API-Token prüfen",
         "invalid_server_version": "Diese Music-Assistant-Serverversion ist nicht kompatibel",
-        "unknown_user": "Unbekannter Home-Assistant-Benutzer"
+        "unknown_user": "Unbekannter Home-Assistant-Benutzer",
+        "name_required": "Gib dem Profil einen Namen",
+        "user_has_profile": "Dieser Benutzer hat bereits ein Standardprofil",
+        "no_user_selected": "Wähle mindestens einen Home-Assistant-Benutzer"
       },
       "abort": {
-        "no_users": "Alle Home-Assistant-Benutzer haben bereits ein Profil.",
+        "no_users": "Es gibt keinen Home-Assistant-Benutzer, dem ein Profil gegeben werden kann.",
         "reconfigure_successful": "Profil aktualisiert"
       }
     }

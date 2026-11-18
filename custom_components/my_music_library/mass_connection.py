@@ -40,7 +40,9 @@ class ProfileConnection:
     subentry_id: str
     title: str
     default_player: str | None
-    can_switch_user: bool = False
+    # Home Assistant user whose default profile this is, and the others allowed to use it
+    ha_user: str | None = None
+    ha_users: frozenset[str] = frozenset()
     allowed_players: frozenset[str] = frozenset()
     mass: MusicAssistantClient | None = None
     listen_task: asyncio.Task | None = None
@@ -51,14 +53,19 @@ class ProfileConnection:
         """Whether this profile can talk to Music Assistant right now."""
         return self.mass is not None and self.mass.connection.connected
 
+    @property
+    def users(self) -> frozenset[str]:
+        """Every Home Assistant user who may use this profile."""
+        return self.ha_users | {self.ha_user} if self.ha_user else self.ha_users
+
 
 @dataclass
 class MMLRuntimeData:
     """Hold the native Music Assistant client for our config entry.
 
     `mass` is the main connection (entry token): it backs the media_player
-    entities and serves every Home Assistant user without a profile.
-    `profiles` maps a Home Assistant user id to that user's own connection.
+    entities and serves every Home Assistant user on no profile.
+    `profiles` maps a profile's subentry id to its own connection.
     """
 
     mass: MusicAssistantClient
