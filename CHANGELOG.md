@@ -2,6 +2,9 @@
 
 > **4.8.2 is the first public release of the 4.x line.** Versions 4.0.0 to 4.8.1 were never published: together, the entries from 4.5.0 to 4.8.2 below describe everything 4.8.2 brings since 3.14.0.
 
+## 4.15.1
+- **Fix** — artwork of items whose image is not a web URL now shows everywhere in the card: **Local files** (filesystem) tracks and folders in Library → Browse, Music Assistant's built-in playlists, playlist collages. Home Assistant asked Music Assistant for the image by its path alone, which only means something together with the provider that owns it; it now goes through Music Assistant's image proxy with that provider ([#20](https://github.com/Patafoin/ha-my-music-library/issues/20)).
+
 ## 4.15.0 — Several profiles per Home Assistant user
 - **New** — a profile is now **a Music Assistant account and the Home Assistant users who may use it**: a **name**, its token, **Default profile of** (the user who gets it by default, one default profile per user at most) and **Also usable by** (other users). One Home Assistant user can use several profiles — e.g. a single user shared by every tablet of the home (DashCast only knows one user), each tablet showing its own person's music. See [One Home Assistant user, several profiles](README.md#one-home-assistant-user-several-profiles-shared-tablets).
 - **New** — card option **`profile`** (visual editor: *Music Assistant profile*): the profile this card runs as (its name), among those its user may use. No per-output choice on such a card; a profile the user may not use shows a warning and is refused by Home Assistant, never replaced by another account.

@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import enum
+import hashlib
 import logging
 from http import HTTPStatus
 from types import SimpleNamespace
@@ -48,43 +49,62 @@ def _to_json_safe(obj: Any) -> Any:
     return str(obj)
 
 
-def _extract_thumbnail(item: dict) -> str:
-    """Extract thumbnail URL from a serialised MA item dict.
+def _extract_image(item: dict) -> dict:
+    """Return the image of a serialised MA item dict: ``{path, provider, proxy_id}``.
 
-    Looks in multiple locations where MA stores image paths,
-    returns the first non-empty path found.
+    Looks in the places MA stores images (``thumbnail``, ``image``, then
+    ``metadata.images``, a thumb first). ``provider`` (the provider *instance*
+    that can resolve the path) and ``proxy_id`` are "" when unknown.
     """
     thumb = item.get("thumbnail") or ""
     if thumb:
-        return thumb
+        return {"path": thumb, "provider": "", "proxy_id": ""}
 
-    image = item.get("image")
-    if isinstance(image, dict):
-        thumb = image.get("path") or image.get("url") or ""
-    elif isinstance(image, str) and image:
-        thumb = image
-    if thumb:
-        return thumb
+    candidates: list[Any] = [item.get("image")]
+    images = [
+        img for img in (item.get("metadata") or {}).get("images") or []
+        if isinstance(img, dict)
+    ]
+    candidates += [img for img in images if img.get("type") in (None, "thumb")]
+    candidates += images
+    for image in candidates:
+        if isinstance(image, str) and image:
+            return {"path": image, "provider": "", "proxy_id": ""}
+        if isinstance(image, dict):
+            path = image.get("path") or image.get("url") or ""
+            if path:
+                return {
+                    "path": path,
+                    "provider": image.get("provider") or "",
+                    "proxy_id": image.get("proxy_id") or "",
+                }
 
-    metadata = item.get("metadata") or {}
-    for img in metadata.get("images") or []:
-        path = img.get("path", "") if isinstance(img, dict) else ""
-        if path:
-            return path
-
-    return ""
+    return {"path": "", "provider": "", "proxy_id": ""}
 
 
-def _make_thumb_url(raw_path: str) -> str:
+def _make_thumb_url(raw_path: str, provider: str = "", proxy_id: str = "") -> str:
     """Wrap a raw image path in our thumbnail proxy endpoint.
 
     Instead of exposing raw image URLs (which may require provider auth
     or be unreachable from the browser), route everything through our
-    server-side proxy that resolves via the MA server.
+    server-side proxy that resolves via the MA server. A path that is not
+    a URL (local files, builtin images) only means something together with
+    the provider instance that owns it, hence ``provider`` / ``proxy_id``.
     """
     if not raw_path:
         return ""
-    return f"/my_music_library/thumb?path={quote(raw_path, safe='')}"
+    url = f"/my_music_library/thumb?path={quote(raw_path, safe='')}"
+    if provider:
+        url += f"&provider={quote(provider, safe='')}"
+    if proxy_id:
+        url += f"&id={quote(proxy_id, safe='')}"
+    return url
+
+
+def _item_thumb_url(item: dict) -> str:
+    """Thumbnail proxy URL of a serialised MA item dict ("" if it has no image)."""
+    image = _extract_image(item)
+    return _make_thumb_url(image["path"], image["provider"], image["proxy_id"])
 
 
 def _serialize_search_results(results: Any) -> dict:
@@ -96,8 +116,7 @@ def _serialize_search_results(results: Any) -> dict:
         for key in ("tracks", "artists", "albums", "playlists", "radios"):
             for item in safe.get(key) or []:
                 if isinstance(item, dict):
-                    raw = item.get("thumbnail") or _extract_thumbnail(item)
-                    item["thumbnail"] = _make_thumb_url(raw)
+                    item["thumbnail"] = _item_thumb_url(item)
         return safe
     return {"tracks": [], "artists": [], "albums": [], "playlists": [], "raw": str(safe)}
 
@@ -210,7 +229,7 @@ def _normalize_library_item(item: dict) -> dict:
     if isinstance(media_type, dict):
         media_type = media_type.get("value", "")
 
-    thumbnail = _make_thumb_url(_extract_thumbnail(item))
+    thumbnail = _item_thumb_url(item)
 
     artist = item.get("media_artist") or ""
     if not artist:
@@ -479,7 +498,7 @@ def _normalize_browse_item(item: dict) -> dict:
         if _path.startswith("folder/"):
             uri = f"{_scheme}://{_path[len('folder/'):]}"
 
-    thumbnail = _make_thumb_url(_extract_thumbnail(item))
+    thumbnail = _item_thumb_url(item)
 
     artist = item.get("media_artist") or ""
     if not artist:
@@ -827,10 +846,7 @@ def _normalize_queue_item(item: dict) -> dict:
     queue_item_id = item.get("queue_item_id") or ""
     duration = item.get("duration") or 0
 
-    raw_thumb = _extract_thumbnail(item)
-    if not raw_thumb:
-        raw_thumb = _extract_thumbnail(item.get("media_item") or {})
-    thumbnail = _make_thumb_url(raw_thumb)
+    thumbnail = _item_thumb_url(item) or _item_thumb_url(item.get("media_item") or {})
 
     media_item = item.get("media_item") or {}
     uri = media_item.get("uri") or ""
@@ -1356,14 +1372,44 @@ class ImageProxyView(HomeAssistantView):
             return web.Response(status=HTTPStatus.BAD_GATEWAY)
 
 
+THUMB_SIZE = 512  # px, one of the sizes MA's image proxy accepts (0, 80, 160, 256, 512, 1024)
+
+
+def _is_image_id(value: str) -> bool:
+    """Return True for an MA image proxy id (64 lowercase hex characters)."""
+    return len(value) == 64 and all(c in "0123456789abcdef" for c in value)
+
+
+def _imageproxy_urls(ma_url: str, path: str, provider: str, image_id: str = "") -> list[str]:
+    """URLs of an image on MA's image proxy, newest form first.
+
+    ``image_id`` is MA's ``proxy_id`` when it sent one; otherwise it is computed
+    the way MA does (sha256 of ``provider/path``), which MA resolves since it
+    registered the id when it serialised the item to us.
+    """
+    if not _is_image_id(image_id):
+        image_id = hashlib.sha256(f"{provider}/{path}".encode()).hexdigest()
+    # legacy form: MA expects the path double encoded
+    legacy_path = quote(quote(path, safe=""), safe="")
+    return [
+        f"{ma_url}/imageproxy/{image_id}?size={THUMB_SIZE}",
+        f"{ma_url}/imageproxy?path={legacy_path}"
+        f"&provider={quote(provider, safe='')}&size={THUMB_SIZE}",
+    ]
+
+
 class MAThumbnailView(HomeAssistantView):
     """Proxy thumbnail requests through the MA server.
 
-    GET /my_music_library/thumb?path=<raw_image_path>
+    GET /my_music_library/thumb?path=<raw_image_path>[&provider=<instance_id>][&id=<proxy_id>]
 
     Resolves image paths server-side via the Music Assistant server,
     handling provider-specific auth (Plex tokens, etc.) and internal
-    MA references that browsers cannot access directly.
+    MA references that browsers cannot access directly. A path that is not
+    a URL (local files, builtin images) is served by MA's image proxy, which
+    needs the provider instance owning it: ``/imageproxy/<id>`` (id =
+    ``proxy_id``, sha256 of ``provider/path``) since MA 2.10.x, the
+    ``/imageproxy?path=&provider=`` form before.
     """
 
     url = "/my_music_library/thumb"
@@ -1376,6 +1422,8 @@ class MAThumbnailView(HomeAssistantView):
         raw_path = request.query.get("path", "").strip()
         if not raw_path:
             return web.Response(status=HTTPStatus.BAD_REQUEST)
+        provider = request.query.get("provider", "").strip()
+        image_id = request.query.get("id", "").strip().lower()
 
         ma_url = _get_mass_url(hass)
         session = async_get_clientsession(hass)
@@ -1383,11 +1431,9 @@ class MAThumbnailView(HomeAssistantView):
         urls_to_try: list[str] = []
         if raw_path.startswith("http"):
             urls_to_try.append(raw_path)
-            if ma_url:
-                urls_to_try.append(
-                    f"{ma_url}/api/image/{quote(raw_path, safe='')}"
-                )
-        elif ma_url:
+        if ma_url and provider:
+            urls_to_try += _imageproxy_urls(ma_url, raw_path, provider, image_id)
+        if ma_url:
             urls_to_try.append(
                 f"{ma_url}/api/image/{quote(raw_path, safe='')}"
             )
