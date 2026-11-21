@@ -165,6 +165,10 @@
           "name": "Radiomodus",
           "description": "Nach dem Ende der Warteschlange ähnliche Titel weiterspielen."
         },
+        "start_item": {
+          "name": "Ab Titel starten",
+          "description": "URI des Titels, ab dem ein Album oder eine Playlist startet; die Titel davor werden ausgelassen."
+        },
         "profile": {
           "name": "Profil",
           "description": "Mit dem Music-Assistant-Konto dieses Profils abspielen (Untereintrags-ID). Nur für Benutzer, deren Profil den Benutzer wechseln darf."

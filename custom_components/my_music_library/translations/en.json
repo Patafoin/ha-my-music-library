@@ -165,6 +165,10 @@
           "name": "Radio mode",
           "description": "Keep playing similar tracks once the queue is finished."
         },
+        "start_item": {
+          "name": "Start from track",
+          "description": "URI of the track an album or playlist starts from; the tracks before it are left out."
+        },
         "profile": {
           "name": "Profile",
           "description": "Play with this profile's Music Assistant account (subentry id). Only for callers whose profile may switch users."

@@ -2,6 +2,10 @@
 
 > **4.8.2 is the first public release of the 4.x line.** Versions 4.0.0 to 4.8.1 were never published: together, the entries from 4.5.0 to 4.8.2 below describe everything 4.8.2 brings since 3.14.0.
 
+## 4.16.0 — Album tracks
+- **New** — every album (library, search, artist page) gets a list button on the right of its **+**: it opens the album's tracks over the card. Tap a track to play the album from that track (the rest of the album follows in the queue); its **+** plays it next, adds it to the end, plays **only this track** (the queue is replaced) or starts a mix. The header plays the whole album or adds it to the queue; the cross closes the list.
+- **New** — `my_music_library.play_media` accepts **`start_item`**: with an album or a playlist, the URI of the track to start from.
+
 ## 4.15.1
 - **Fix** — artwork of items whose image is not a web URL now shows everywhere in the card: **Local files** (filesystem) tracks and folders in Library → Browse, Music Assistant's built-in playlists, playlist collages. Home Assistant asked Music Assistant for the image by its path alone, which only means something together with the provider that owns it; it now goes through Music Assistant's image proxy with that provider ([#20](https://github.com/Patafoin/ha-my-music-library/issues/20)).
 

@@ -55,6 +55,7 @@ ATTR_MEDIA_ID = "media_id"
 ATTR_ENQUEUE = "enqueue"
 ATTR_RADIO_MODE = "radio_mode"
 ATTR_PROFILE = "profile"
+ATTR_START_ITEM = "start_item"
 SERVICE_TRANSFER_QUEUE = "transfer_queue"
 ATTR_TARGETS = "targets"
 

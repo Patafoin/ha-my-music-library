@@ -2,7 +2,7 @@
 
 A full-featured Music Assistant player card for Home Assistant: now playing, live queue, search, library and artist pages, playlists, and an output panel to move or group the music between speakers — with its own `media_player` entities for your automations.
 
-![Version](https://img.shields.io/badge/version-4.15.1-blue)
+![Version](https://img.shields.io/badge/version-4.16.0-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2026.2%2B-brightgreen)
 [![Marketplace (HACS)](https://img.shields.io/badge/Marketplace%20%28HACS%29-default-41BDF5)](https://hacs.xyz/)
 
@@ -88,6 +88,7 @@ Details: [Changelog](https://github.com/Patafoin/ha-my-music-library/blob/main/C
 - **Library** — your Music Assistant favorites (artists, albums, playlists, tracks, radios…) with a source filter (All / Local / Streaming); **Browse mode** to navigate the filesystem directory tree and play folders
 - **Discovery tab** — Music Assistant's recommendation folders (recently played, recently added, suggestions…), one section per folder
 - **Artist page** — the artist's favorites from your library, plus their full album catalog, split into albums, EPs, singles and live albums; reachable from search, the library, or the "Artist" button of the player
+- **Album tracks** — the list button next to the **+** of every album (library, search, artist page) opens the album's tracks over the card: tap a track to play the album from it, or use its **+** to play it next, add it to the end, play only that track (the queue is replaced) or start a mix
 - **Playlist tab** — a dedicated tab locked to one playlist (picked in the visual editor), showing every track with list/grid view toggle; tapping a track plays it instantly without leaving the tab, thanks to a compact player bar (transport, progress, volume, output row) pinned at the bottom
 - **Own media players** — one `media_player` entity per Music Assistant player, updated live (push), usable in automations and scripts, plus a `my_music_library.play_media` action; announcements and `tts.speak` with resume of the music
 - **Output panel** — the output row under the player shows where the music plays ("Living room + Kitchen") and opens a panel over the player with three modes: **Switch** (move the music — same track, same position — to one or more outputs, which then form a group), **Group** (add outputs to the current group or remove them, with a volume slider per output and one for the whole group) and **Control** (see what plays where and pick which output the card controls). Outputs are shown as tiles with an icon, a short name (card alias → Home Assistant area → cleaned-up name; an "i" button shows the full name, entity, model and provider), their state, the group leader's crown, and outputs that can't be grouped together greyed out with the reason. Also: favorite groups ("Whole house"…) saved server-side, turn an output on from its tile, offline outputs hidden behind a link, and a per-device default output (pin)
@@ -598,6 +599,7 @@ Plays a Music Assistant item on one of these players.
 | `media_id` | yes | URI of a Music Assistant item (e.g. `library://playlist/16`), a stream URL, or a name to look up |
 | `enqueue` | no | `play` (default), `replace`, `next`, `replace_next` or `add` |
 | `radio_mode` | no | Keep playing similar tracks once the queue is finished |
+| `start_item` | no | With an album or a playlist: URI of the track to start from (e.g. `library://track/42`); the tracks before it are left out, the following ones play next |
 | `profile` | no | Play with that profile's Music Assistant account (profile id). Only one of the profiles the calling user [may use](#one-home-assistant-user-several-profiles-shared-tablets); used by the card |
 
 ```yaml

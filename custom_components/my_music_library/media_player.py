@@ -52,6 +52,7 @@ from .const import (
     ATTR_MEDIA_ID,
     ATTR_PROFILE,
     ATTR_RADIO_MODE,
+    ATTR_START_ITEM,
     ATTR_TARGETS,
     DOMAIN,
     SERVICE_PLAY_MEDIA,
@@ -151,6 +152,7 @@ async def async_setup_entry(
             vol.Optional(ATTR_ENQUEUE): str,
             vol.Optional(ATTR_RADIO_MODE): bool,
             vol.Optional(ATTR_PROFILE): str,
+            vol.Optional(ATTR_START_ITEM): str,
         },
         "_async_handle_play_media",
     )
@@ -528,12 +530,15 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
         enqueue: str | MediaPlayerEnqueue | None = None,
         radio_mode: bool | None = None,
         profile: str | None = None,
+        start_item: str | None = None,
     ) -> None:
         """Resolve `media_id` to a URI and send it to the player's queue.
 
         Schema intentionally trimmed to what the card calls today: a single
         media_id (URI or free-text name), an enqueue mode, and radio_mode.
         `profile`: play with that profile's account (one of the profiles the caller may use).
+        `start_item`: URI of the track an album or playlist starts from (the tracks before it
+        are left out of the queue, the following ones keep playing).
         """
         mass = self._caller_mass(profile)
         if "://" in media_id:
@@ -549,6 +554,7 @@ class MusicAssistantPlayer(MusicAssistantBaseEntity, MediaPlayerEntity):
             media=[uri],
             option=self._convert_enqueue(enqueue),
             radio_mode=bool(radio_mode),
+            start_item=start_item or None,
         )
 
     async def _async_handle_transfer_queue(self, targets: list[str]) -> None:

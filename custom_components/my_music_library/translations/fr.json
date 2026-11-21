@@ -165,6 +165,10 @@
           "name": "Mode radio",
           "description": "Continuer avec des titres similaires une fois la file terminée."
         },
+        "start_item": {
+          "name": "Commencer au titre",
+          "description": "URI du titre à partir duquel lire l'album ou la playlist ; les titres précédents ne sont pas ajoutés."
+        },
         "profile": {
           "name": "Profil",
           "description": "Lire avec le compte Music Assistant de ce profil (identifiant de sous-entrée). Réservé aux utilisateurs dont le profil peut changer d'utilisateur."

@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "4.15.1";
+const CARD_VERSION = "4.16.0";
 
 // HA MediaPlayerEntityFeature bits
 const FEATURE_SHUFFLE_SET = 32768;
@@ -121,6 +121,7 @@ const TRANSLATIONS = {
       browse_error: "Could not load folder contents",
       browse_empty: "Empty folder",
     },
+    album_tracks: { open: "Show tracks", play_all: "Play the album", close: "Close", empty: "No tracks", load_error: "Could not load the tracks", play_only: "Play only this track", playing_from: "Playing the album from" },
     artist: {
       favorites: "Favorites",
       all_albums: "All albums",
@@ -329,6 +330,7 @@ const TRANSLATIONS = {
       browse_error: "Impossible de charger le contenu du dossier",
       browse_empty: "Dossier vide",
     },
+    album_tracks: { open: "Afficher les titres", play_all: "Lire l'album", close: "Fermer", empty: "Aucun titre", load_error: "Impossible de charger les titres", play_only: "Lire seulement ce titre", playing_from: "Lecture de l'album à partir de" },
     artist: {
       favorites: "Favoris",
       all_albums: "Tous les albums",
@@ -537,6 +539,7 @@ const TRANSLATIONS = {
       browse_error: "Ordnerinhalt konnte nicht geladen werden",
       browse_empty: "Leerer Ordner",
     },
+    album_tracks: { open: "Titel anzeigen", play_all: "Album abspielen", close: "Schließen", empty: "Keine Titel", load_error: "Titel konnten nicht geladen werden", play_only: "Nur diesen Titel abspielen", playing_from: "Album wird abgespielt ab" },
     artist: {
       favorites: "Favoriten",
       all_albums: "Alle Alben",
@@ -2021,6 +2024,23 @@ const STYLES = `
   .add-queue-btn svg { width: 18px; height: 18px; fill: currentColor; }
 
   /* Add-to-queue dropdown */
+  /* Album tracks panel (4.16.0), over the whole card */
+  .card-actions { display: flex; align-items: center; justify-content: space-between; }
+  .album-tracks-btn { background: none; border: none; cursor: pointer; padding: 4px; color: var(--text2); flex-shrink: 0; display: flex; align-items: center; opacity: .6; }
+  .album-tracks-btn:active, .album-tracks-btn:hover { opacity: 1; }
+  .album-tracks-btn svg { width: 18px; height: 18px; fill: currentColor; }
+  .album-tracks-panel { position: absolute; inset: 0; z-index: 120; display: flex; flex-direction: column; background: var(--bg); border-radius: var(--radius); overflow: hidden; }
+  .album-tracks-head { display: flex; align-items: center; gap: 10px; padding: 12px 12px 10px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .album-tracks-art { width: 56px; height: 56px; border-radius: 6px; object-fit: cover; background: var(--bg2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .album-tracks-art svg { width: 28px; height: 28px; fill: var(--text2); }
+  .album-tracks-titles { flex: 1; min-width: 0; }
+  .album-tracks-title { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .album-tracks-sub { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .album-tracks-icon-btn { background: none; border: none; cursor: pointer; color: var(--text2); padding: 6px; display: flex; align-items: center; flex-shrink: 0; }
+  .album-tracks-icon-btn svg { width: 24px; height: 24px; fill: currentColor; }
+  .album-tracks-play { color: var(--accent); }
+  .album-tracks-play svg { width: 30px; height: 30px; }
+  .album-tracks-list { flex: 1; overflow-y: auto; padding: 4px 0; }
   .queue-dropdown { position: absolute; z-index: 1000; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 0; min-width: 200px; box-shadow: 0 4px 16px rgba(0,0,0,.3); }
   .queue-dropdown-item { padding: 8px 14px; font-size: 13px; color: var(--text); cursor: pointer; white-space: nowrap; }
   .queue-dropdown-item:active { background: rgba(255,255,255,.08); }
@@ -2127,6 +2147,13 @@ const STYLES = `
   }
   .mml-mobile .add-queue-btn:active { background: color-mix(in srgb, var(--accent) 35%, transparent); }
   .mml-mobile .add-queue-btn svg { width: 20px; height: 20px; }
+  .mml-mobile .album-tracks-btn {
+    width: 38px; height: 38px; min-width: 38px; padding: 0; opacity: 1;
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    border-radius: 50%; justify-content: center;
+  }
+  .mml-mobile .album-tracks-btn svg { width: 20px; height: 20px; }
+  .mml-mobile .album-tracks-panel .queue-item .add-queue-btn { width: 34px; height: 34px; min-width: 34px; }
   .mml-mobile .result-play { width: 44px; height: 44px; }
   .mml-mobile .result-play svg { width: 22px; height: 22px; }
   .mml-mobile .queue-remove {
@@ -4888,6 +4915,7 @@ class MyMusicLibraryCard extends HTMLElement {
           <div class="result-title">${this._esc(item.title)}</div>
           ${item.subtitle ? `<div class="result-sub">${this._esc(item.subtitle)}</div>` : ""}
         </div>
+        ${queueType === "album" ? this._renderAlbumTracksBtn(item.id, item.title, item.subtitle, item.thumbnail) : ""}
         ${canQueue ? `<button class="add-queue-btn" data-queue-id="${this._esc(item.id)}" data-queue-type="${this._esc(queueType)}" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>` : ""}
         ${item.can_play ? `<button class="result-play" data-action="play" data-id="${this._esc(item.id)}" data-type="${this._esc(item.type)}" title="${this._t("btns.play")}">${ICONS.play}</button>` : ""}
       </div>`;
@@ -5555,12 +5583,15 @@ class MyMusicLibraryCard extends HTMLElement {
     const action = type === "artist" ? "browse" : (type === "track" ? "play" : "play-queue");
     const extra = type === "artist" ? `data-title="${this._esc(item.title)}" data-thumb="${this._esc(this._resolveImageUrl(item.thumbnail) || "")}"` : "";
     const canQueue = ["album", "playlist", "track", "artist"].includes(type);
+    const addBtn = canQueue ? `<button class="add-queue-btn" data-queue-id="${this._esc(item.id)}" data-queue-type="${this._esc(type)}" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>` : "";
     return `
       <div class="search-card" data-action="${action}" data-id="${this._esc(item.id)}" data-type="${type}" ${extra}>
         ${art}
         <div class="search-card-name">${this._esc(item.title)}</div>
         ${item.subtitle ? `<div class="search-card-sub">${this._esc(item.subtitle)}</div>` : ""}
-        ${canQueue ? `<button class="add-queue-btn" data-queue-id="${this._esc(item.id)}" data-queue-type="${this._esc(type)}" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>` : ""}
+        ${type === "album"
+          ? `<div class="card-actions">${addBtn}${this._renderAlbumTracksBtn(item.id, item.title, item.subtitle, item.thumbnail)}</div>`
+          : addBtn}
       </div>`;
   }
 
@@ -5568,7 +5599,7 @@ class MyMusicLibraryCard extends HTMLElement {
     const switchToPlayer = opts.switchToPlayer !== false;
     container.querySelectorAll("[data-action]").forEach(el => {
       el.addEventListener("click", (e) => {
-        if (e.target.closest(".add-queue-btn")) return;
+        if (e.target.closest(".add-queue-btn, .album-tracks-btn")) return;
         e.stopPropagation();
         const { action, id, type, title, thumb } = el.dataset;
         if (action === "browse") {
@@ -5592,6 +5623,133 @@ class MyMusicLibraryCard extends HTMLElement {
         this._showQueueDropdown(btn, queueId, queueType);
       });
     });
+    container.querySelectorAll(".album-tracks-btn").forEach(btn => {
+      if (btn._mmlBound) return; // containers are re-attached after each lazy batch
+      btn._mmlBound = true;
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const { albumId, albumTitle, albumArtist, albumThumb } = btn.dataset;
+        this._openAlbumTracks({ id: albumId, title: albumTitle, artist: albumArtist, thumbnail: albumThumb });
+      });
+    });
+  }
+
+  /* ── Album tracks panel (4.16.0): an album's tracks over the whole card ── */
+  _renderAlbumTracksBtn(id, title, artist, thumbnail) {
+    if (!id) return "";
+    return `<button class="album-tracks-btn" data-album-id="${this._esc(id)}" data-album-title="${this._esc(title || "")}"
+      data-album-artist="${this._esc(artist || "")}" data-album-thumb="${this._esc(thumbnail || "")}"
+      title="${this._t("album_tracks.open")}">${ICONS.queue}</button>`;
+  }
+
+  _renderAlbumTracksPanel(album) {
+    const art = album.thumbnail
+      ? `<img class="album-tracks-art" src="${this._esc(this._resolveImageUrl(album.thumbnail))}" alt="">`
+      : `<div class="album-tracks-art">${ICONS.album || ICONS.music}</div>`;
+    return `
+      <div class="album-tracks-head">
+        ${art}
+        <div class="album-tracks-titles">
+          <div class="album-tracks-title">${this._esc(album.title || "")}</div>
+          ${album.artist ? `<div class="album-tracks-sub">${this._esc(album.artist)}</div>` : ""}
+        </div>
+        <button class="album-tracks-icon-btn album-tracks-play" title="${this._t("album_tracks.play_all")}">${ICONS.play}</button>
+        <button class="add-queue-btn album-tracks-queue" data-queue-id="${this._esc(album.id)}" data-queue-type="album" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>
+        <button class="album-tracks-icon-btn album-tracks-close" title="${this._t("album_tracks.close")}">${ICONS.close}</button>
+      </div>
+      <div class="album-tracks-list">
+        <div class="loader"><div class="spinner"></div> ${this._t("lib.loading_short")}</div>
+      </div>`;
+  }
+
+  /* One row per track. The track artist only when it differs from the album's (compilations, featurings). */
+  _renderAlbumTrackRows(tracks, albumArtist) {
+    if (!tracks.length) return `<div class="queue-empty">${this._t("album_tracks.empty")}</div>`;
+    return tracks.map((t, i) => `
+      <div class="queue-item album-track" data-track-uri="${this._esc(t.media_content_id)}" data-track-title="${this._esc(t.title)}">
+        <div class="queue-num">${i + 1}</div>
+        <div class="queue-info">
+          <div class="queue-title">${this._esc(t.title)}</div>
+          ${t.media_artist && t.media_artist !== albumArtist ? `<div class="queue-sub">${this._esc(t.media_artist)}</div>` : ""}
+        </div>
+        ${t.duration ? `<div class="queue-dur">${fmt(t.duration)}</div>` : ""}
+        <button class="add-queue-btn" data-queue-id="${this._esc(t.media_content_id)}" data-queue-type="track" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>
+      </div>`).join("");
+  }
+
+  async _openAlbumTracks(album) {
+    const card = this.shadowRoot?.querySelector(".card-root");
+    if (!card || !album?.id) return;
+    this._closeAlbumTracks();
+    const token = (this._albumPanelToken || 0) + 1;
+    this._albumPanelToken = token;
+    card.insertAdjacentHTML("beforeend",
+      `<div class="album-tracks-panel" id="album-tracks-panel">${this._renderAlbumTracksPanel(album)}</div>`);
+    const panel = card.querySelector("#album-tracks-panel");
+    if (!panel) return;
+    panel.querySelector(".album-tracks-close")?.addEventListener("click", () => this._closeAlbumTracks());
+    panel.querySelector(".album-tracks-play")?.addEventListener("click", () => this._playItem(album.id, "album"));
+    panel.querySelector(".album-tracks-queue")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this._showQueueDropdown(e.currentTarget, album.id, "album");
+    });
+
+    let tracks = null;
+    try {
+      const r = await this._callIntegration("GET", `subitems?action=album_tracks&uri=${encodeURIComponent(album.id)}&limit=200`);
+      tracks = r?.items || [];
+    } catch (err) {
+      this._debugLog("album tracks load failed:", err);
+    }
+    if (this._albumPanelToken !== token) return; // closed, or another album opened meanwhile
+    const list = panel.querySelector(".album-tracks-list");
+    if (!list) return;
+    if (tracks === null) {
+      list.innerHTML = `<div class="empty-state">${ICONS.album || ICONS.music}<p>${this._t("album_tracks.load_error")}</p></div>`;
+      return;
+    }
+    list.innerHTML = this._renderAlbumTrackRows(tracks, album.artist);
+    list.querySelectorAll(".album-track").forEach(row => {
+      row.addEventListener("click", (e) => {
+        if (e.target.closest(".add-queue-btn")) return;
+        this._playAlbumFrom(album.id, row.dataset.trackUri, row.dataset.trackTitle);
+      });
+    });
+    list.querySelectorAll(".add-queue-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this._showQueueDropdown(btn, btn.dataset.queueId, "track", { playOnly: true });
+      });
+    });
+  }
+
+  _closeAlbumTracks() {
+    this._albumPanelToken = (this._albumPanelToken || 0) + 1;
+    this._closeQueueDropdown();
+    this.shadowRoot?.querySelector("#album-tracks-panel")?.remove();
+  }
+
+  /* The album replaces the queue, starting at that track: the rest of the album follows
+     (Music Assistant's start_item leaves the tracks before it out). */
+  async _playAlbumFrom(albumId, trackUri, trackTitle) {
+    if (!this._hass || !this._activePlayer || !albumId || !trackUri) return;
+    this._debugLog("Play album from track:", albumId, trackUri, "on:", this._activePlayer);
+    try {
+      await this._callServiceSilent("my_music_library", "play_media", {
+        entity_id: this._activePlayer,
+        media_id: albumId,
+        enqueue: "replace",
+        start_item: trackUri,
+      });
+      this._showToast(`${this._t("album_tracks.playing_from")} « ${trackTitle || ""} »`);
+    } catch (err) {
+      this._debugLog("play album from track failed:", err);
+      this._showToast(this._isMediaNotFoundError(err)
+        ? this._t("errors.media_not_found")
+        : `${this._t("errors.play_failed")}: ${this._extractErrorMessage(err)}`);
+    }
+    this._refreshQueueSoon(1500);
   }
 
   /* Player tab "artist" button: resolve the playing track's main artist, then open its page.
@@ -5851,12 +6009,13 @@ class MyMusicLibraryCard extends HTMLElement {
     }
   }
 
-  _showQueueDropdown(btnEl, id, type) {
+  _showQueueDropdown(btnEl, id, type, opts = {}) {
     this._closeQueueDropdown();
     const dd = document.createElement("div");
     dd.className = "queue-dropdown";
     dd.id = "mml-queue-dropdown";
     dd.innerHTML = `
+      ${opts.playOnly ? `<div class="queue-dropdown-item" data-mode="only">${this._t("album_tracks.play_only")}</div>` : ""}
       <div class="queue-dropdown-item" data-mode="next">${this._t("queue.play_next")}</div>
       <div class="queue-dropdown-item" data-mode="end">${this._t("queue.add_to_end")}</div>
       <div class="queue-dropdown-item queue-dropdown-mix" data-mode="radio">${ICONS.shuffle} ${this._t("queue.start_mix")}</div>
@@ -5866,6 +6025,9 @@ class MyMusicLibraryCard extends HTMLElement {
         e.stopPropagation();
         if (item.dataset.mode === "radio") {
           this._startRadioMode(id, type);
+        } else if (item.dataset.mode === "only") {
+          this._playItem(id, type);
+          this._refreshQueueSoon(1500);
         } else {
           this._addItemToQueue(id, type, item.dataset.mode);
         }
@@ -6083,12 +6245,15 @@ class MyMusicLibraryCard extends HTMLElement {
     const id = item.media_content_id || item.uri || "";
     const artist = item.media_artist || item.subtitle || "";
     const canQueue = ["album", "playlist", "track", "artist"].includes(type);
+    const addBtn = canQueue ? `<button class="add-queue-btn" data-queue-id="${this._esc(id)}" data-queue-type="${this._esc(type)}" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>` : "";
     return `
       <div class="lib-card" data-action="${action}" data-id="${this._esc(id)}" data-type="${this._esc(type)}" ${extra}>
         ${thumb}
         <div class="lib-card-name">${this._esc(item.title)}</div>
         ${artist ? `<div class="lib-card-sub">${this._esc(artist)}</div>` : ""}
-        ${canQueue ? `<button class="add-queue-btn" data-queue-id="${this._esc(id)}" data-queue-type="${this._esc(type)}" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>` : ""}
+        ${type === "album"
+          ? `<div class="card-actions">${addBtn}${this._renderAlbumTracksBtn(id, item.title, artist, item.thumbnail)}</div>`
+          : addBtn}
       </div>`;
   }
 
