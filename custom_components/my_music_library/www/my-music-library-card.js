@@ -5,7 +5,11 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "4.16.0";
+const CARD_VERSION = "4.17.0";
+// Player tab title / artist too wide for their box: scroll after this delay, at this speed
+const MARQUEE_DELAY_MS = 3000;
+const MARQUEE_END_PAUSE_MS = 1500;
+const MARQUEE_SPEED_PX_S = 40;
 
 // HA MediaPlayerEntityFeature bits
 const FEATURE_SHUFFLE_SET = 32768;
@@ -1055,6 +1059,9 @@ const STYLES = `
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  /* Title / artist wider than their box: scrolled by _updateMarquee (Web Animations), no ellipsis */
+  .marquee-inner { display: inline-block; white-space: nowrap; }
+  .marquee-overflow { text-overflow: clip; text-align: left; }
 
   .goto-artist-btn {
     display: inline-flex; align-items: center; gap: 4px;
@@ -2653,6 +2660,8 @@ class MyMusicLibraryCard extends HTMLElement {
 
   disconnectedCallback() {
     this._stopProgressTick();
+    this._marqueeObserver?.disconnect();
+    this._marqueeObserver = null;
     this._unsubscribeQueuePush();
     // Force config re-fetch on next reconnect so excluded_players stays in sync
     // with any options changes made while the card was away from the DOM.
@@ -3597,6 +3606,72 @@ class MyMusicLibraryCard extends HTMLElement {
     return url;
   }
 
+  /* ── Title / artist marquee: text wider than its box scrolls, after MARQUEE_DELAY_MS ── */
+  _setMarqueeText(el, text) {
+    this._observeMarquee(el);
+    // _updatePlayerContent runs on every hass update: same text, the running scroll goes on
+    if (el._mmlText === text && el.firstElementChild) return;
+    el._mmlText = text;
+    el.innerHTML = "";
+    const inner = document.createElement("span");
+    inner.className = "marquee-inner";
+    inner.textContent = text;
+    el.appendChild(inner);
+    this._updateMarquee(el);
+  }
+
+  // Width changes (layout, rotation, tab shown after being hidden at 0 px) re-measure the text
+  _observeMarquee(el) {
+    if (typeof ResizeObserver !== "function") return;
+    if (!this._marqueeObserver) {
+      this._marqueeObserver = new ResizeObserver(entries => {
+        for (const { target } of entries) {
+          if (!target.isConnected) { this._marqueeObserver?.unobserve(target); this._stopMarquee(target); continue; }
+          if (target._mmlWidth === target.clientWidth) continue;
+          this._updateMarquee(target);
+        }
+      });
+    }
+    if (el._mmlObserver === this._marqueeObserver) return;
+    el._mmlObserver = this._marqueeObserver;
+    this._marqueeObserver.observe(el);
+  }
+
+  _stopMarquee(el) {
+    clearTimeout(el._mmlMarqueeTimer);
+    el._mmlMarqueeTimer = null;
+    el._mmlMarqueeAnim?.cancel();
+    el._mmlMarqueeAnim = null;
+  }
+
+  // Back to the start, then — only when the text overflows — wait, scroll to its end, pause,
+  // scroll back, pause MARQUEE_DELAY_MS, and so on.
+  _updateMarquee(el) {
+    this._stopMarquee(el);
+    const inner = el.firstElementChild;
+    const width = el.clientWidth || 0;
+    el._mmlWidth = width;
+    const dist = inner && width > 0 ? Math.ceil(inner.scrollWidth - width) : 0;
+    const over = dist > 1;
+    el.classList?.toggle("marquee-overflow", over);
+    if (!over || typeof inner.animate !== "function") return;
+    el._mmlMarqueeTimer = setTimeout(() => {
+      el._mmlMarqueeTimer = null;
+      if (!el.isConnected) return;
+      const scroll = Math.max(1500, (dist / MARQUEE_SPEED_PX_S) * 1000);
+      const total = 2 * scroll + MARQUEE_END_PAUSE_MS + MARQUEE_DELAY_MS;
+      const at = (ms) => ms / total;
+      const end = `translateX(-${dist}px)`;
+      el._mmlMarqueeAnim = inner.animate([
+        { offset: 0, transform: "translateX(0)", easing: "ease-in-out" },
+        { offset: at(scroll), transform: end },
+        { offset: at(scroll + MARQUEE_END_PAUSE_MS), transform: end, easing: "ease-in-out" },
+        { offset: at(2 * scroll + MARQUEE_END_PAUSE_MS), transform: "translateX(0)" },
+        { offset: 1, transform: "translateX(0)" },
+      ], { duration: total, iterations: Infinity });
+    }, MARQUEE_DELAY_MS);
+  }
+
   _updatePlayerContent(card) {
     const state = this._getActiveState();
     const attr = state?.attributes || {};
@@ -3631,9 +3706,9 @@ class MyMusicLibraryCard extends HTMLElement {
     // Track info
     const titleEl = card.querySelector("#track-title");
     const artistEl = card.querySelector("#track-artist");
-    if (titleEl) titleEl.textContent = attr.media_title || (state ? this._t("player.nothing_playing") : "—");
+    if (titleEl) this._setMarqueeText(titleEl, attr.media_title || (state ? this._t("player.nothing_playing") : "—"));
     if (artistEl) {
-      artistEl.textContent = [attr.media_artist, attr.media_album_name].filter(Boolean).join(" · ") || this._t("player.select_player");
+      this._setMarqueeText(artistEl, [attr.media_artist, attr.media_album_name].filter(Boolean).join(" · ") || this._t("player.select_player"));
     }
     const gotoArtistBtn = card.querySelector("#btn-goto-artist");
     if (gotoArtistBtn) {

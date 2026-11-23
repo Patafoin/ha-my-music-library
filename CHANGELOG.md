@@ -2,6 +2,9 @@
 
 > **4.8.2 is the first public release of the 4.x line.** Versions 4.0.0 to 4.8.1 were never published: together, the entries from 4.5.0 to 4.8.2 below describe everything 4.8.2 brings since 3.14.0.
 
+## 4.17.0 — Scrolling title
+- **New** — on the player tab, a track title or an artist / album line too long to fit now scrolls sideways on its own: 3 seconds after the track starts, it slides to its end, pauses, comes back, waits 3 seconds and starts over. Text that fits stays still. The width is re-measured when the card is resized or the screen rotated.
+
 ## 4.16.0 — Album tracks
 - **New** — every album (library, search, artist page) gets a list button on the right of its **+**: it opens the album's tracks over the card. Tap a track to play the album from that track (the rest of the album follows in the queue); its **+** plays it next, adds it to the end, plays **only this track** (the queue is replaced) or starts a mix. The header plays the whole album or adds it to the queue; the cross closes the list.
 - **New** — `my_music_library.play_media` accepts **`start_item`**: with an album or a playlist, the URI of the track to start from.

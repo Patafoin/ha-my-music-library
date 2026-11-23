@@ -2,7 +2,7 @@
 
 A full-featured Music Assistant player card for Home Assistant: now playing, live queue, search, library and artist pages, playlists, and an output panel to move or group the music between speakers — with its own `media_player` entities for your automations.
 
-![Version](https://img.shields.io/badge/version-4.16.0-blue)
+![Version](https://img.shields.io/badge/version-4.17.0-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2026.2%2B-brightgreen)
 [![Marketplace (HACS)](https://img.shields.io/badge/Marketplace%20%28HACS%29-default-41BDF5)](https://hacs.xyz/)
 
@@ -81,7 +81,7 @@ Details: [Changelog](https://github.com/Patafoin/ha-my-music-library/blob/main/C
 
 <img src="https://raw.githubusercontent.com/Patafoin/ha-my-music-library/main/images/mobile.png" alt="Phone layout" width="280" align="right">
 
-- **Now Playing** — album art, track title, artist, progress bar, volume control
+- **Now Playing** — album art, track title, artist, progress bar, volume control; a title or artist too long for the player scrolls sideways after 3 seconds, so it can be read in full
 - **Playback controls** — play/pause, previous, next, shuffle, repeat (off / all / one) — shuffle and repeat are greyed out while Music Assistant plays a dynamic source (radio, dynamic playlist), which it doesn't allow
 - **Queue** — live queue display alongside the player, updated as soon as Music Assistant changes it (pushed, no polling), persisted server-side per player across page reloads and devices
 - **Search** — full-text search across artists, albums, tracks and playlists via Music Assistant; also searches local library (filenames) for more complete results
