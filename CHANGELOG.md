@@ -2,6 +2,12 @@
 
 > **4.8.2 is the first public release of the 4.x line.** Versions 4.0.0 to 4.8.1 were never published: together, the entries from 4.5.0 to 4.8.2 below describe everything 4.8.2 brings since 3.14.0.
 
+## 4.18.0 — Volume on phones
+- **New** — on a phone, every volume row of the output panel (**Group** mode) gets **–** and **+** buttons that change the volume by 2 % per tap, for the whole group as for each output ([#21](https://github.com/Patafoin/ha-my-music-library/issues/21)).
+- **Changed** — on a phone, each volume row puts the output name, the percentage and the mute button on a first line, with the slider on its own line under it: about twice as long, so finer to set. Nothing changes on a computer.
+- **Fix** — on a phone, the volume slider handles of the output panel were larger than the rows and overlapped the neighbouring rows, so a touch could move the wrong output.
+- **Fix** — on a selected output tile, the tick no longer covers the end of its state ("In the group").
+
 ## 4.17.0 — Scrolling title
 - **New** — on the player tab, a track title or an artist / album line too long to fit now scrolls sideways on its own: 3 seconds after the track starts, it slides to its end, pauses, comes back, waits 3 seconds and starts over. Text that fits stays still. The width is re-measured when the card is resized or the screen rotated.
 

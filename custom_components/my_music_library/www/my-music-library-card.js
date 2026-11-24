@@ -5,11 +5,14 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "4.17.0";
+const CARD_VERSION = "4.18.0";
 // Player tab title / artist too wide for their box: scroll after this delay, at this speed
 const MARQUEE_DELAY_MS = 3000;
 const MARQUEE_END_PAUSE_MS = 1500;
 const MARQUEE_SPEED_PX_S = 40;
+// Output panel volume buttons (mobile): step in %, and how long the panel waits for HA before re-rendering after a tap.
+const OUT_VOLUME_STEP = 2;
+const OUT_VOLUME_HOLD_MS = 1500;
 
 // HA MediaPlayerEntityFeature bits
 const FEATURE_SHUFFLE_SET = 32768;
@@ -49,6 +52,7 @@ const ICONS = {
   chevronLeft: `<svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>`,
   chevronRight: `<svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>`,
   plus: `<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>`,
+  minus: `<svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>`,
   group: `<svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>`,
   folder: `<svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
   folderOpen: `<svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>`,
@@ -160,7 +164,7 @@ const TRANSLATIONS = {
       switched: "Music moved to {name}",
       group_of: "Group of {name}", in_group: "In the group", member_of: "With {name}",
       cannot_group: "Can't be grouped with {name}", no_other_outputs: "No other output",
-      volumes: "Volume", group_volume: "Whole group",
+      volumes: "Volume", group_volume: "Whole group", volume_down: "Volume down", volume_up: "Volume up",
       presets: "Favorite groups", save_preset: "Save this group", preset_name: "Group name",
       save: "Save", cancel: "Cancel", preset_saved: "Group “{name}” saved",
       delete_preset: "Delete", delete_preset_confirm: "Delete the favorite group “{name}”?",
@@ -369,7 +373,7 @@ const TRANSLATIONS = {
       switched: "Musique basculée vers {name}",
       group_of: "Groupe de {name}", in_group: "Dans le groupe", member_of: "Avec {name}",
       cannot_group: "Ne peut pas être groupé avec {name}", no_other_outputs: "Aucune autre sortie",
-      volumes: "Volume", group_volume: "Tout le groupe",
+      volumes: "Volume", group_volume: "Tout le groupe", volume_down: "Baisser le volume", volume_up: "Monter le volume",
       presets: "Groupes favoris", save_preset: "Enregistrer ce groupe", preset_name: "Nom du groupe",
       save: "Enregistrer", cancel: "Annuler", preset_saved: "Groupe « {name} » enregistré",
       delete_preset: "Supprimer", delete_preset_confirm: "Supprimer le groupe favori « {name} » ?",
@@ -578,7 +582,7 @@ const TRANSLATIONS = {
       switched: "Musik zu {name} verschoben",
       group_of: "Gruppe von {name}", in_group: "In der Gruppe", member_of: "Mit {name}",
       cannot_group: "Kann nicht mit {name} gruppiert werden", no_other_outputs: "Keine weitere Ausgabe",
-      volumes: "Lautstärke", group_volume: "Ganze Gruppe",
+      volumes: "Lautstärke", group_volume: "Ganze Gruppe", volume_down: "Leiser", volume_up: "Lauter",
       presets: "Lieblingsgruppen", save_preset: "Diese Gruppe speichern", preset_name: "Gruppenname",
       save: "Speichern", cancel: "Abbrechen", preset_saved: "Gruppe „{name}“ gespeichert",
       delete_preset: "Löschen", delete_preset_confirm: "Lieblingsgruppe „{name}“ löschen?",
@@ -1280,9 +1284,10 @@ const STYLES = `
     word-break: break-word;
   }
   .out-tile-sub {
-    width: 100%; font-size: 11px; color: var(--text2);
+    width: 100%; box-sizing: border-box; font-size: 11px; color: var(--text2);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+  .out-tile.sel .out-tile-sub { padding: 0 22px; }
   .out-check {
     position: absolute; bottom: 8px; right: 8px; width: 18px; height: 18px; border-radius: 50%;
     background: var(--accent); display: flex; align-items: center; justify-content: center;
@@ -1339,7 +1344,15 @@ const STYLES = `
   .out-chip-del svg { width: 13px; height: 13px; fill: var(--text2); }
   .out-link { background: none; border: none; color: var(--accent); font-size: 12px; cursor: pointer; padding: 10px 4px 0; }
   .out-volumes { display: flex; flex-direction: column; gap: 4px; }
-  .out-vol-row { display: grid; grid-template-columns: minmax(70px, 30%) 28px 1fr 36px; align-items: center; gap: 6px; }
+  .out-vol-row {
+    display: grid; grid-template-columns: minmax(70px, 30%) 28px 1fr 36px; grid-template-areas: "name mute range pct";
+    align-items: center; gap: 6px;
+  }
+  .out-vol-name { grid-area: name; }
+  .out-vol-icon, .out-mute { grid-area: mute; }
+  .out-vol-row input[type=range] { grid-area: range; }
+  .out-vol-pct { grid-area: pct; }
+  .out-vol-step { display: none; }
   .out-vol-row.group .out-vol-name { font-weight: 700; color: var(--text); }
   .out-vol-name { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .out-vol-icon, .out-mute { display: flex; align-items: center; justify-content: center; background: none; border: none; color: var(--text2); cursor: pointer; padding: 0; }
@@ -2184,6 +2197,27 @@ const STYLES = `
   .mml-mobile .device-item-volume input[type=range] { height: 6px; }
   .mml-mobile .device-item-volume input[type=range]::-webkit-slider-thumb { width: 22px; height: 22px; }
   .mml-mobile .device-item-volume input[type=range]::-moz-range-thumb { width: 22px; height: 22px; }
+  .mml-mobile .out-volumes { gap: 12px; }
+  .mml-mobile .out-vol-row {
+    grid-template-columns: 40px 1fr 44px 40px; grid-template-areas: "name name pct mute" "minus range range plus";
+    row-gap: 2px; column-gap: 8px;
+  }
+  .mml-mobile .out-vol-name { font-size: 13px; }
+  .mml-mobile .out-vol-pct { font-size: 13px; }
+  .mml-mobile .out-vol-icon, .mml-mobile .out-mute { width: 40px; height: 36px; }
+  .mml-mobile .out-vol-icon svg, .mml-mobile .out-mute svg { width: 20px; height: 20px; }
+  .mml-mobile .out-vol-row input[type=range] { height: 6px; border-radius: 3px; margin: 0; }
+  .mml-mobile .out-vol-row input[type=range]::-webkit-slider-thumb { width: 24px; height: 24px; }
+  .mml-mobile .out-vol-row input[type=range]::-moz-range-thumb { width: 24px; height: 24px; }
+  .mml-mobile .out-vol-step {
+    display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0;
+    border-radius: 50%; border: 1px solid var(--border); background: var(--bg2); color: var(--text); cursor: pointer;
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  }
+  .mml-mobile .out-vol-step:active { background: color-mix(in srgb, var(--accent) 25%, var(--bg2)); }
+  .mml-mobile .out-vol-step svg { width: 20px; height: 20px; fill: currentColor; }
+  .mml-mobile .out-vol-step[data-step="-1"] { grid-area: minus; }
+  .mml-mobile .out-vol-step[data-step="1"] { grid-area: plus; }
 
   /* Device modal action buttons (attach/detach) */
   .mml-mobile .device-item-action {
@@ -3569,7 +3603,8 @@ class MyMusicLibraryCard extends HTMLElement {
     if (!card) return;
     this._updatePlayerContent(card);
     this._updateNavButtons(card);
-    if (this._outputPanelOpen && !this._outDragging && this._outputPanelSignature() !== this._outPanelSig) {
+    if (this._outputPanelOpen && !this._outDragging && Date.now() >= (this._outVolHoldUntil || 0)
+        && this._outputPanelSignature() !== this._outPanelSig) {
       this._renderOutputPanel(card);
     }
     const activeTabDef = this._resolvedTabs.find(t => t.id === this._tab);
@@ -4381,7 +4416,9 @@ class MyMusicLibraryCard extends HTMLElement {
         <div class="out-vol-row${isGroup ? " group" : ""}">
           <span class="out-vol-name" title="${this._esc(isGroup ? label : this._outputFullName(eid))}">${this._esc(label)}</span>
           ${isGroup ? `<span class="out-vol-icon">${ICONS.group}</span>` : `<button type="button" class="out-mute${muted ? " on" : ""}" data-mute="${this._esc(eid)}" title="${this._t("btns.mute")}">${muted ? ICONS.volumeMute : ICONS.volumeHigh}</button>`}
+          <button type="button" class="out-vol-step" data-step="-1" title="${this._t("outputs.volume_down")}">${ICONS.minus}</button>
           <input type="range" min="0" max="100" value="${value}" ${isGroup ? `data-group-vol="${this._esc(eid)}"` : `data-vol="${this._esc(eid)}"`}>
+          <button type="button" class="out-vol-step" data-step="1" title="${this._t("outputs.volume_up")}">${ICONS.plus}</button>
           <span class="out-vol-pct">${value}%</span>
         </div>`;
     };
@@ -4466,6 +4503,14 @@ class MyMusicLibraryCard extends HTMLElement {
     return "";
   }
 
+  _applyOutVolume(range) {
+    if (range.dataset.vol) {
+      this._hass.callService("media_player", "volume_set", { entity_id: range.dataset.vol, volume_level: Number(range.value) / 100 });
+    } else if (range.dataset.groupVol) {
+      this._outputAction({ action: "group_volume", leader: range.dataset.groupVol, volume: Number(range.value) }, { reload: false });
+    }
+  }
+
   _bindOutputPanel(card, panel) {
     const pop = () => panel.querySelector(".out-info-pop");
     panel.addEventListener("pointerdown", (e) => {
@@ -4479,11 +4524,7 @@ class MyMusicLibraryCard extends HTMLElement {
       const t = e.target;
       if (!t.matches('input[type="range"]')) return;
       this._outDragging = false;
-      if (t.dataset.vol) {
-        this._hass.callService("media_player", "volume_set", { entity_id: t.dataset.vol, volume_level: Number(t.value) / 100 });
-      } else if (t.dataset.groupVol) {
-        this._outputAction({ action: "group_volume", leader: t.dataset.groupVol, volume: Number(t.value) }, { reload: false });
-      }
+      this._applyOutVolume(t);
     });
     panel.addEventListener("click", (e) => {
       const t = e.target;
@@ -4510,6 +4551,17 @@ class MyMusicLibraryCard extends HTMLElement {
         if (this._loadPref("mml_default_player") === eid) this._removePref("mml_default_player");
         else this._savePref("mml_default_player", eid);
         this._renderOutputPanel(card);
+      } else if ((el = btn(".out-vol-step"))) {
+        const range = el.closest(".out-vol-row")?.querySelector('input[type="range"]');
+        if (!range) return;
+        const value = Math.max(0, Math.min(100, Number(range.value) + Number(el.dataset.step) * OUT_VOLUME_STEP));
+        if (value === Number(range.value)) return;
+        range.value = String(value);
+        const pct = el.closest(".out-vol-row").querySelector(".out-vol-pct");
+        if (pct) pct.textContent = `${value}%`;
+        // Successive taps build on the displayed value: hold the panel re-render until HA has caught up.
+        this._outVolHoldUntil = Date.now() + OUT_VOLUME_HOLD_MS;
+        this._applyOutVolume(range);
       } else if ((el = btn(".out-mute"))) {
         const eid = el.dataset.mute;
         this._hass.callService("media_player", "volume_mute", { entity_id: eid, is_volume_muted: !this._hass.states[eid]?.attributes?.is_volume_muted });
