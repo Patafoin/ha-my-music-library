@@ -2,6 +2,13 @@
 
 > **4.8.2 is the first public release of the 4.x line.** Versions 4.0.0 to 4.8.1 were never published: together, the entries from 4.5.0 to 4.8.2 below describe everything 4.8.2 brings since 3.14.0.
 
+## 4.19.1 — Radios in the search, volume buttons everywhere
+- **New** — the search shows **radios** too, in their own section: tap one to play it. Under each one, where it comes from (your library, RadioBrowser, TuneIn…), since several stations often share a name.
+- **Changed** — search sections are now ordered artists, albums, playlists, radios, then tracks at the bottom.
+- **New** — card option **`volume_controls`** (visual editor: *Output panel volume*): what the volume rows of the output panel show — `slider`, `buttons` (– / + by 2 %, no slider) or `both`, on a phone as on a computer. The default, `auto`, keeps 4.18.0's behaviour: slider and buttons on a phone, slider alone on a computer.
+- **Fix** — radios found by the search had no artwork: Home Assistant looked for them under the wrong name in Music Assistant's results.
+- **Fix** — Wikimedia logos (common on RadioBrowser stations) now show: Wikimedia refuses thumbnail widths outside its own list, so the card asks for an accepted one. Artwork that is really gone (many RadioBrowser stations point to old Radio France favicons) shows the radio icon instead of a music note.
+
 ## 4.18.0 — Volume on phones
 - **New** — on a phone, every volume row of the output panel (**Group** mode) gets **–** and **+** buttons that change the volume by 2 % per tap, for the whole group as for each output ([#21](https://github.com/Patafoin/ha-my-music-library/issues/21)).
 - **Changed** — on a phone, each volume row puts the output name, the percentage and the mute button on a first line, with the slider on its own line under it: about twice as long, so finer to set. Nothing changes on a computer.

@@ -2,7 +2,7 @@
 
 A full-featured Music Assistant player card for Home Assistant: now playing, live queue, search, library and artist pages, playlists, and an output panel to move or group the music between speakers — with its own `media_player` entities for your automations.
 
-![Version](https://img.shields.io/badge/version-4.18.0-blue)
+![Version](https://img.shields.io/badge/version-4.19.1-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2026.2%2B-brightgreen)
 [![Marketplace (HACS)](https://img.shields.io/badge/Marketplace%20%28HACS%29-default-41BDF5)](https://hacs.xyz/)
 
@@ -84,7 +84,7 @@ Details: [Changelog](https://github.com/Patafoin/ha-my-music-library/blob/main/C
 - **Now Playing** — album art, track title, artist, progress bar, volume control; a title or artist too long for the player scrolls sideways after 3 seconds, so it can be read in full
 - **Playback controls** — play/pause, previous, next, shuffle, repeat (off / all / one) — shuffle and repeat are greyed out while Music Assistant plays a dynamic source (radio, dynamic playlist), which it doesn't allow
 - **Queue** — live queue display alongside the player, updated as soon as Music Assistant changes it (pushed, no polling), persisted server-side per player across page reloads and devices
-- **Search** — full-text search across artists, albums, tracks and playlists via Music Assistant; also searches local library (filenames) for more complete results
+- **Search** — full-text search across artists, albums, playlists, radios and tracks via Music Assistant (each radio shows where it comes from: your library, RadioBrowser, TuneIn…); also searches local library (filenames) for more complete results
 - **Library** — your Music Assistant favorites (artists, albums, playlists, tracks, radios…) with a source filter (All / Local / Streaming); **Browse mode** to navigate the filesystem directory tree and play folders
 - **Discovery tab** — Music Assistant's recommendation folders (recently played, recently added, suggestions…), one section per folder
 - **Artist page** — the artist's favorites from your library, plus their full album catalog, split into albums, EPs, singles and live albums; reachable from search, the library, or the "Artist" button of the player
@@ -446,6 +446,7 @@ nav_buttons_right:
 | `entity` | `string` | — | Pre-select a media_player entity. User's runtime choice is saved in localStorage. With `show_device_select: false`, this output is fixed: it wins over the device's saved or pinned output. |
 | `profile` | `string` | — | Name (or id) of the [profile](#one-home-assistant-user-several-profiles-shared-tablets) this card runs as, among those its Home Assistant user may use. Empty: the user's default profile. |
 | `show_device_select` | `boolean` | `true` | Show the output row at the bottom of the player tab (and in the playlist tab's mini player). Set to `false` to hide it. Hidden anyway when only one player is available (nothing to choose); shown with "No player found" when there is none. |
+| `volume_controls` | `string` | `auto` | Volume rows of the output panel: `slider`, `buttons` (– / + by 2 %, no slider) or `both`, on every screen. `auto`: slider and buttons on a phone, slider alone on a computer. |
 | `show_other_players` | `boolean` | `false` | Also offer Home Assistant media players that are not Music Assistant players (Echo, TV, browser_mod…) — in the output panel's **Control** mode only, since they can't play Music Assistant's queue or join its groups. |
 | `devices` | `map` | — | Per-output overrides, keyed by entity ID: `name` (short name shown in the card), `icon` (`mdi:…`), `hidden: true` (never offered by this card). Editable in the visual editor's **Outputs** section. |
 

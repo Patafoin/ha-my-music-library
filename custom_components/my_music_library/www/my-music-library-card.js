@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "4.18.0";
+const CARD_VERSION = "4.19.1";
 // Player tab title / artist too wide for their box: scroll after this delay, at this speed
 const MARQUEE_DELAY_MS = 3000;
 const MARQUEE_END_PAUSE_MS = 1500;
@@ -13,6 +13,9 @@ const MARQUEE_SPEED_PX_S = 40;
 // Output panel volume buttons (mobile): step in %, and how long the panel waits for HA before re-rendering after a tap.
 const OUT_VOLUME_STEP = 2;
 const OUT_VOLUME_HOLD_MS = 1500;
+// Card option volume_controls: what each volume row of the output panel shows.
+// "auto" = slider + – / + buttons on a phone, slider alone on a computer (4.18.0 behaviour).
+const VOLUME_CONTROLS = ["auto", "slider", "buttons", "both"];
 
 // HA MediaPlayerEntityFeature bits
 const FEATURE_SHUFFLE_SET = 32768;
@@ -101,6 +104,7 @@ const TRANSLATIONS = {
       player_label: "Player",
       console_hint: "Check browser console (F12) for details.",
       artists: "Artists", albums: "Albums", tracks: "Tracks", playlists: "Playlists", radios: "Radios",
+      in_library: "Library",
     },
     lib: {
       loading: "Loading library…",
@@ -245,6 +249,11 @@ const TRANSLATIONS = {
       search_layout_rows: "Rows",
       search_layout_columns: "Columns",
       show_device_select: "Show the output row",
+      volume_controls: "Output panel volume",
+      volume_controls_auto: "Automatic (buttons on a phone)",
+      volume_controls_slider: "Slider",
+      volume_controls_buttons: "– / + buttons",
+      volume_controls_both: "Slider and – / + buttons",
       show_other_players: "Offer other Home Assistant players (Control mode)",
       profile: "Music Assistant profile",
       profile_default: "Default profile of the user",
@@ -310,6 +319,7 @@ const TRANSLATIONS = {
       player_label: "Lecteur",
       console_hint: "Consultez la console du navigateur (F12) pour plus de détails.",
       artists: "Artistes", albums: "Albums", tracks: "Titres", playlists: "Playlists", radios: "Radios",
+      in_library: "Bibliothèque",
     },
     lib: {
       loading: "Chargement de la bibliothèque…",
@@ -454,6 +464,11 @@ const TRANSLATIONS = {
       search_layout_rows: "Lignes",
       search_layout_columns: "Colonnes",
       show_device_select: "Afficher la ligne de sortie",
+      volume_controls: "Volume du panneau des sorties",
+      volume_controls_auto: "Automatique (boutons sur téléphone)",
+      volume_controls_slider: "Curseur",
+      volume_controls_buttons: "Boutons – / +",
+      volume_controls_both: "Curseur et boutons – / +",
       show_other_players: "Proposer les autres lecteurs Home Assistant (mode Contrôler)",
       profile: "Profil Music Assistant",
       profile_default: "Profil par défaut de l'utilisateur",
@@ -519,6 +534,7 @@ const TRANSLATIONS = {
       player_label: "Player",
       console_hint: "Browser-Konsole (F12) für Details prüfen.",
       artists: "Künstler", albums: "Alben", tracks: "Titel", playlists: "Playlists", radios: "Radios",
+      in_library: "Bibliothek",
     },
     lib: {
       loading: "Bibliothek wird geladen…",
@@ -663,6 +679,11 @@ const TRANSLATIONS = {
       search_layout_rows: "Zeilen",
       search_layout_columns: "Spalten",
       show_device_select: "Ausgabezeile anzeigen",
+      volume_controls: "Lautstärke im Ausgabe-Panel",
+      volume_controls_auto: "Automatisch (Tasten auf dem Handy)",
+      volume_controls_slider: "Schieberegler",
+      volume_controls_buttons: "Tasten – / +",
+      volume_controls_both: "Schieberegler und Tasten – / +",
       show_other_players: "Andere Home-Assistant-Player anbieten (Modus Steuern)",
       profile: "Music-Assistant-Profil",
       profile_default: "Standardprofil des Benutzers",
@@ -2219,6 +2240,35 @@ const STYLES = `
   .mml-mobile .out-vol-step[data-step="-1"] { grid-area: minus; }
   .mml-mobile .out-vol-step[data-step="1"] { grid-area: plus; }
 
+  /* Card option volume_controls (output panel): slider / buttons / both on every screen. "auto" = the rules above. */
+  .out-volumes.vol-both .out-vol-step, .out-volumes.vol-buttons .out-vol-step {
+    display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0;
+    border-radius: 50%; border: 1px solid var(--border); background: var(--bg2); color: var(--text); cursor: pointer;
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  }
+  .out-volumes.vol-both .out-vol-step:active, .out-volumes.vol-buttons .out-vol-step:active { background: color-mix(in srgb, var(--accent) 25%, var(--bg2)); }
+  .out-volumes.vol-both .out-vol-step svg, .out-volumes.vol-buttons .out-vol-step svg { width: 16px; height: 16px; fill: currentColor; }
+  .out-volumes.vol-both .out-vol-step[data-step="-1"], .out-volumes.vol-buttons .out-vol-step[data-step="-1"] { grid-area: minus; }
+  .out-volumes.vol-both .out-vol-step[data-step="1"], .out-volumes.vol-buttons .out-vol-step[data-step="1"] { grid-area: plus; }
+  .out-volumes.vol-both .out-vol-row {
+    grid-template-columns: minmax(70px, 30%) 28px 28px 1fr 28px 36px; grid-template-areas: "name mute minus range plus pct";
+  }
+  .out-volumes.vol-buttons .out-vol-row {
+    grid-template-columns: minmax(70px, 1fr) 28px 28px 44px 28px; grid-template-areas: "name mute minus pct plus";
+  }
+  .out-volumes.vol-buttons .out-vol-row input[type=range] { display: none; }
+  .out-volumes.vol-buttons .out-vol-pct { text-align: center; }
+  .mml-mobile .out-volumes.vol-both .out-vol-step, .mml-mobile .out-volumes.vol-buttons .out-vol-step { width: 40px; height: 40px; }
+  .mml-mobile .out-volumes.vol-both .out-vol-step svg, .mml-mobile .out-volumes.vol-buttons .out-vol-step svg { width: 20px; height: 20px; }
+  .mml-mobile .out-volumes.vol-both .out-vol-row {
+    grid-template-columns: 40px 1fr 44px 40px; grid-template-areas: "name name pct mute" "minus range range plus";
+  }
+  .mml-mobile .out-volumes.vol-slider .out-vol-step { display: none; }
+  .mml-mobile .out-volumes.vol-slider .out-vol-row { grid-template-areas: "name name pct mute" "range range range range"; }
+  .mml-mobile .out-volumes.vol-buttons .out-vol-row {
+    grid-template-columns: minmax(0, 1fr) 40px 40px 48px 40px; grid-template-areas: "name mute minus pct plus";
+  }
+
   /* Device modal action buttons (attach/detach) */
   .mml-mobile .device-item-action {
     width: 38px; height: 38px; min-width: 38px; padding: 0;
@@ -2908,7 +2958,7 @@ class MyMusicLibraryCard extends HTMLElement {
         const isRound = classes.includes("round");
         const ph = document.createElement("div");
         ph.className = [primary + "-placeholder", ...classes.slice(1)].join(" ");
-        ph.innerHTML = isRound ? ICONS.artist : ICONS.music;
+        ph.innerHTML = ICONS[img.dataset.icon] || (isRound ? ICONS.artist : ICONS.music);
         img.replaceWith(ph);
       }, true);
     }
@@ -4424,7 +4474,7 @@ class MyMusicLibraryCard extends HTMLElement {
     };
     return `
       <div class="out-section-title">${this._t("outputs.volumes")}</div>
-      <div class="out-volumes">
+      <div class="out-volumes${this._volumeControls() === "auto" ? "" : ` vol-${this._volumeControls()}`}">
         ${members.length ? row(leader, this._t("outputs.group_volume"), true) : ""}
         ${ids.map(id => row(id, this._outputName(id))).join("")}
       </div>`;
@@ -4501,6 +4551,12 @@ class MyMusicLibraryCard extends HTMLElement {
         </div>`;
     }
     return "";
+  }
+
+  /* Card option volume_controls (4.19.0); an unknown value falls back to "auto". */
+  _volumeControls() {
+    const v = this._config?.volume_controls;
+    return VOLUME_CONTROLS.includes(v) ? v : "auto";
   }
 
   _applyOutVolume(range) {
@@ -4891,18 +4947,21 @@ class MyMusicLibraryCard extends HTMLElement {
      MA returns either a flat {tracks,artists,albums,playlists} or
      a nested {results: {tracks,...}}. */
   _parseMaWsSearchResults(data) {
-    const out = { tracks: [], artists: [], albums: [], playlists: [] };
+    const out = { tracks: [], artists: [], albums: [], playlists: [], radios: [] };
     const root = data?.results || data || {};
-    const map = { tracks: "track", artists: "artist", albums: "album", playlists: "playlist" };
+    const map = { tracks: "track", artists: "artist", albums: "album", playlists: "playlist", radios: "radio" };
     for (const [key, type] of Object.entries(map)) {
-      const items = root[key] || [];
+      // MA's SearchResults names the radio list "radio" (singular)
+      const items = (key === "radios" ? (root.radio || root.radios) : root[key]) || [];
       for (const item of items) {
         const rawThumb = item.thumbnail || item.metadata?.images?.[0]?.path || item.image?.path || (typeof item.image === "string" ? item.image : null) || null;
         out[key].push({
           id: item.uri || item.item_id || "",
           type,
           title: item.name || item.title || "",
-          subtitle: item.artists?.[0]?.name || item.artist?.name || item.owner_name || "",
+          subtitle: type === "radio"
+            ? this._radioSource(item)
+            : (item.artists?.[0]?.name || item.artist?.name || item.owner_name || ""),
           thumbnail: this._makeThumbUrl(rawThumb),
           can_play: true,
         });
@@ -4913,8 +4972,18 @@ class MyMusicLibraryCard extends HTMLElement {
     return total > 0 ? out : null;
   }
 
+  /* Search result subtitle of a radio: where it comes from (several stations often share a name:
+     FIP in the library, on RadioBrowser, on TuneIn…). */
+  _radioSource(item) {
+    const prov = item.provider || "";
+    if (!prov || prov === "library") return prov ? this._t("search.in_library") : "";
+    const known = (this._maProviders || []).find(p => p.instance_id === prov)
+      || (this._maProviders || []).find(p => p.domain === prov.split("--")[0]);
+    return known?.name || prov.split("--")[0];
+  }
+
   _mergeSearchResults(a, b) {
-    const merged = { tracks: [], artists: [], albums: [], playlists: [] };
+    const merged = { tracks: [], artists: [], albums: [], playlists: [], radios: [] };
     for (const key of Object.keys(merged)) {
       const items = [...(a[key] || [])];
       const seen = new Set(items.map(i => `${(i.id || "").toLowerCase()}|${(i.title || "").toLowerCase()}`));
@@ -4953,8 +5022,9 @@ class MyMusicLibraryCard extends HTMLElement {
     const sections = [
       { key: "artists",   label: this._t("search.artists"),   icon: "artist",   card: true },
       { key: "albums",    label: this._t("search.albums"),    icon: "album",    card: true },
-      { key: "tracks",    label: this._t("search.tracks"),    icon: "music",    card: false },
       { key: "playlists", label: this._t("search.playlists"), icon: "playlist", card: true },
+      { key: "radios",    label: this._t("search.radios"),    icon: "radio",    card: true },
+      { key: "tracks",    label: this._t("search.tracks"),    icon: "music",    card: false },
     ];
 
     const populated = sections.filter(s => (results[s.key] || []).length > 0);
@@ -5031,7 +5101,7 @@ class MyMusicLibraryCard extends HTMLElement {
 
   _renderResultItem(item, iconName) {
     const thumb = item.thumbnail
-      ? `<img class="result-thumb" src="${this._resolveImageUrl(item.thumbnail)}" alt="" loading="lazy">`
+      ? `<img class="result-thumb" src="${this._resolveImageUrl(item.thumbnail)}" alt="" loading="lazy" data-icon="${this._esc(iconName || "")}">`
       : `<div class="result-thumb-placeholder">${ICONS[iconName] || ICONS.music}</div>`;
     const queueType = item.type === "track" || iconName === "music" ? "track" : item.type;
     const canQueue = ["track", "music", "album", "playlist", "artist"].includes(queueType);
@@ -5704,7 +5774,7 @@ class MyMusicLibraryCard extends HTMLElement {
     const artClass = `search-card-art${round ? " round" : ""}`;
     const placeholderClass = `search-card-art-placeholder${round ? " round" : ""}`;
     const art = item.thumbnail
-      ? `<img class="${artClass}" src="${this._resolveImageUrl(item.thumbnail)}" alt="" loading="lazy">`
+      ? `<img class="${artClass}" src="${this._resolveImageUrl(item.thumbnail)}" alt="" loading="lazy" data-icon="${this._esc(iconName || "")}">`
       : `<div class="${placeholderClass}">${ICONS[iconName] || ICONS.music}</div>`;
     const type = item.type || iconName;
     const action = type === "artist" ? "browse" : (type === "track" ? "play" : "play-queue");
@@ -6807,6 +6877,14 @@ class MyMusicLibraryCardEditor extends HTMLElement {
           <input id="ed-show-device" type="checkbox" ${cfg.show_device_select !== false ? "checked" : ""}>
         </div>
         <div class="editor-row">
+          <label>${this._t("editor.volume_controls")}</label>
+          <select id="ed-volume-controls">
+            ${VOLUME_CONTROLS.map(v =>
+              `<option value="${v}" ${(VOLUME_CONTROLS.includes(cfg.volume_controls) ? cfg.volume_controls : "auto") === v ? "selected" : ""}>${this._t(`editor.volume_controls_${v}`)}</option>`
+            ).join("")}
+          </select>
+        </div>
+        <div class="editor-row">
           <label>${this._t("editor.show_other_players")}</label>
           <input id="ed-show-other-players" type="checkbox" ${cfg.show_other_players ? "checked" : ""}>
         </div>
@@ -7161,6 +7239,12 @@ class MyMusicLibraryCardEditor extends HTMLElement {
     });
     wrap.querySelector("#ed-show-device")?.addEventListener("change", (e) => {
       this._config = { ...this._config, show_device_select: e.target.checked };
+      this._fireChanged();
+    });
+    wrap.querySelector("#ed-volume-controls")?.addEventListener("change", (e) => {
+      this._config = { ...this._config };
+      if (e.target.value === "auto") delete this._config.volume_controls;
+      else this._config.volume_controls = e.target.value;
       this._fireChanged();
     });
     wrap.querySelector("#ed-show-other-players")?.addEventListener("change", (e) => {

@@ -6,6 +6,7 @@ import dataclasses
 import enum
 import hashlib
 import logging
+import re
 from http import HTTPStatus
 from types import SimpleNamespace
 from typing import Any
@@ -113,7 +114,8 @@ def _serialize_search_results(results: Any) -> dict:
         return {"tracks": [], "artists": [], "albums": [], "playlists": []}
     safe = _to_json_safe(results)
     if isinstance(safe, dict):
-        for key in ("tracks", "artists", "albums", "playlists", "radios"):
+        # MA names the radio list "radio" (singular)
+        for key in ("tracks", "artists", "albums", "playlists", "radio"):
             for item in safe.get(key) or []:
                 if isinstance(item, dict):
                     item["thumbnail"] = _item_thumb_url(item)
@@ -1380,6 +1382,27 @@ def _is_image_id(value: str) -> bool:
     return len(value) == 64 and all(c in "0123456789abcdef" for c in value)
 
 
+# Wikimedia only serves thumbnails in these widths ("Use thumbnail sizes listed
+# on https://w.wiki/GHai", HTTP 400 otherwise); RadioBrowser often asks for others.
+_WIKIMEDIA_THUMB_WIDTHS = (20, 40, 60, 120, 250, 330, 500, 960, 1280, 1920, 3840)
+_WIKIMEDIA_THUMB_RE = re.compile(
+    r"^(https?://(?:upload|thumb)\.wikimedia\.org/.+/thumb/.+/)(\d+)px-([^/?]+)(\?.*)?$"
+)
+
+
+def _wikimedia_thumb_url(url: str) -> str | None:
+    """A Wikimedia thumbnail URL with a width Wikimedia refuses, set to an accepted one.
+
+    None when the URL is not such a thumbnail, or its width is already accepted.
+    """
+    if not (m := _WIKIMEDIA_THUMB_RE.match(url)):
+        return None
+    if int(m.group(2)) in _WIKIMEDIA_THUMB_WIDTHS:
+        return None
+    width = min(_WIKIMEDIA_THUMB_WIDTHS, key=lambda w: abs(w - THUMB_SIZE))
+    return f"{m.group(1)}{width}px-{m.group(3)}{m.group(4) or ''}"
+
+
 def _imageproxy_urls(ma_url: str, path: str, provider: str, image_id: str = "") -> list[str]:
     """URLs of an image on MA's image proxy, newest form first.
 
@@ -1430,7 +1453,7 @@ class MAThumbnailView(HomeAssistantView):
 
         urls_to_try: list[str] = []
         if raw_path.startswith("http"):
-            urls_to_try.append(raw_path)
+            urls_to_try.append(_wikimedia_thumb_url(raw_path) or raw_path)
         if ma_url and provider:
             urls_to_try += _imageproxy_urls(ma_url, raw_path, provider, image_id)
         if ma_url:
