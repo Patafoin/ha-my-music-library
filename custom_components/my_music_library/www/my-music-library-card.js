@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-const CARD_VERSION = "4.19.1";
+const CARD_VERSION = "4.20.2";
 // Player tab title / artist too wide for their box: scroll after this delay, at this speed
 const MARQUEE_DELAY_MS = 3000;
 const MARQUEE_END_PAUSE_MS = 1500;
@@ -70,13 +70,15 @@ const ICONS = {
   wave: `<svg viewBox="0 0 24 24"><path d="M21 6c-1.66 0-3 1.34-3 3 0 .55.15 1.06.41 1.5L15 14.5l-2.59-2.59c.35-.51.59-1.12.59-1.91 0-1.66-1.34-3-3-3s-3 1.34-3 3c0 .79.24 1.4.59 1.91L3 16.5 4.5 18l5-5L12 15.5l5-5 .5.5c.44.26.95.41 1.5.41 1.66 0 3-1.34 3-3s-1.34-3-3-3z"/></svg>`,
   list: `<svg viewBox="0 0 24 24"><path d="M4 14h4v-4H4v4zm0 5h4v-4H4v4zM4 9h4V5H4v4zm5 5h12v-4H9v4zm0 5h12v-4H9v4zM9 5v4h12V5H9z"/></svg>`,
   grid: `<svg viewBox="0 0 24 24"><path d="M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z"/></svg>`,
+  infoOutline: `<svg viewBox="0 0 24 24"><path d="M11 9h2V7h-2m1 13c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m-1 15h2v-6h-2v6z"/></svg>`,
+  copy: `<svg viewBox="0 0 24 24"><path d="M19 21H8V7h11m0-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m-3-4H4a2 2 0 0 0-2 2v14h2V3h12V1z"/></svg>`,
   warning: `<svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>`,
 };
 
 /* ─── i18n ────────────────────────────────────────────────── */
 const TRANSLATIONS = {
   en: {
-    tabs: { player: "Player", search: "Search", library: "Library", playlist: "Playlist", settings: "Settings", discovery: "Discovery", queue: "Queue" },
+    tabs: { player: "Player", search: "Search", library: "Library", playlist: "Playlist", settings: "Settings", discovery: "Discovery", queue: "Queue", browse: "Browse" },
     player: {
       nothing_playing: "Nothing playing",
       select_player: "Select a player",
@@ -132,6 +134,15 @@ const TRANSLATIONS = {
       browse_play: "Play",
       browse_error: "Could not load folder contents",
       browse_empty: "Empty folder",
+      browse_path_info: "Path of this folder",
+      browse_path_title: "Path of this folder",
+      browse_path_uri: "Path",
+      browse_path_yaml: "Browse tab opening on this folder (YAML)",
+      browse_copy: "Copy",
+      browse_copied: "Copied",
+      browse_copy_failed: "Could not copy: select the text and copy it by hand",
+      browse_back: "Back",
+      browse_path_missing: "Nothing at {path}: the folder may have moved, or the source been removed or added again in Music Assistant.",
     },
     album_tracks: { open: "Show tracks", play_all: "Play the album", close: "Close", empty: "No tracks", load_error: "Could not load the tracks", play_only: "Play only this track", playing_from: "Playing the album from" },
     artist: {
@@ -148,6 +159,17 @@ const TRANSLATIONS = {
     },
     queue: { up_next: "Up Next", empty: "Queue is empty", play_next: "Play next", add_to_end: "Add to end", added_next: "Added after current track", added_end: "Added to end of queue", remove: "Remove", toggle: "Toggle queue", start_mix: "Start a mix", mix_preparing: "Preparing the mix…", mix_started: "Mix started" },
     errors: { media_not_found: "Media not found on source", play_failed: "Playback failed" },
+    config_warn: {
+      invalid_tab_id: "Tab {n}: id “{id}” is not valid (lowercase letters, digits, - and _, 32 characters at most, not “settings”): “{used}” is used instead.",
+      duplicate_tab_id: "Tab {n}: id “{id}” is already used by an earlier tab: “{used}” is used instead.",
+      tab_id_not_allowed: "Tab {n} ({type}): this type of tab takes no id, it is ignored.",
+      invalid_card_id: "card_id “{id}” is not valid (lowercase letters, digits and _, 32 characters at most): the tab is not exposed.",
+      expose_without_card_id: "expose_tab needs a card_id: the tab is not exposed.",
+      too_many_cards: "Tab not exposed: Home Assistant already has {max} exposed cards. Remove some in the integration's options (Exposed cards).",
+      expose_failed: "Tab not exposed: {msg}",
+      invalid_path: "Tab {n}: “{id}” is not a Music Assistant path (source://…): it is ignored.",
+      path_provider_ignored: "Tab {n}: provider is ignored, the path “{id}” already names its source.",
+    },
     connection: {
       title: "Music Assistant reconnection needed",
       desc: "The connection to Music Assistant is down — search, library and playback won't work until this is fixed.",
@@ -198,6 +220,22 @@ const TRANSLATIONS = {
       layout_auto: "Auto",
     },
     editor: {
+      tab_id: "Identifier",
+      tab_id_hint: "Automatic: {id}",
+      tab_id_help: "Stable id of the tab (lowercase letters, digits, - and _): used by mml_navigate_tab, default_tab, the exposed tab entity and the per-tab memories of this device. Empty = automatic id, which changes when tabs are reordered.",
+      card_id: "Card id",
+      card_id_hint: "e.g. lab (lowercase letters, digits, _)",
+      expose_tab: "Expose the tab in Home Assistant",
+      expose_tab_entity: "Entity: {entity}. Buttons, conditional cards, scripts and automations can read and change the tab shown. Every card with this card id follows the same tab, on every screen.",
+      expose_tab_needs_id: "Set a valid card id to expose the tab.",
+      tab_path: "Path",
+      tab_path_hint: "e.g. radiobrowser://category/country/rs",
+      tab_path_help: "Folder this tab opens on, and never goes above. Copy it with the ⓘ button next to the path of any browse tab. It names its source: no need for the source field.",
+      tab_show_path: "Show the path",
+      tab_view: "Display",
+      tab_view_auto: "List / grid button",
+      tab_view_list: "List",
+      tab_view_grid: "Grid",
       default_tab: "Default tab",
       entity: "Entity (media_player)",
       entity_hint: "e.g. media_player.living_room",
@@ -235,10 +273,14 @@ const TRANSLATIONS = {
       type_search: "Search",
       type_library: "Library",
       type_discovery: "Discovery",
+      type_browse: "Browse",
       type_queue: "Queue",
       type_playlist: "Playlist",
       type_settings: "Settings",
       type_button: "Button",
+      tab_provider: "Music source",
+      tab_provider_all: "All sources",
+      tab_provider_hint: "Only this Music Assistant source: its favorites (Library), its recommendations (Discovery), its own folders (Browse).",
       playlist_select: "Playlist",
       playlist_select_placeholder: "Choose a playlist…",
       confirm_delete: "Remove this tab?",
@@ -291,7 +333,7 @@ const TRANSLATIONS = {
     },
   },
   fr: {
-    tabs: { player: "Lecteur", search: "Recherche", library: "Bibliothèque", playlist: "Playlist", settings: "Paramètres", discovery: "Découverte", queue: "File d'attente" },
+    tabs: { player: "Lecteur", search: "Recherche", library: "Bibliothèque", playlist: "Playlist", settings: "Paramètres", discovery: "Découverte", queue: "File d'attente", browse: "Parcourir" },
     player: {
       nothing_playing: "Rien en cours de lecture",
       select_player: "Sélectionnez un lecteur",
@@ -347,6 +389,15 @@ const TRANSLATIONS = {
       browse_play: "Lire",
       browse_error: "Impossible de charger le contenu du dossier",
       browse_empty: "Dossier vide",
+      browse_path_info: "Chemin de ce dossier",
+      browse_path_title: "Chemin de ce dossier",
+      browse_path_uri: "Chemin",
+      browse_path_yaml: "Onglet Parcourir ouvert sur ce dossier (YAML)",
+      browse_copy: "Copier",
+      browse_copied: "Copié",
+      browse_copy_failed: "Copie impossible : sélectionnez le texte et copiez-le à la main",
+      browse_back: "Retour",
+      browse_path_missing: "Rien à l'adresse {path} : le dossier a peut-être changé, ou la source a été supprimée ou rajoutée dans Music Assistant.",
     },
     album_tracks: { open: "Afficher les titres", play_all: "Lire l'album", close: "Fermer", empty: "Aucun titre", load_error: "Impossible de charger les titres", play_only: "Lire seulement ce titre", playing_from: "Lecture de l'album à partir de" },
     artist: {
@@ -363,6 +414,17 @@ const TRANSLATIONS = {
     },
     queue: { up_next: "À suivre", empty: "File d'attente vide", play_next: "Lire après le titre en cours", add_to_end: "Ajouter à la fin", added_next: "Ajouté après le titre en cours", added_end: "Ajouté à la fin de la file d'attente", remove: "Supprimer", toggle: "Afficher/masquer la file", start_mix: "Lancer un mix", mix_preparing: "Préparation du mix…", mix_started: "Mix lancé" },
     errors: { media_not_found: "Média introuvable sur la source", play_failed: "Échec de la lecture" },
+    config_warn: {
+      invalid_tab_id: "Onglet {n} : l'id « {id} » n'est pas valide (minuscules, chiffres, - et _, 32 caractères au plus, pas « settings ») : « {used} » est utilisé à la place.",
+      duplicate_tab_id: "Onglet {n} : l'id « {id} » est déjà pris par un onglet précédent : « {used} » est utilisé à la place.",
+      tab_id_not_allowed: "Onglet {n} ({type}) : ce type d'onglet ne prend pas d'id, il est ignoré.",
+      invalid_card_id: "card_id « {id} » n'est pas valide (minuscules, chiffres et _, 32 caractères au plus) : l'onglet n'est pas exposé.",
+      expose_without_card_id: "expose_tab demande un card_id : l'onglet n'est pas exposé.",
+      too_many_cards: "Onglet non exposé : Home Assistant a déjà {max} cartes exposées. Retirez-en dans les options de l'intégration (Cartes exposées).",
+      expose_failed: "Onglet non exposé : {msg}",
+      invalid_path: "Onglet {n} : « {id} » n'est pas un chemin Music Assistant (source://…) : il est ignoré.",
+      path_provider_ignored: "Onglet {n} : provider est ignoré, le chemin « {id} » indique déjà sa source.",
+    },
     connection: {
       title: "Reconnexion à Music Assistant nécessaire",
       desc: "La connexion à Music Assistant est coupée — recherche, bibliothèque et lecture ne fonctionneront pas tant que ce n'est pas résolu.",
@@ -413,6 +475,22 @@ const TRANSLATIONS = {
       layout_auto: "Auto",
     },
     editor: {
+      tab_id: "Identifiant",
+      tab_id_hint: "Automatique : {id}",
+      tab_id_help: "Id stable de l'onglet (minuscules, chiffres, - et _) : utilisé par mml_navigate_tab, default_tab, l'entité de l'onglet exposé et les mémorisations par onglet de cet appareil. Vide = id automatique, qui change quand on réordonne les onglets.",
+      card_id: "Identifiant de la carte",
+      card_id_hint: "ex. lab (minuscules, chiffres, _)",
+      expose_tab: "Exposer l'onglet dans Home Assistant",
+      expose_tab_entity: "Entité : {entity}. Boutons, cartes conditionnelles, scripts et automatisations peuvent lire et changer l'onglet affiché. Toutes les cartes de cet identifiant suivent le même onglet, sur tous les écrans.",
+      expose_tab_needs_id: "Indiquez un identifiant de carte valide pour exposer l'onglet.",
+      tab_path: "Chemin",
+      tab_path_hint: "ex. radiobrowser://category/country/rs",
+      tab_path_help: "Dossier sur lequel l'onglet s'ouvre, sans pouvoir remonter au-dessus. Copiez-le avec le bouton ⓘ à côté du chemin de n'importe quel onglet Parcourir. Il indique sa source : inutile de remplir le champ de la source.",
+      tab_show_path: "Afficher le chemin",
+      tab_view: "Affichage",
+      tab_view_auto: "Bouton liste / grille",
+      tab_view_list: "Liste",
+      tab_view_grid: "Grille",
       default_tab: "Onglet par défaut",
       entity: "Entité (media_player)",
       entity_hint: "ex. media_player.salon",
@@ -450,10 +528,14 @@ const TRANSLATIONS = {
       type_search: "Recherche",
       type_library: "Bibliothèque",
       type_discovery: "Découverte",
+      type_browse: "Parcourir",
       type_queue: "File d'attente",
       type_playlist: "Playlist",
       type_settings: "Paramètres",
       type_button: "Bouton",
+      tab_provider: "Source musicale",
+      tab_provider_all: "Toutes les sources",
+      tab_provider_hint: "Uniquement cette source Music Assistant : ses favoris (Bibliothèque), ses recommandations (Découverte), ses propres dossiers (Parcourir).",
       playlist_select: "Playlist",
       playlist_select_placeholder: "Choisir une playlist…",
       confirm_delete: "Supprimer cet onglet ?",
@@ -506,7 +588,7 @@ const TRANSLATIONS = {
     },
   },
   de: {
-    tabs: { player: "Wiedergabe", search: "Suche", library: "Bibliothek", playlist: "Playlist", settings: "Einstellungen", discovery: "Entdecken", queue: "Warteschlange" },
+    tabs: { player: "Wiedergabe", search: "Suche", library: "Bibliothek", playlist: "Playlist", settings: "Einstellungen", discovery: "Entdecken", queue: "Warteschlange", browse: "Durchsuchen" },
     player: {
       nothing_playing: "Nichts wird abgespielt",
       select_player: "Player auswählen",
@@ -562,6 +644,15 @@ const TRANSLATIONS = {
       browse_play: "Abspielen",
       browse_error: "Ordnerinhalt konnte nicht geladen werden",
       browse_empty: "Leerer Ordner",
+      browse_path_info: "Pfad dieses Ordners",
+      browse_path_title: "Pfad dieses Ordners",
+      browse_path_uri: "Pfad",
+      browse_path_yaml: "Durchsuchen-Tab, der in diesem Ordner öffnet (YAML)",
+      browse_copy: "Kopieren",
+      browse_copied: "Kopiert",
+      browse_copy_failed: "Kopieren nicht möglich: Text markieren und von Hand kopieren",
+      browse_back: "Zurück",
+      browse_path_missing: "Nichts unter {path}: Der Ordner wurde vielleicht verschoben, oder die Quelle in Music Assistant entfernt oder neu hinzugefügt.",
     },
     album_tracks: { open: "Titel anzeigen", play_all: "Album abspielen", close: "Schließen", empty: "Keine Titel", load_error: "Titel konnten nicht geladen werden", play_only: "Nur diesen Titel abspielen", playing_from: "Album wird abgespielt ab" },
     artist: {
@@ -578,6 +669,17 @@ const TRANSLATIONS = {
     },
     queue: { up_next: "Als Nächstes", empty: "Warteschlange ist leer", play_next: "Als Nächstes abspielen", add_to_end: "Am Ende hinzufügen", added_next: "Nach dem aktuellen Titel hinzugefügt", added_end: "Am Ende der Warteschlange hinzugefügt", remove: "Entfernen", toggle: "Warteschlange ein-/ausblenden", start_mix: "Mix starten", mix_preparing: "Mix wird vorbereitet…", mix_started: "Mix gestartet" },
     errors: { media_not_found: "Medium auf der Quelle nicht gefunden", play_failed: "Wiedergabe fehlgeschlagen" },
+    config_warn: {
+      invalid_tab_id: "Tab {n}: Die ID „{id}“ ist ungültig (Kleinbuchstaben, Ziffern, - und _, höchstens 32 Zeichen, nicht „settings“): Stattdessen wird „{used}“ verwendet.",
+      duplicate_tab_id: "Tab {n}: Die ID „{id}“ wird bereits von einem vorherigen Tab verwendet: Stattdessen wird „{used}“ verwendet.",
+      tab_id_not_allowed: "Tab {n} ({type}): Dieser Tab-Typ hat keine ID, sie wird ignoriert.",
+      invalid_card_id: "card_id „{id}“ ist ungültig (Kleinbuchstaben, Ziffern und _, höchstens 32 Zeichen): Der Tab wird nicht freigegeben.",
+      expose_without_card_id: "expose_tab braucht eine card_id: Der Tab wird nicht freigegeben.",
+      too_many_cards: "Tab nicht freigegeben: Home Assistant hat bereits {max} freigegebene Karten. Entferne welche in den Optionen der Integration (Freigegebene Karten).",
+      expose_failed: "Tab nicht freigegeben: {msg}",
+      invalid_path: "Tab {n}: „{id}“ ist kein Music-Assistant-Pfad (quelle://…): Er wird ignoriert.",
+      path_provider_ignored: "Tab {n}: provider wird ignoriert, der Pfad „{id}“ nennt bereits seine Quelle.",
+    },
     connection: {
       title: "Erneute Verbindung zu Music Assistant erforderlich",
       desc: "Die Verbindung zu Music Assistant ist unterbrochen — Suche, Bibliothek und Wiedergabe funktionieren erst wieder, wenn dies behoben ist.",
@@ -628,6 +730,22 @@ const TRANSLATIONS = {
       layout_auto: "Auto",
     },
     editor: {
+      tab_id: "Kennung",
+      tab_id_hint: "Automatisch: {id}",
+      tab_id_help: "Feste ID des Tabs (Kleinbuchstaben, Ziffern, - und _): verwendet von mml_navigate_tab, default_tab, der Entität des freigegebenen Tabs und den Tab-Einstellungen dieses Geräts. Leer = automatische ID, die sich beim Umsortieren der Tabs ändert.",
+      card_id: "Karten-ID",
+      card_id_hint: "z. B. lab (Kleinbuchstaben, Ziffern, _)",
+      expose_tab: "Tab in Home Assistant freigeben",
+      expose_tab_entity: "Entität: {entity}. Tasten, bedingte Karten, Skripte und Automationen können den angezeigten Tab lesen und ändern. Alle Karten mit dieser Karten-ID folgen demselben Tab, auf allen Bildschirmen.",
+      expose_tab_needs_id: "Gib eine gültige Karten-ID an, um den Tab freizugeben.",
+      tab_path: "Pfad",
+      tab_path_hint: "z. B. radiobrowser://category/country/rs",
+      tab_path_help: "Ordner, in dem der Tab öffnet, ohne darüber hinaus zu gehen. Kopiere ihn mit der ⓘ-Taste neben dem Pfad eines beliebigen Durchsuchen-Tabs. Er nennt seine Quelle: Das Quellenfeld ist nicht nötig.",
+      tab_show_path: "Pfad anzeigen",
+      tab_view: "Anzeige",
+      tab_view_auto: "Listen-/Raster-Taste",
+      tab_view_list: "Liste",
+      tab_view_grid: "Raster",
       default_tab: "Standard-Tab",
       entity: "Entität (media_player)",
       entity_hint: "z.B. media_player.wohnzimmer",
@@ -665,10 +783,14 @@ const TRANSLATIONS = {
       type_search: "Suche",
       type_library: "Bibliothek",
       type_discovery: "Entdecken",
+      type_browse: "Durchsuchen",
       type_queue: "Warteschlange",
       type_playlist: "Playlist",
       type_settings: "Einstellungen",
       type_button: "Schaltfläche",
+      tab_provider: "Musikquelle",
+      tab_provider_all: "Alle Quellen",
+      tab_provider_hint: "Nur diese Music-Assistant-Quelle: ihre Favoriten (Bibliothek), ihre Empfehlungen (Entdecken), ihre eigenen Ordner (Durchsuchen).",
       playlist_select: "Playlist",
       playlist_select_placeholder: "Playlist auswählen…",
       confirm_delete: "Diesen Tab entfernen?",
@@ -1606,6 +1728,57 @@ const STYLES = `
   .browse-play-btn:hover { color: var(--accent); background: rgba(255,255,255,.06); }
   .browse-play-btn svg { width: 18px; height: 18px; fill: currentColor; }
   .browse-chevron { color: var(--text2); opacity: .4; display: flex; align-items: center; }
+
+  /* Browse: breadcrumb + list / grid toggle (4.20.1) */
+  .browse-bar { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--border); flex-shrink: 0; padding-right: 8px; }
+  .browse-bar .browse-breadcrumb { flex: 1; min-width: 0; border-bottom: none; }
+  .browse-view-toggle {
+    width: 32px; height: 32px; flex-shrink: 0; border: none; background: none; cursor: pointer;
+    color: var(--text2); border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  }
+  .browse-view-toggle:hover { background: rgba(255,255,255,.06); color: var(--text); }
+  .browse-bar-btn {
+    height: 32px; min-width: 32px; flex-shrink: 0; border: none; background: none; cursor: pointer;
+    color: var(--text2); border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 2px;
+    font-size: 12px; padding: 0 6px;
+  }
+  .browse-bar-btn:hover { background: rgba(255,255,255,.06); color: var(--text); }
+  .browse-bar-btn svg { width: 18px; height: 18px; fill: currentColor; flex-shrink: 0; }
+  .browse-back-btn { color: var(--accent); margin-left: 8px; max-width: 70%; }
+  .browse-back-btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .browse-bar-spacer { flex: 1; }
+  .browse-path-label { font-size: 12px; color: var(--text2); margin: 10px 0 4px; }
+  .browse-path-row { display: flex; align-items: flex-start; gap: 8px; }
+  .browse-path-text {
+    flex: 1; min-width: 0; margin: 0; padding: 8px 10px; border-radius: 6px; background: color-mix(in srgb, var(--text) 6%, transparent);
+    font-family: var(--code-font-family, monospace); font-size: 12px; color: var(--text);
+    white-space: pre-wrap; word-break: break-all; user-select: all;
+  }
+  .browse-copy-btn {
+    width: 36px; height: 36px; flex-shrink: 0; border: none; border-radius: 50%; cursor: pointer;
+    background: rgba(255,255,255,.06); color: var(--text); display: flex; align-items: center; justify-content: center;
+  }
+  .browse-copy-btn svg { width: 18px; height: 18px; fill: currentColor; }
+  .browse-copy-btn.copied { color: var(--accent); }
+  .browse-view-toggle svg { width: 18px; height: 18px; fill: currentColor; }
+  .browse-list.browse-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 14px 12px;
+    padding: 12px 16px;
+  }
+  .browse-grid .browse-item {
+    flex-direction: column; align-items: stretch; gap: 6px; min-width: 0;
+    padding: 6px; border-bottom: none; border-radius: 10px;
+  }
+  .browse-grid .browse-item-icon { width: 100%; height: auto; aspect-ratio: 1; border-radius: 8px; }
+  .browse-grid .browse-item-icon img { width: 100%; height: 100%; border-radius: 8px; }
+  .browse-grid .browse-item-icon svg { width: 40px; height: 40px; }
+  .browse-grid .browse-item-name { font-size: 12px; font-weight: 500; }
+  .browse-grid .browse-item-sub { font-size: 11px; }
+  .browse-grid .browse-item-actions { justify-content: flex-end; }
+  .browse-grid .browse-chevron { display: none; }
+  .mml-mobile .browse-grid .browse-item { padding: 6px; }
   .browse-chevron svg { width: 16px; height: 16px; fill: currentColor; }
 
   .search-section { margin-bottom: 4px; }
@@ -2367,13 +2540,73 @@ function throttle(fn, ms) {
 }
 
 /* ─── Main Card Class ─────────────────────────────────────── */
+/* 4.20.0: explicit tab `id` and exposed card (`card_id` + `expose_tab`, entity select.mml_<card_id>_tab). */
+const TAB_ID_RE = /^[a-z0-9][a-z0-9_-]{0,31}$/;
+const CARD_ID_RE = /^[a-z0-9_]{1,32}$/;
+// Panel tabs that may carry an explicit `id` (settings is a window, button / custom_element have no panel).
+const ID_WARNING_CODES = ["tab_id_not_allowed", "invalid_tab_id", "duplicate_tab_id"];
+const ID_TAB_TYPES = ["player", "queue", "search", "library", "discovery", "browse", "playlist"];
+const _exposedEntityId = (cardId) => `select.mml_${cardId}_tab`;
+// A Music Assistant browse path: <provider instance>://<anything> (4.20.2, browse tab option `path`).
+const BROWSE_PATH_RE = /^[A-Za-z0-9_-]+:\/\/\S*$/;
+const BROWSE_VIEWS = ["list", "grid"];
+// `provider` given with `path`: same source when it is the path's instance id or its type (domain).
+const _pathMatchesProvider = (path, provider) => {
+  const scheme = path.split("://")[0].toLowerCase();
+  const p = String(provider).trim().toLowerCase();
+  return scheme === p || scheme.startsWith(p + "--");
+};
+
 /* Pure function of `config` — shared by MyMusicLibraryCard (to build its actual
    panels) and MyMusicLibraryCardEditor (to compute the same tab ids so nav
-   actions like mml_navigate_tab can target a specific tab unambiguously). */
+   actions like mml_navigate_tab can target a specific tab unambiguously).
+   The returned array carries `warnings` ([{ code, index, id, type, used }]): invalid or
+   duplicated explicit ids. Without `id`, a tab keeps the automatic id of earlier versions
+   (type, then type-1, type-2…); on a conflict, the first tab keeps the id. */
 function _buildResolvedTabs(config) {
+  const tabs = _buildResolvedTabsRaw(config);
+  const warnings = [];
+  const used = new Set();
+  tabs.forEach((tab, index) => {
+    const raw = config.tabs?.[index]?.id;
+    let wanted = tab.id;
+    if (raw !== undefined && raw !== null && raw !== "") {
+      const explicit = String(raw).trim();
+      if (!ID_TAB_TYPES.includes(tab.type)) {
+        warnings.push({ code: "tab_id_not_allowed", index, id: explicit, type: tab.type });
+      } else if (!TAB_ID_RE.test(explicit) || explicit === "settings") {
+        warnings.push({ code: "invalid_tab_id", index, id: explicit, type: tab.type });
+      } else if (used.has(explicit)) {
+        warnings.push({ code: "duplicate_tab_id", index, id: explicit, type: tab.type });
+      } else {
+        wanted = explicit;
+        tab.explicitId = true;
+      }
+    }
+    if (used.has(wanted)) {
+      // An automatic id taken by an earlier tab's explicit id (or a rejected duplicate): next free suffix.
+      if (!tab.explicitId && wanted === tab.id && !warnings.some(w => w.index === index && ID_WARNING_CODES.includes(w.code))) {
+        warnings.push({ code: "duplicate_tab_id", index, id: wanted, type: tab.type });
+      }
+      let n = 1;
+      while (used.has(`${tab.id}-${n}`)) n++;
+      wanted = `${tab.id}-${n}`;
+    }
+    const w = warnings.find(x => x.index === index && ID_WARNING_CODES.includes(x.code));
+    if (w) w.used = wanted;
+    if (tab.rawPath && !tab.path) warnings.push({ code: "invalid_path", index, id: tab.rawPath, type: tab.type });
+    if (tab.providerIgnored) warnings.push({ code: "path_provider_ignored", index, id: tab.path, type: tab.type });
+    tab.id = wanted;
+    used.add(wanted);
+  });
+  tabs.warnings = warnings;
+  return tabs;
+}
+
+function _buildResolvedTabsRaw(config) {
   const DEFAULT_SECTIONS = ["artists", "albums", "playlists", "tracks"];
   const VALID_SECTIONS = ["artists", "albums", "playlists", "tracks", "radios", "recently_played", "recently_added", "recommended", "flows"];
-  const TAB_ICONS = { player: "player", search: "search", library: "library", playlist: "playlist", settings: "settings", discovery: "sparkle", queue: "queue" };
+  const TAB_ICONS = { player: "player", search: "search", library: "library", playlist: "playlist", settings: "settings", discovery: "sparkle", queue: "queue", browse: "folderOpen" };
 
   if (config.tabs && Array.isArray(config.tabs)) {
     let idx = 0;
@@ -2404,6 +2637,24 @@ function _buildResolvedTabs(config) {
         tab.sections = sections && sections.length ? sections : DEFAULT_SECTIONS;
         const VALID_LAYOUTS = ["lanes", "grid", "columns", "auto"];
         tab.layout = VALID_LAYOUTS.includes(t.layout) ? t.layout : "lanes";
+      }
+      // 4.20.0: one Music Assistant source for this tab (instance id, domain or name).
+      if (["library", "discovery", "browse"].includes(type) && t.provider) {
+        tab.provider = String(t.provider).trim() || null;
+      }
+      // 4.20.2: browse tab rooted at a Music Assistant path (e.g. radiobrowser://category/country/rs),
+      // breadcrumb shown or not, list / grid forced or left to the toggle.
+      if (type === "browse") {
+        const path = t.path == null ? "" : String(t.path).trim();
+        if (path) tab.rawPath = path;
+        if (BROWSE_PATH_RE.test(path)) {
+          tab.path = path;
+          // The path names its source: it wins over `provider`.
+          tab.providerIgnored = !!tab.provider && !_pathMatchesProvider(path, tab.provider);
+          tab.provider = path.split("://")[0];
+        }
+        tab.show_path = t.show_path !== false;
+        tab.view = BROWSE_VIEWS.includes(t.view) ? t.view : null;
       }
       if (type === "player") {
         tab.show_queue = t.show_queue !== false;
@@ -2653,11 +2904,26 @@ class MyMusicLibraryCard extends HTMLElement {
   setConfig(config) {
     this._config = { default_tab: "player", ...config };
     this._resolvedTabs = _buildResolvedTabs(config);
-    // A default tab without a panel (e.g. "player" on a queue-only card) would leave the card empty.
-    const panelIds = this._resolvedTabs
-      .filter(t => !["button", "custom_element", "settings"].includes(t.type)).map(t => t.id);
-    const defaultTab = this._config.default_tab;
-    this._tab = panelIds.includes(defaultTab) ? defaultTab : (panelIds[0] || "player");
+    // default_tab: a tab id, else the first tab of that type. One without a panel (e.g. "player"
+    // on a queue-only card) would leave the card empty: first panel tab instead.
+    const panelIds = this._panelTabs().map(t => t.id);
+    this._tab = this._resolveTabTarget(this._config.default_tab)?.id || panelIds[0] || "player";
+    // Exposed card (4.20.0): its tab lives in select.mml_<card_id>_tab.
+    const cardId = config.card_id == null ? "" : String(config.card_id).trim();
+    this._configWarnings = [...(this._resolvedTabs.warnings || [])];
+    if (cardId && !CARD_ID_RE.test(cardId)) this._configWarnings.push({ code: "invalid_card_id", id: cardId });
+    else if (config.expose_tab && !cardId) this._configWarnings.push({ code: "expose_without_card_id" });
+    const exposeId = config.expose_tab === true && CARD_ID_RE.test(cardId) ? cardId : null;
+    const exposeKey = exposeId ? `${exposeId}|${panelIds.join(",")}` : null;
+    if (exposeKey !== this._exposeKey) {
+      this._stopTabExpose();
+      this._exposeKey = exposeKey;
+      this._exposeCardId = exposeId;
+      this._exposeError = null;
+      if (exposeId && this._hass && this.isConnected) this._startTabExpose();
+    }
+    for (const w of this._configWarnings) console.warn("[MML]", this._configWarningText(w));
+    this._updateConfigBanner();
     if (config.height != null && config.height !== "") {
       const h = typeof config.height === "number" ? `${config.height}px` : String(config.height);
       this.style.setProperty("--mml-height", h);
@@ -2689,6 +2955,12 @@ class MyMusicLibraryCard extends HTMLElement {
       this._fetchMaConfig();
     }
     if (!this._queuePushUnsub && this.isConnected) this._subscribeQueuePush();
+    if (!this._rendered && this._exposeCardId) {
+      // Exposed card: open on the entity's tab straight away (no flash of default_tab).
+      const st = hass.states?.[_exposedEntityId(this._exposeCardId)]?.state;
+      if (this._panelTabs().some(t => t.id === st)) this._tab = st;
+    }
+    if (this._exposeCardId && !this._tabExpose && this.isConnected) this._startTabExpose();
 
     this._players = this._getMaPlayers();
 
@@ -2727,6 +2999,7 @@ class MyMusicLibraryCard extends HTMLElement {
   connectedCallback() {
     this._startProgressTick();
     if (this._hass) this._subscribeQueuePush();
+    if (this._hass && this._exposeCardId) this._startTabExpose();
     // hui-card (HA wrapper) has auto height by default — force it to fill its grid cell
     // so our height:100% resolves to the actual allocated height instead of auto.
     requestAnimationFrame(() => {
@@ -2747,6 +3020,7 @@ class MyMusicLibraryCard extends HTMLElement {
     this._marqueeObserver?.disconnect();
     this._marqueeObserver = null;
     this._unsubscribeQueuePush();
+    this._stopTabExpose();
     // Force config re-fetch on next reconnect so excluded_players stays in sync
     // with any options changes made while the card was away from the DOM.
     this._maConfigLoaded = false;
@@ -2808,7 +3082,7 @@ class MyMusicLibraryCard extends HTMLElement {
       if (this._libLoadedTabs.size > 0) {
         this._libLoadedTabs.clear();
         const activeTabDef = this._resolvedTabs?.find(t => t.id === this._tab);
-        if (activeTabDef?.type === "library") this._loadLibrary();
+        if (activeTabDef?.type === "library" || activeTabDef?.type === "browse") this._loadLibrary();
       }
       if (this._discoveryLoadedTabs.size > 0) {
         this._discoveryLoadedTabs.clear();
@@ -2919,6 +3193,7 @@ class MyMusicLibraryCard extends HTMLElement {
       library: (t) => this._renderLibraryTab(t),
       playlist: (t) => this._renderPlaylistTab(t),
       discovery: (t) => this._renderDiscoveryTab(t),
+      browse: (t) => this._renderBrowseTab(t),
     };
 
     card.innerHTML = `
@@ -2937,6 +3212,10 @@ class MyMusicLibraryCard extends HTMLElement {
           <span>${this._t("connection.profile_missing_desc")}</span>
         </div>
       </div>
+      <div class="mml-connection-banner" id="mml-config-banner" hidden>
+        ${ICONS.warning}
+        <div class="mml-connection-banner-text" id="mml-config-banner-text"></div>
+      </div>
       ${this._renderNav()}
       <div class="content">
         ${panels.map(t => panelRenderers[t.type] ? panelRenderers[t.type](t) : "").join("")}
@@ -2947,6 +3226,7 @@ class MyMusicLibraryCard extends HTMLElement {
     `;
     root.appendChild(card);
     this._updateConnectionBanner(card);
+    this._updateConfigBanner(card);
 
     if (!this._imgErrorBound) {
       this._imgErrorBound = true;
@@ -3064,7 +3344,7 @@ class MyMusicLibraryCard extends HTMLElement {
   _renderPlayerTab(tabDef) {
     const showQueue = tabDef?.show_queue !== false;
     return `
-      <div class="tab-panel" data-panel="player">
+      <div class="tab-panel" data-panel="${this._esc(this._firstTabId("player") || "player")}">
         <div class="player-tab-body">
           <div class="player-panel">
             <div class="player-art-section">
@@ -3138,7 +3418,7 @@ class MyMusicLibraryCard extends HTMLElement {
 
   _renderSearchTab() {
     return `
-      <div class="tab-panel" data-panel="search">
+      <div class="tab-panel" data-panel="${this._esc(this._firstTabId("search") || "search")}">
         <div id="search-main" class="search-panel">
           <div class="search-bar-wrapper">
             <div class="search-input-row">
@@ -3161,22 +3441,38 @@ class MyMusicLibraryCard extends HTMLElement {
   _renderLibraryTab(tabDef) {
     const panelId = tabDef?.id || "library";
     const st = this._getLibTabState(panelId);
-    const src = st.source;
+    const src = this._libSourceFilter;
     const browse = st.browse;
+    // A tab bound to one source (`provider`) has no source filter, and can always browse.
+    const fixed = !!tabDef?.provider;
     return `
       <div class="tab-panel" data-panel="${panelId}">
         <div class="library-panel">
           <div class="lib-filters">
-            <div class="lib-filter-group">
+            <div class="lib-filter-group" style="${fixed ? "display:none" : ""}">
               <button class="lib-filter-btn ${src === "all" ? "active" : ""}" data-source="all">${this._t("lib.filter_all")}</button>
               <button class="lib-filter-btn ${src === "local" ? "active" : ""}" data-source="local">${this._t("lib.filter_local")}</button>
               <button class="lib-filter-btn ${src === "streaming" ? "active" : ""}" data-source="streaming">${this._t("lib.filter_streaming")}</button>
             </div>
-            <div class="browse-mode-toggle" style="${src !== "local" ? "display:none" : ""}">
+            <div class="browse-mode-toggle" style="${this._libBrowseAllowed(panelId) ? "" : "display:none"}">
               <button class="browse-mode-btn ${!browse ? "active" : ""}" data-browse="false">${this._t("lib.mode_catalogue")}</button>
               <button class="browse-mode-btn ${browse ? "active" : ""}" data-browse="true">${this._t("lib.mode_browse")}</button>
             </div>
           </div>
+          <div class="lib-content" id="lib-content-inner">
+            <div class="loader"><div class="spinner"></div> ${this._t("lib.loading")}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  /* 4.20.0: Music Assistant's own folders, every source (or the tab's `provider`). Same
+     browse code as the library's Browse mode: its per-tab state has `browse` always on. */
+  _renderBrowseTab(tabDef) {
+    const panelId = tabDef?.id || "browse";
+    return `
+      <div class="tab-panel" data-panel="${panelId}">
+        <div class="library-panel">
           <div class="lib-content" id="lib-content-inner">
             <div class="loader"><div class="spinner"></div> ${this._t("lib.loading")}</div>
           </div>
@@ -3299,10 +3595,7 @@ class MyMusicLibraryCard extends HTMLElement {
           return;
         }
         this._setActiveTab(tab, card);
-        const tabDef = this._resolvedTabs.find(t => t.id === tab);
-        if (tabDef?.type === "library" && !this._libLoadedTabs.has(tab)) this._loadLibrary();
-        if (tabDef?.type === "playlist" && !this._plLoadedTabs.has(tab)) this._loadPlaylistTab(tabDef);
-        if (tabDef?.type === "discovery" && !this._discoveryLoadedTabs.has(tab)) this._loadDiscovery(tab);
+        this._ensureTabLoaded(this._resolvedTabs.find(t => t.id === tab));
       });
     });
 
@@ -3567,16 +3860,14 @@ class MyMusicLibraryCard extends HTMLElement {
         if (!tabTypeOrId) break;
         const card = this.shadowRoot?.querySelector(".card-root");
         if (!card) break;
-        const tabDef = this._resolvedTabs.find(t => t.id === tabTypeOrId) ||
+        const tabDef = this._resolvedTabs.find(t => t.id === tabTypeOrId && !["button", "custom_element"].includes(t.type)) ||
                        this._resolvedTabs.find(t => t.type === tabTypeOrId);
         if (!tabDef) break;
         if (tabDef.type === "settings") {
           this._openSettings(card);
         } else {
           this._setActiveTab(tabDef.id, card);
-          if (tabDef.type === "library" && !this._libLoadedTabs.has(tabDef.id)) this._loadLibrary();
-          if (tabDef.type === "playlist" && !this._plLoadedTabs.has(tabDef.id)) this._loadPlaylistTab(tabDef);
-          if (tabDef.type === "discovery" && !this._discoveryLoadedTabs.has(tabDef.id)) this._loadDiscovery(tabDef.id);
+          this._ensureTabLoaded(tabDef);
         }
         break;
       }
@@ -3641,10 +3932,141 @@ class MyMusicLibraryCard extends HTMLElement {
   }
 
   /* ── Tab switching ── */
-  _setActiveTab(tab, card) {
+  _setActiveTab(tab, card, { fromEntity = false } = {}) {
     this._tab = tab;
     card.querySelectorAll(".nav-tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
     card.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.dataset.panel === tab));
+    // A change that came from the entity is not sent back to it (no loop).
+    if (!fromEntity) this._publishTab();
+  }
+
+  /* Panel tabs (no button / custom_element / settings): the ids an exposed card offers. */
+  _panelTabs() {
+    return (this._resolvedTabs || []).filter(t => !["button", "custom_element", "settings"].includes(t.type));
+  }
+
+  _firstTabId(type) {
+    return (this._resolvedTabs || []).find(t => t.type === type)?.id || null;
+  }
+
+  /* Target of default_tab / the entity: a panel tab id first, else the first panel tab of that type. */
+  _resolveTabTarget(value) {
+    if (!value) return null;
+    const panels = this._panelTabs();
+    return panels.find(t => t.id === value) || panels.find(t => t.type === value) || null;
+  }
+
+  _tabLabel(t) {
+    if (t.label) return t.label;
+    if (t.type === "playlist" && t.playlist_label) return t.playlist_label;
+    return this._t(`tabs.${t.type}`);
+  }
+
+  /* ── Exposed card (4.20.0): select.mml_<card_id>_tab ──
+     register (creates the entity / updates its options) → the entity's tab wins over default_tab,
+     else this card publishes its own → subscribe (every change, whatever its origin).
+     exp.state = the entity's tab as last known; a tab change is sent only when it differs. */
+  async _startTabExpose() {
+    const cardId = this._exposeCardId;
+    if (!cardId || this._tabExpose || !this._hass?.callWS || !this.isConnected) return;
+    const exp = { cardId, ready: false, state: undefined, pending: 0, lastPushed: undefined, unsub: null };
+    this._tabExpose = exp;
+    // The card editor's preview must not create entities while card_id is being typed. hui-card may set
+    // `preview` after `hass`: checked on the next turn. A preview keeps its (never ready) exp: no retry.
+    await new Promise(r => setTimeout(r, 0));
+    if (this._tabExpose !== exp || this.preview) return;
+    const tabs = this._panelTabs().map(t => ({ id: t.id, label: String(this._tabLabel(t) || "") }));
+    try {
+      const res = await this._hass.callWS({ type: "my_music_library/card_tab/register", card_id: cardId, tabs });
+      if (this._tabExpose !== exp) return;
+      this._exposeError = null;
+      this._updateConfigBanner();
+      exp.state = res?.tab ?? null;
+      exp.ready = true;
+      if (exp.state && this._panelTabs().some(t => t.id === exp.state)) this._applyEntityTab(exp.state);
+      else this._publishTab();
+      this._debugLog("Tab exposed:", res?.entity_id, "tab:", exp.state);
+      const unsub = await this._hass.connection.subscribeMessage(
+        (msg) => this._onTabPush(exp, msg),
+        { type: "my_music_library/card_tab/subscribe", card_id: cardId },
+      );
+      if (this._tabExpose !== exp) Promise.resolve().then(() => unsub()).catch(() => {});
+      else exp.unsub = unsub;
+    } catch (err) {
+      if (this._tabExpose !== exp) return;
+      this._debugLog("Tab exposure failed:", err);
+      // Kept (not ready) so that hass updates don't retry in a loop; a new connection retries.
+      if (err?.code !== "not_loaded") {
+        this._exposeError = err;
+        this._updateConfigBanner();
+      }
+    }
+  }
+
+  _stopTabExpose() {
+    const exp = this._tabExpose;
+    this._tabExpose = null;
+    if (exp?.unsub) Promise.resolve().then(() => exp.unsub()).catch(() => {});
+  }
+
+  _onTabPush(exp, msg) {
+    if (this._tabExpose !== exp) return;
+    exp.lastPushed = msg?.tab ?? null;
+    // While our own changes are on their way, the pushes are their echoes: settled when the last one returns.
+    if (exp.pending > 0) return;
+    this._receiveEntityTab(exp, exp.lastPushed);
+  }
+
+  _receiveEntityTab(exp, tab) {
+    exp.state = tab;
+    if (tab && tab !== this._tab && this._panelTabs().some(t => t.id === tab)) this._applyEntityTab(tab);
+  }
+
+  /* Show the entity's tab without publishing it back. */
+  _applyEntityTab(tab) {
+    const card = this.shadowRoot?.querySelector(".card-root");
+    if (!card) { this._tab = tab; return; }
+    this._setActiveTab(tab, card, { fromEntity: true });
+    this._ensureTabLoaded(this._resolvedTabs.find(t => t.id === tab));
+  }
+
+  _publishTab() {
+    const exp = this._tabExpose;
+    if (!exp?.ready) return;
+    const tab = this._tab;
+    if (tab === exp.state || !this._panelTabs().some(t => t.id === tab)) return;
+    exp.state = tab;
+    exp.pending++;
+    let failed = false;
+    this._hass.callWS({ type: "my_music_library/card_tab/set", card_id: exp.cardId, tab })
+      .catch((err) => { failed = true; this._debugLog("Tab publish failed:", err); })
+      .finally(() => {
+        exp.pending--;
+        if (this._tabExpose !== exp || exp.pending > 0) return;
+        if (failed) { exp.state = undefined; return; }
+        // Another screen (or an automation) changed the tab meanwhile: follow it.
+        if (exp.lastPushed !== undefined && exp.lastPushed !== exp.state) this._receiveEntityTab(exp, exp.lastPushed);
+      });
+  }
+
+  _configWarningText(w) {
+    const n = w.index !== undefined ? w.index + 1 : "";
+    if (w.code === "expose_error") return this._tf("config_warn.expose_failed", { msg: w.msg || "" });
+    return this._tf(`config_warn.${w.code}`, { n, id: w.id ?? "", type: w.type ?? "", used: w.used ?? "", max: 20 });
+  }
+
+  _updateConfigBanner(card) {
+    const root = card || this.shadowRoot?.querySelector(".card-root");
+    const el = root?.querySelector("#mml-config-banner");
+    if (!el) return;
+    const warnings = [...(this._configWarnings || [])];
+    const err = this._exposeError;
+    if (err) {
+      warnings.push(err.code === "too_many_cards" ? { code: "too_many_cards" } : { code: "expose_error", msg: err.message || err.code || String(err) });
+    }
+    el.hidden = warnings.length === 0;
+    const text = root.querySelector("#mml-config-banner-text");
+    if (text) text.innerHTML = warnings.map(w => `<span>${this._esc(this._configWarningText(w))}</span>`).join("");
   }
 
   /* ── Update (called on every hass update) ── */
@@ -3657,10 +4079,23 @@ class MyMusicLibraryCard extends HTMLElement {
         && this._outputPanelSignature() !== this._outPanelSig) {
       this._renderOutputPanel(card);
     }
-    const activeTabDef = this._resolvedTabs.find(t => t.id === this._tab);
-    if (activeTabDef?.type === "library" && !this._libLoadedTabs.has(this._tab)) this._loadLibrary();
-    if (activeTabDef?.type === "playlist" && !this._plLoadedTabs.has(this._tab)) this._loadPlaylistTab(activeTabDef);
-    if (activeTabDef?.type === "discovery" && !this._discoveryLoadedTabs.has(this._tab)) this._loadDiscovery(this._tab);
+    this._ensureTabLoaded(this._resolvedTabs.find(t => t.id === this._tab));
+  }
+
+  /* Load the content of a panel tab the first time it is shown (call after _setActiveTab:
+     _loadLibrary works on the active tab). */
+  _ensureTabLoaded(tabDef) {
+    if (!tabDef) return;
+    if ((tabDef.type === "library" || tabDef.type === "browse") && !this._libLoadedTabs.has(tabDef.id)) this._loadLibrary();
+    if (tabDef.type === "playlist" && !this._plLoadedTabs.has(tabDef.id)) this._loadPlaylistTab(tabDef);
+    if (tabDef.type === "discovery" && !this._discoveryLoadedTabs.has(tabDef.id)) this._loadDiscovery(tabDef.id);
+  }
+
+  /* After starting playback from a list: show the player, when the card has a player tab
+     (without one, _setActiveTab("player") would leave no panel visible). */
+  _showPlayerTab(card) {
+    const id = this._firstTabId("player");
+    if (id && card?.querySelector(`.tab-panel[data-panel="${id}"]`)) this._setActiveTab(id, card);
   }
 
   _updateNavButtons(card) {
@@ -4228,7 +4663,9 @@ class MyMusicLibraryCard extends HTMLElement {
       const tabDef = this._resolvedTabs?.find(t => t.id === this._tab);
       if (tabDef?.type === "playlist") this._loadPlaylistTab(tabDef);
     }
-    // Re-reads the providers, then reloads the library and discovery tabs already loaded.
+    // Browse paths belong to the previous account's sources (instance ids): back to the root.
+    for (const st of Object.values(this._libTabState)) st.browseStack = [];
+    // Re-reads the providers, then reloads the library, browse and discovery tabs already loaded.
     this._fetchProviders();
   }
 
@@ -4285,7 +4722,8 @@ class MyMusicLibraryCard extends HTMLElement {
   /* ── Output panel ── */
   _openOutputPanel(card, mode) {
     if (!card.querySelector("#out-panel")) return;
-    if (card.querySelector('.tab-panel[data-panel="player"]') && this._tab !== "player") this._setActiveTab("player", card);
+    const playerId = this._firstTabId("player");
+    if (playerId && card.querySelector(`.tab-panel[data-panel="${playerId}"]`) && this._tab !== playerId) this._setActiveTab(playerId, card);
     this._outputPanelOpen = true;
     this._outputMode = mode || this._defaultOutputMode;
     this._switchSel = new Set();
@@ -5123,21 +5561,85 @@ class MyMusicLibraryCard extends HTMLElement {
   _getLibTabState(tabId) {
     const id = tabId || this._tab;
     if (!this._libTabState[id]) {
+      const isBrowseTab = this._resolvedTabs?.find(t => t.id === id)?.type === "browse";
       this._libTabState[id] = {
         source: this._loadPref(`mml_lib_source_${id}`) || this._loadPref("mml_lib_source") || "all",
-        browse: false,
+        browse: isBrowseTab,
         browseStack: [],
       };
     }
     return this._libTabState[id];
   }
 
-  get _libSourceFilter() { return this._getLibTabState()?.source || "all"; }
+  get _libSourceFilter() { return this._tabProvider() ? "all" : (this._getLibTabState()?.source || "all"); }
   set _libSourceFilter(v) { this._getLibTabState().source = v; }
   get _libBrowseMode() { return this._getLibTabState()?.browse || false; }
   set _libBrowseMode(v) { this._getLibTabState().browse = v; }
   get _browseStack() { return this._getLibTabState()?.browseStack || []; }
   set _browseStack(v) { this._getLibTabState().browseStack = v; }
+
+  /* Browse mode of a library tab: local sources only, or the tab's own source. */
+  _libBrowseAllowed(tabId) {
+    return !!this._tabProvider(tabId) || this._getLibTabState(tabId).source === "local";
+  }
+
+  /* ── Tab bound to one source (4.20.0): `provider` of a library, discovery or browse tab ──
+     The value is a Music Assistant provider instance id, domain or name (case-insensitive),
+     resolved against the provider list once it is loaded. */
+  _tabProvider(tabId) {
+    const id = tabId || this._tab;
+    return this._resolvedTabs?.find(t => t.id === id)?.provider || null;
+  }
+
+  _resolveProvider(value) {
+    if (!value) return null;
+    const v = String(value).toLowerCase();
+    const list = this._maProviders || [];
+    return list.find(p => (p.instance_id || "").toLowerCase() === v)
+      || list.find(p => (p.domain || "").toLowerCase() === v)
+      || list.find(p => (p.name || "").toLowerCase() === v)
+      || null;
+  }
+
+  /* Provider key (instance id) of a tab, the raw value while unresolved (e.g. "builtin"). */
+  _tabProviderKey(tabId) {
+    const value = this._tabProvider(tabId);
+    if (!value) return null;
+    const p = this._resolveProvider(value);
+    return p ? (p.instance_id || p.domain) : value;
+  }
+
+  /* An instance id ("deezer--6ZsV") matches itself and its domain ("deezer"). */
+  _sameProvider(key, wanted) {
+    if (!key || !wanted) return false;
+    return key === wanted || key.startsWith(wanted + "--") || wanted.startsWith(key + "--");
+  }
+
+  /* Browse root of a tab: its source's root folder, or Music Assistant's root (null). */
+  _browseRootUri(tabId) {
+    const path = this._tabDef(tabId)?.path;
+    if (path) return path;
+    const key = this._tabProviderKey(tabId);
+    return key ? `${key}://` : null;
+  }
+
+  _tabDef(tabId) {
+    const id = tabId || this._tab;
+    return this._resolvedTabs?.find(t => t.id === id) || null;
+  }
+
+  _browseRootLabel(tabId) {
+    // A tab rooted at a path: its label, else the end of the path ("rs" for …/country/rs).
+    const def = this._tabDef(tabId);
+    if (def?.path) {
+      if (def.label) return def.label;
+      const rest = def.path.split("://")[1].replace(/\/+$/, "");
+      return rest ? rest.split("/").pop() : (this._resolveProvider(def.provider)?.name || def.provider);
+    }
+    const value = this._tabProvider(tabId);
+    if (!value) return this._t("lib.browse_root");
+    return this._resolveProvider(value)?.name || value;
+  }
 
   static _LOCAL_PROVIDERS = ["filesystem_local", "filesystem_smb", "filesystem_nfs", "plex"];
 
@@ -5153,17 +5655,19 @@ class MyMusicLibraryCard extends HTMLElement {
     return p && p !== "library" && p !== "builtin";
   }
 
-  _matchFolderProvider(key) {
+  _matchFolderProvider(key, tabId) {
     if (!key || key === "library" || key === "builtin") return true;
+    const own = this._tabProviderKey(tabId);
+    if (own) return this._sameProvider(key, own);
+    if (this._enabledProviders === null) return true;
     if (this._enabledProviders.has(key)) return true;
     return [...this._enabledProviders].some(ep => ep.startsWith(key + "_") || key.startsWith(ep.split("--")[0] + "--") || ep === key);
   }
 
-  _isFolderEnabled(f) {
+  _isFolderEnabled(f, tabId) {
     if (!this._isProviderFolder(f)) return true;
-    if (this._enabledProviders === null) return true;
     const inst = f.provider_instance || f.provider_domain || "";
-    return this._matchFolderProvider(inst);
+    return this._matchFolderProvider(inst, tabId);
   }
 
   /* Resolve a per-item icon for mixed-type collections (recommendation folders
@@ -5178,7 +5682,7 @@ class MyMusicLibraryCard extends HTMLElement {
     return "music";
   }
 
-  _filterLibItems(items) {
+  _filterLibItems(items, tabId) {
     let result = items;
 
     const _itemUri = (item) => item.media_content_id || item.uri || "";
@@ -5197,7 +5701,8 @@ class MyMusicLibraryCard extends HTMLElement {
       });
     }
 
-    if (this._enabledProviders !== null && this._enabledProviders.size > 0) {
+    // A tab with its own source is already scoped (server-side provider filter, provider folders).
+    if (!this._tabProvider(tabId) && this._enabledProviders !== null && this._enabledProviders.size > 0) {
       const _matchesAnyProvider = (key) => {
         if (this._enabledProviders.has(key)) return true;
         return [...this._enabledProviders].some(ep => ep.startsWith(key + "_") || ep === key);
@@ -5223,6 +5728,8 @@ class MyMusicLibraryCard extends HTMLElement {
 
   /* Returns list of enabled provider instance_ids when filtering is active, null otherwise. */
   _activeProviderFilter() {
+    const own = this._tabProviderKey();
+    if (own) return [own];
     if (this._enabledProviders === null || this._enabledProviders.size === 0) return null;
     if (this._enabledProviders.size >= this._maProviders.length) return null;
     return [...this._enabledProviders];
@@ -5279,7 +5786,7 @@ class MyMusicLibraryCard extends HTMLElement {
           b.classList.toggle("active", b.dataset.source === this._libSourceFilter));
         const toggle = panel.querySelector(".browse-mode-toggle");
         if (toggle) {
-          toggle.style.display = this._libSourceFilter === "local" ? "" : "none";
+          toggle.style.display = this._libBrowseAllowed() ? "" : "none";
           toggle.querySelectorAll(".browse-mode-btn").forEach(b =>
             b.classList.toggle("active", (b.dataset.browse === "true") === this._libBrowseMode));
         }
@@ -5300,7 +5807,7 @@ class MyMusicLibraryCard extends HTMLElement {
     this._debugLog("Library load start, browseMode:", this._libBrowseMode, "sourceFilter:", this._libSourceFilter);
 
     if (this._libBrowseMode) {
-      const currentUri = this._browseStack.length ? this._browseStack[this._browseStack.length - 1].uri : null;
+      const currentUri = this._browseStack.length ? this._browseStack[this._browseStack.length - 1].uri : this._browseRootUri();
       return this._loadBrowse(currentUri, libEl);
     }
     this._libLoadId = (this._libLoadId || 0) + 1;
@@ -5663,7 +6170,10 @@ class MyMusicLibraryCard extends HTMLElement {
     try {
       const data = await this._callIntegration("GET", "recommendations");
       if (loadId !== this._discoveryLoadId) return;
-      folders = (data?.folders || []).filter(f => this._isFolderEnabled(f));
+      // A tab with its own source keeps that source's folders only (not the library's own).
+      const own = this._tabProvider(id);
+      folders = (data?.folders || []).filter(f =>
+        (!own || this._isProviderFolder(f)) && this._isFolderEnabled(f, id));
     } catch (err) {
       this._debugLog("Discovery fetch failed:", err);
       if (loadId !== this._discoveryLoadId) return;
@@ -5672,7 +6182,7 @@ class MyMusicLibraryCard extends HTMLElement {
     }
 
     const sectionsHtml = folders.map(f => {
-      const items = this._filterLibItems(f.items || []);
+      const items = this._filterLibItems(f.items || [], id);
       if (!items.length) return "";
       const fid = this._esc(f.folder_id || f.name || "");
       const cardsHtml = items.map(i => this._renderLibCard(i, this._itemIcon(i))).join("");
@@ -5807,7 +6317,7 @@ class MyMusicLibraryCard extends HTMLElement {
           this._playItem(id, type);
           if (switchToPlayer) {
             const card = this.shadowRoot.querySelector(".card-root");
-            if (card) this._setActiveTab("player", card);
+            this._showPlayerTab(card);
           }
         }
       });
@@ -5979,7 +6489,7 @@ class MyMusicLibraryCard extends HTMLElement {
     if (!searchMain || !artistPanel) return;
 
     // Switch to search tab if not already there
-    this._setActiveTab("search", card);
+    this._setActiveTab(this._firstTabId("search") || "search", card);
     searchMain.style.display = "none";
     artistPanel.style.display = "";
 
@@ -6123,7 +6633,7 @@ class MyMusicLibraryCard extends HTMLElement {
     if (!this._hass || !this._activePlayer) return;
     const card = this.shadowRoot.querySelector(".card-root");
     if (!card) return;
-    this._setActiveTab("player", card);
+    this._showPlayerTab(card);
 
     this._debugLog("PlayQueue:", id, "type:", type, "on:", this._activePlayer);
     try {
@@ -6264,7 +6774,7 @@ class MyMusicLibraryCard extends HTMLElement {
   async _startRadioMode(id, type) {
     if (!this._hass || !this._activePlayer) return;
     const card = this.shadowRoot.querySelector(".card-root");
-    if (card) this._setActiveTab("player", card);
+    this._showPlayerTab(card);
     this._showToast(this._t("queue.mix_preparing"), 30000);
     try {
       await this._callServiceSilent("my_music_library", "play_media", {
@@ -6297,17 +6807,139 @@ class MyMusicLibraryCard extends HTMLElement {
   /* ── Browse mode ── */
 
   _buildBrowseNav() {
-    // Breadcrumb always rendered — present in all states (success, empty, error)
-    const crumbs = [{ uri: null, label: this._t("lib.browse_root") }, ...this._browseStack];
-    const crumbHtml = crumbs.map((c, i) => {
-      const isLast = i === crumbs.length - 1;
-      const sep = i > 0 ? `<span class="browse-sep">›</span>` : "";
-      return `${sep}<button class="browse-crumb ${isLast ? "current" : ""}" data-crumb-idx="${i}">${this._esc(c.label)}</button>`;
-    }).join("");
-    return `<div class="browse-breadcrumb" id="browse-crumbs">${crumbHtml}</div>`;
+    // Rendered in all states (success, empty, error). A tab bound to one source starts at that
+    // source's root, a tab with a `path` at that folder, named after it; it never goes above.
+    // Browse tab options (4.20.2): show_path: false → no breadcrumb (a back button below the root),
+    // view → no list / grid toggle; both → no bar at all.
+    const def = this._tabDef();
+    const showPath = def?.type !== "browse" || def.show_path !== false;
+    const parts = [];
+    if (showPath) {
+      const crumbs = [{ uri: null, label: this._browseRootLabel() }, ...this._browseStack];
+      const crumbHtml = crumbs.map((c, i) => {
+        const isLast = i === crumbs.length - 1;
+        const sep = i > 0 ? `<span class="browse-sep">›</span>` : "";
+        return `${sep}<button class="browse-crumb ${isLast ? "current" : ""}" data-crumb-idx="${i}">${this._esc(c.label)}</button>`;
+      }).join("");
+      parts.push(`<div class="browse-breadcrumb" id="browse-crumbs">${crumbHtml}</div>`);
+      if (this._browseCurrentUri()) {
+        parts.push(`<button class="browse-bar-btn browse-path-info-btn" title="${this._t("lib.browse_path_info")}">${ICONS.infoOutline}</button>`);
+      }
+    } else if (this._browseStack.length) {
+      parts.push(`<button class="browse-bar-btn browse-back-btn" title="${this._t("lib.browse_back")}">${ICONS.chevronLeft}<span>${this._esc(this._browseStack[this._browseStack.length - 1].label)}</span></button>`);
+    }
+    if (!(def?.type === "browse" && def.view)) {
+      const grid = this._browseView(this._tab) === "grid";
+      if (!showPath) parts.push(`<div class="browse-bar-spacer"></div>`);
+      parts.push(`<button class="browse-view-toggle" title="${this._t("playlist.toggle_view")}" aria-pressed="${grid}">${grid ? ICONS.list : ICONS.grid}</button>`);
+    }
+    return parts.length ? `<div class="browse-bar">${parts.join("")}</div>` : "";
+  }
+
+  /* URI of the folder shown (null = Music Assistant's root). */
+  _browseCurrentUri() {
+    return this._browseStack.length ? this._browseStack[this._browseStack.length - 1].uri : this._browseRootUri();
+  }
+
+  _browseCurrentLabel() {
+    return this._browseStack.length ? this._browseStack[this._browseStack.length - 1].label : this._browseRootLabel();
+  }
+
+  /* Browse view per tab on this device ("list" | "grid"): browse tabs and the library's Browse mode.
+     A browse tab's `view` option wins (no toggle then). */
+  _browseView(tabId) {
+    const def = this._tabDef(tabId);
+    if (def?.type === "browse" && def.view) return def.view;
+    return this._loadPref(`mml_browse_view_${tabId}`) === "grid" ? "grid" : "list";
+  }
+
+  /* YAML of a browse tab opening on this folder, as copied from the path window. */
+  _browseTabYaml(uri, label) {
+    return `- type: browse\n  path: ${JSON.stringify(uri)}\n  label: ${JSON.stringify(label || "")}`;
+  }
+
+  /* Path window (ⓘ of the breadcrumb): the folder's path and a browse tab on it, each with a copy button. */
+  _openBrowsePathInfo() {
+    const card = this.shadowRoot?.querySelector(".card-root");
+    const uri = this._browseCurrentUri();
+    if (!card || !uri) return;
+    card.querySelector("#browse-path-modal")?.remove();
+    const yaml = this._browseTabYaml(uri, this._browseCurrentLabel());
+    const row = (kind, text, label, pre) => `
+      <div class="browse-path-label">${this._t(label)}</div>
+      <div class="browse-path-row">
+        ${pre ? `<pre class="browse-path-text">${this._esc(text)}</pre>` : `<code class="browse-path-text">${this._esc(text)}</code>`}
+        <button class="browse-copy-btn" data-copy="${kind}" title="${this._t("lib.browse_copy")}">${ICONS.copy}</button>
+      </div>`;
+    const modal = document.createElement("div");
+    modal.className = "modal-overlay open browse-path-modal";
+    modal.id = "browse-path-modal";
+    modal.innerHTML = `
+      <div class="modal-sheet">
+        <div class="modal-title">
+          <span>${this._t("lib.browse_path_title")}</span>
+          <button class="browse-path-close">${ICONS.close}</button>
+        </div>
+        ${row("uri", uri, "lib.browse_path_uri", false)}
+        ${row("yaml", yaml, "lib.browse_path_yaml", true)}
+      </div>`;
+    card.appendChild(modal);
+    modal.addEventListener("click", async (e) => {
+      if (e.target === modal || e.target.closest(".browse-path-close")) { modal.remove(); return; }
+      const btn = e.target.closest(".browse-copy-btn");
+      if (!btn) return;
+      const done = await this._copyText(btn.dataset.copy === "yaml" ? yaml : uri);
+      btn.innerHTML = done ? ICONS.check : ICONS.copy;
+      btn.classList.toggle("copied", done);
+      btn.title = this._t(done ? "lib.browse_copied" : "lib.browse_copy_failed");
+      if (!done) this._showToast(this._t("lib.browse_copy_failed"));
+      setTimeout(() => { btn.innerHTML = ICONS.copy; btn.classList.remove("copied"); btn.title = this._t("lib.browse_copy"); }, 1500);
+    });
+  }
+
+  /* Clipboard: the Clipboard API needs HTTPS; over plain http (local address) a hidden textarea + execCommand. */
+  async _copyText(text) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (_) { /* fall back */ }
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "0";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return !!ok;
+    } catch (_) {
+      return false;
+    }
+  }
+  _setBrowseView(tabId, view) {
+    this._savePref(`mml_browse_view_${tabId}`, view);
   }
 
   _attachBrowseNav(libEl) {
+    libEl.querySelector(".browse-path-info-btn")?.addEventListener("click", () => this._openBrowsePathInfo());
+    libEl.querySelector(".browse-back-btn")?.addEventListener("click", () => {
+      this._browseStack = this._browseStack.slice(0, -1);
+      this._libLoadedTabs.delete(this._tab);
+      this._loadLibrary();
+    });
+    // List / grid: same rows, only the list's class changes (no reload, scroll and actions kept).
+    libEl.querySelector(".browse-view-toggle")?.addEventListener("click", (e) => {
+      const next = this._browseView(this._tab) === "grid" ? "list" : "grid";
+      this._setBrowseView(this._tab, next);
+      e.currentTarget.innerHTML = next === "grid" ? ICONS.list : ICONS.grid;
+      e.currentTarget.setAttribute("aria-pressed", String(next === "grid"));
+      libEl.querySelector("#browse-list")?.classList.toggle("browse-grid", next === "grid");
+    });
     libEl.querySelector("#browse-crumbs")?.addEventListener("click", (e) => {
       const btn = e.target.closest(".browse-crumb");
       if (!btn || btn.classList.contains("current")) return;
@@ -6319,6 +6951,21 @@ class MyMusicLibraryCard extends HTMLElement {
     });
   }
 
+  /* Items of one browse level, as shown: no "back" item at the top level (the breadcrumb
+     goes up, and at a source's root MA's ".." would leave it), and at Music Assistant's
+     root only the sources enabled in Settings. */
+  _browseVisibleItems(items, uri) {
+    let result = items;
+    if (!this._browseStack.length) result = result.filter(i => !i.is_back);
+    if (uri === null && this._enabledProviders !== null) {
+      result = result.filter(i => {
+        const u = i.uri || "";
+        return !u.includes("://") || this._matchFolderProvider(u.split("://")[0]);
+      });
+    }
+    return result;
+  }
+
   async _loadBrowse(uri, libEl) {
     if (!libEl) {
       const card = this.shadowRoot.querySelector(".card-root");
@@ -6326,6 +6973,8 @@ class MyMusicLibraryCard extends HTMLElement {
       libEl = (activePanel || card)?.querySelector("#lib-content-inner");
     }
     if (!libEl) return;
+    this._browseLoadId = (this._browseLoadId || 0) + 1;
+    const loadId = this._browseLoadId;
 
     libEl.innerHTML = `
       ${this._buildBrowseNav()}
@@ -6333,33 +6982,38 @@ class MyMusicLibraryCard extends HTMLElement {
     this._attachBrowseNav(libEl);
 
     try {
-      const path = uri ? `browse?uri=${encodeURIComponent(uri)}` : "browse";
+      // 500 = the server's maximum (default 200: a provider's "Albums" folder is often longer).
+      const path = uri ? `browse?uri=${encodeURIComponent(uri)}&limit=500` : "browse?limit=500";
       const data = await this._callIntegration("GET", path);
-      const items = data?.items || [];
+      if (loadId !== this._browseLoadId) return; // a newer level was asked for meanwhile
+      const items = this._browseVisibleItems(data?.items || [], uri);
 
       libEl.innerHTML = `
         ${this._buildBrowseNav()}
-        <div id="browse-list">
+        <div id="browse-list" class="browse-list${this._browseView(this._tab) === "grid" ? " browse-grid" : ""}">
           ${items.length
             ? items.map(item => this._renderBrowseItem(item)).join("")
-            : `<div class="empty-state">${ICONS.folder}<p>${this._t("lib.browse_empty")}</p></div>`
+            : `<div class="empty-state">${ICONS.folder}<p>${this._esc(this._browseEmptyText(uri))}</p></div>`
           }
         </div>`;
 
       this._attachBrowseNav(libEl);
+      const listEl = libEl.querySelector("#browse-list");
+      if (!listEl) return;
+      this._attachItemActions(listEl); // + (queue menu) and album tracks buttons
 
-      // Browse item actions
-      libEl.querySelector("#browse-list")?.addEventListener("click", (e) => {
+      listEl.addEventListener("click", (e) => {
+        if (e.target.closest(".add-queue-btn, .album-tracks-btn")) return;
         const playBtn = e.target.closest(".browse-play-btn");
         const row = e.target.closest(".browse-item");
         if (!row) return;
-        const { uri: itemUri, type, folder, title } = row.dataset;
+        const { uri: itemUri, type, folder, title, subtitle, thumb } = row.dataset;
+        const card = this.shadowRoot.querySelector(".card-root");
 
         if (playBtn) {
           e.stopPropagation();
           this._playItem(itemUri, type || "music");
-          const card = this.shadowRoot.querySelector(".card-root");
-          if (card) this._setActiveTab("player", card);
+          this._showPlayerTab(card);
           return;
         }
 
@@ -6372,19 +7026,31 @@ class MyMusicLibraryCard extends HTMLElement {
           this._browseStack.push({ uri: itemUri, label: title });
           this._libLoadedTabs.delete(this._tab);
           this._loadLibrary();
+        } else if (type === "album") {
+          // Like Music Assistant: an album opens its tracks (the row's play button plays it)
+          this._openAlbumTracks({ id: itemUri, title, artist: subtitle, thumbnail: thumb });
+        } else if (type === "artist" && card?.querySelector("#artist-page")) {
+          this._openArtistPage(itemUri, title, thumb, { backTab: this._tab });
         } else {
           this._playItem(itemUri, type || "music");
-          const card = this.shadowRoot.querySelector(".card-root");
-          if (card) this._setActiveTab("player", card);
+          this._showPlayerTab(card);
         }
       });
 
     } catch (err) {
+      if (loadId !== this._browseLoadId) return;
       libEl.innerHTML = `
         ${this._buildBrowseNav()}
         <div class="empty-state">${ICONS.library}<p>${this._t("lib.browse_error")}</p></div>`;
       this._attachBrowseNav(libEl);
     }
+  }
+
+  /* Empty folder; at the root of a tab with a `path`, most likely a path Music Assistant no longer has. */
+  _browseEmptyText(uri) {
+    const def = this._tabDef();
+    if (def?.path && !this._browseStack.length && uri === def.path) return this._tf("lib.browse_path_missing", { path: def.path });
+    return this._t("lib.browse_empty");
   }
 
   _renderBrowseItem(item) {
@@ -6403,9 +7069,11 @@ class MyMusicLibraryCard extends HTMLElement {
     }
 
     const isFolder = item.is_folder;
-    const iconHtml = item.thumbnail
-      ? `<div class="browse-item-icon"><img src="${this._esc(this._resolveImageUrl(item.thumbnail))}" alt="" loading="lazy"></div>`
-      : `<div class="browse-item-icon ${isFolder ? "folder" : ""}">${isFolder ? ICONS.folderOpen : ICONS.music}</div>`;
+    const type = item.media_content_type || "music";
+    const thumb = item.thumbnail ? this._resolveImageUrl(item.thumbnail) : "";
+    const iconHtml = thumb
+      ? `<div class="browse-item-icon"><img src="${this._esc(thumb)}" alt="" loading="lazy"></div>`
+      : `<div class="browse-item-icon ${isFolder ? "folder" : ""}">${isFolder ? ICONS.folderOpen : (ICONS[this._itemIcon(item)] || ICONS.music)}</div>`;
 
     const subtitle = item.subtitle
       ? `<div class="browse-item-sub">${this._esc(item.subtitle)}</div>` : "";
@@ -6413,20 +7081,34 @@ class MyMusicLibraryCard extends HTMLElement {
     const chevron = isFolder
       ? `<div class="browse-chevron">${ICONS.chevronRight}</div>` : "";
 
+    // Folders can only be played on local sources (a directory of files); a streaming
+    // source's folder ("Artists", "Made For You"…) is only a way in.
+    const scheme = (item.uri || "").split("://")[0];
+    const canPlay = !isFolder || this._isLocalProvider(scheme);
+    const playBtn = canPlay
+      ? `<button class="browse-play-btn" title="${this._t("lib.browse_play")}">${ICONS.play}</button>` : "";
+    const canQueue = !isFolder && ["album", "playlist", "track", "artist"].includes(type);
+    const addBtn = canQueue
+      ? `<button class="add-queue-btn" data-queue-id="${this._esc(item.uri)}" data-queue-type="${this._esc(type)}" title="${this._t("queue.add_to_end")}">${ICONS.plus}</button>` : "";
+
     return `
       <div class="browse-item"
         data-uri="${this._esc(item.uri)}"
-        data-type="${this._esc(item.media_content_type || "music")}"
+        data-type="${this._esc(type)}"
         data-folder="${isFolder}"
         data-back="false"
-        data-title="${this._esc(item.title)}">
+        data-title="${this._esc(item.title)}"
+        data-subtitle="${this._esc(item.subtitle || "")}"
+        data-thumb="${this._esc(item.thumbnail || "")}">
         ${iconHtml}
         <div class="browse-item-info">
           <div class="browse-item-name">${this._esc(item.title)}</div>
           ${subtitle}
         </div>
         <div class="browse-item-actions">
-          <button class="browse-play-btn" title="${this._t("lib.browse_play")}">${ICONS.play}</button>
+          ${type === "album" && !isFolder ? this._renderAlbumTracksBtn(item.uri, item.title, item.subtitle, item.thumbnail) : ""}
+          ${addBtn}
+          ${playBtn}
           ${chevron}
         </div>
       </div>`;
@@ -6571,6 +7253,9 @@ const EDITOR_STYLES = `
   }
   .editor-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
   .ed-out-hint { font-size: 12px; color: var(--secondary-text-color, #727272); margin-bottom: 8px; }
+  .ed-hint { font-size: 12px; color: var(--secondary-text-color, #727272); margin: -2px 0 8px; }
+  .ed-warn { font-size: 12px; color: var(--warning-color, #ff9800); margin: -2px 0 8px; }
+  .ed-code { font-family: var(--code-font-family, monospace); user-select: all; }
   .ed-out-row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px; align-items: center; margin-bottom: 6px; }
   .ed-out-ent { font-size: 13px; color: var(--primary-text-color, #212121); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ed-out-row input[type="text"] {
@@ -6784,6 +7469,9 @@ class MyMusicLibraryCardEditor extends HTMLElement {
     wrap.className = "editor";
 
     const tabs = this._getResolvedTabs();
+    // Same ids as the card (explicit `id`, else automatic), and the conflicts to show per tab.
+    this._resolved = _buildResolvedTabs({ ...this._config, tabs });
+    this._autoIds = _buildResolvedTabsRaw({ ...this._config, tabs }).map(t => t.id);
     const panelTypes = tabs.filter(t => t.type !== "button").map(t => t.type);
     const defaultTabOptions = panelTypes.length ? panelTypes : ["player", "search", "library"];
 
@@ -6796,7 +7484,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
         </div>
         ${this._showAddMenu ? `
           <div class="add-tab-menu">
-            ${["player","queue","search","library","discovery","playlist","settings","button","custom_element"].map(type => `
+            ${["player","queue","search","library","discovery","browse","playlist","settings","button","custom_element"].map(type => `
               <button data-add-type="${type}">${this._tabTypeLabel(type)}</button>
             `).join("")}
           </div>` : `
@@ -6850,6 +7538,34 @@ class MyMusicLibraryCardEditor extends HTMLElement {
     this._fireChanged();
   }
 
+  /* 4.20.0: card_id + expose_tab, with the entity_id the integration creates. */
+  _renderExposeFields() {
+    const cfg = this._config;
+    const cardId = cfg.card_id == null ? "" : String(cfg.card_id).trim();
+    const valid = CARD_ID_RE.test(cardId);
+    let help = "";
+    if (cardId && !valid) help = `<div class="ed-warn">${this._esc(this._tf("config_warn.invalid_card_id", { id: cardId }))}</div>`;
+    else if (cfg.expose_tab && !cardId) help = `<div class="ed-warn">${this._t("editor.expose_tab_needs_id")}</div>`;
+    else if (valid) {
+      const entity = `<span class="ed-code">${this._esc(_exposedEntityId(cardId))}</span>`;
+      help = `<div class="ed-hint">${this._esc(this._t("editor.expose_tab_entity")).replace("{entity}", entity)}</div>`;
+    }
+    return `
+        <div class="editor-row">
+          <label>${this._t("editor.card_id")}</label>
+          <input id="ed-card-id" type="text" value="${this._esc(cardId)}" placeholder="${this._t("editor.card_id_hint")}">
+        </div>
+        <div class="editor-row">
+          <label>${this._t("editor.expose_tab")}</label>
+          <input id="ed-expose-tab" type="checkbox" ${cfg.expose_tab ? "checked" : ""}>
+        </div>
+        ${help}`;
+  }
+
+  _tf(key, vars = {}) {
+    return String(this._t(key)).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+  }
+
   _renderBasicFields(defaultTabOptions) {
     const cfg = this._config;
     const navPos = cfg.nav_bar?.position || "top";
@@ -6888,6 +7604,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
           <label>${this._t("editor.show_other_players")}</label>
           <input id="ed-show-other-players" type="checkbox" ${cfg.show_other_players ? "checked" : ""}>
         </div>
+        ${this._renderExposeFields()}
       </div>
       ${this._renderOutputsFields()}
       <div class="editor-section">
@@ -6923,7 +7640,7 @@ class MyMusicLibraryCardEditor extends HTMLElement {
         <div class="tab-item-header" data-toggle-idx="${index}">
           <span class="expand-chevron ${isExpanded ? "open" : ""}">▶</span>
           <span class="tab-item-type${typeClass}">${this._tabTypeLabel(tab.type)}</span>
-          <span class="tab-item-label">${this._esc(this._tabDisplayLabel(tab))}</span>
+          <span class="tab-item-label">${this._esc(this._tabDisplayLabel(tab))}${this._resolved?.warnings?.some(w => w.index === index) ? " ⚠" : ""}</span>
           <div class="tab-item-actions">
             <button data-move="up" data-idx="${index}" ${index === 0 ? "disabled" : ""} title="${this._t("editor.move_up")}">▲</button>
             <button data-move="down" data-idx="${index}" ${index === total - 1 ? "disabled" : ""} title="${this._t("editor.move_down")}">▼</button>
@@ -7010,12 +7727,13 @@ class MyMusicLibraryCardEditor extends HTMLElement {
      advanced block only shows/edits whatever is left over, so nothing is
      ever edited in two places at once. */
   static _HANDLED_KEYS = {
-    player: ["type", "label", "icon", "show_in_nav", "show_queue"],
-    queue: ["type", "label", "icon", "show_in_nav"],
-    search: ["type", "label", "icon", "show_in_nav", "search_layout"],
-    library: ["type", "label", "icon", "show_in_nav", "sections", "layout"],
-    discovery: ["type", "label", "icon", "show_in_nav"],
-    playlist: ["type", "label", "icon", "show_in_nav", "playlist_uri", "playlist_label", "playlist_thumbnail"],
+    player: ["type", "id", "label", "icon", "show_in_nav", "show_queue"],
+    queue: ["type", "id", "label", "icon", "show_in_nav"],
+    search: ["type", "id", "label", "icon", "show_in_nav", "search_layout"],
+    library: ["type", "id", "label", "icon", "show_in_nav", "sections", "layout", "provider"],
+    discovery: ["type", "id", "label", "icon", "show_in_nav", "provider"],
+    browse: ["type", "id", "label", "icon", "show_in_nav", "provider", "path", "show_path", "view"],
+    playlist: ["type", "id", "label", "icon", "show_in_nav", "playlist_uri", "playlist_label", "playlist_thumbnail"],
     settings: ["type", "label", "icon", "show_in_nav"],
     button: ["type", "icon", "name", "entity", "show_in_nav", "width", "height"],
     custom_element: ["type", "element", "element_config", "name", "show_in_nav", "width", "height"],
@@ -7068,14 +7786,84 @@ class MyMusicLibraryCardEditor extends HTMLElement {
           <label>${this._t("editor.tab_icon")}</label>
           <input data-field="icon" data-idx="${index}" type="text" value="${this._esc(tab.icon || "")}" placeholder="${this._t("editor.tab_icon_hint")}">
         </div>
-        ${this._renderShowInNavField(tab, index)}`;
+        ${this._renderShowInNavField(tab, index)}
+        ${this._renderTabIdField(tab, index)}`;
     if (tab.type === "player") body += this._renderTabToggle(tab, index, "show_queue", "editor.player_show_queue");
+    if (["library", "discovery", "browse"].includes(tab.type)) body += this._renderProviderEditor(tab, index);
+    if (tab.type === "browse") body += this._renderBrowsePathEditor(tab, index);
     if (tab.type === "library") body += this._renderSectionsEditor(tab, index);
     if (tab.type === "search") body += this._renderSearchLayoutEditor(tab, index);
     if (tab.type === "playlist") body += this._renderPlaylistEditor(tab, index);
     body += this._renderAdvancedBlock(tab, index);
     body += `</div>`;
     return body;
+  }
+
+  /* 4.20.0: explicit tab `id` (placeholder: the automatic one), with this tab's conflict if any. */
+  _renderTabIdField(tab, index) {
+    if (!ID_TAB_TYPES.includes(tab.type)) return "";
+    const auto = this._autoIds?.[index] || tab.type;
+    const warning = this._resolved?.warnings?.find(w => w.index === index && ID_WARNING_CODES.includes(w.code));
+    const warnText = warning
+      ? this._tf(`config_warn.${warning.code}`, { n: index + 1, id: warning.id ?? "", type: warning.type ?? "", used: warning.used ?? "" })
+      : "";
+    return `
+        <div class="editor-row">
+          <label title="${this._esc(this._t("editor.tab_id_help"))}">${this._t("editor.tab_id")}</label>
+          <input data-field="id" data-idx="${index}" type="text" value="${this._esc(tab.id == null ? "" : String(tab.id))}" placeholder="${this._esc(this._tf("editor.tab_id_hint", { id: auto }))}">
+        </div>
+        ${warnText ? `<div class="ed-warn">${this._esc(warnText)}</div>` : ""}`;
+  }
+
+  /* 4.20.2: browse tab `path`, `show_path`, `view` (with this tab's path warnings). */
+  _renderBrowsePathEditor(tab, index) {
+    const warnings = (this._resolved?.warnings || []).filter(w => w.index === index && !ID_WARNING_CODES.includes(w.code));
+    const view = BROWSE_VIEWS.includes(tab.view) ? tab.view : "";
+    return `
+        <div class="editor-row">
+          <label title="${this._esc(this._t("editor.tab_path_help"))}">${this._t("editor.tab_path")}</label>
+          <input data-field="path" data-idx="${index}" type="text" value="${this._esc(tab.path == null ? "" : String(tab.path))}" placeholder="${this._esc(this._t("editor.tab_path_hint"))}">
+        </div>
+        ${warnings.map(w => `<div class="ed-warn">${this._esc(this._tf(`config_warn.${w.code}`, { n: index + 1, id: w.id ?? "" }))}</div>`).join("")}
+        ${this._renderTabToggle(tab, index, "show_path", "editor.tab_show_path")}
+        <div class="editor-row">
+          <label>${this._t("editor.tab_view")}</label>
+          <select data-field="view" data-idx="${index}">
+            ${[["", "auto"], ["list", "list"], ["grid", "grid"]].map(([v, k]) => `<option value="${v}" ${view === v ? "selected" : ""}>${this._t(`editor.tab_view_${k}`)}</option>`).join("")}
+          </select>
+        </div>`;
+  }
+
+  /* 4.20.0: `provider` of a library / discovery / browse tab, among Music Assistant's sources.
+     A value the list doesn't know (source removed, "builtin"…) stays selectable as is. */
+  _renderProviderEditor(tab, index) {
+    this._fetchProviderOptions();
+    const options = this._providerOptions || [];
+    const current = tab.provider || "";
+    const known = !current || options.some(p => p.instance_id === current);
+    return `
+      <div class="editor-row">
+        <label title="${this._esc(this._t("editor.tab_provider_hint"))}">${this._t("editor.tab_provider")}</label>
+        <select data-field="provider" data-idx="${index}">
+          <option value="">${this._t("editor.tab_provider_all")}</option>
+          ${options.map(p => `<option value="${this._esc(p.instance_id)}" ${current === p.instance_id ? "selected" : ""}>${this._esc(p.name || p.instance_id)}</option>`).join("")}
+          ${known ? "" : `<option value="${this._esc(current)}" selected>${this._esc(current)}</option>`}
+        </select>
+      </div>`;
+  }
+
+  async _fetchProviderOptions() {
+    if (!this._hass || this._providerOptions || this._providerOptionsLoading) return;
+    this._providerOptionsLoading = true;
+    try {
+      const resp = await this._hass.fetchWithAuth("/my_music_library/providers");
+      const data = resp.ok ? await resp.json() : null;
+      this._providerOptions = (data?.providers || []).filter(p => p.instance_id);
+    } catch (_) {
+      this._providerOptions = [];
+    }
+    this._providerOptionsLoading = false;
+    this._render();
   }
 
   _renderSectionsEditor(tab, index) {
@@ -7246,6 +8034,19 @@ class MyMusicLibraryCardEditor extends HTMLElement {
       if (e.target.value === "auto") delete this._config.volume_controls;
       else this._config.volume_controls = e.target.value;
       this._fireChanged();
+    });
+    wrap.querySelector("#ed-card-id")?.addEventListener("change", (e) => {
+      const val = e.target.value.trim();
+      this._config = { ...this._config };
+      if (val) this._config.card_id = val; else delete this._config.card_id;
+      this._fireChanged();
+      this._render();
+    });
+    wrap.querySelector("#ed-expose-tab")?.addEventListener("change", (e) => {
+      this._config = { ...this._config };
+      if (e.target.checked) this._config.expose_tab = true; else delete this._config.expose_tab;
+      this._fireChanged();
+      this._render();
     });
     wrap.querySelector("#ed-show-other-players")?.addEventListener("change", (e) => {
       this._config = { ...this._config };

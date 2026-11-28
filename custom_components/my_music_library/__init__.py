@@ -25,6 +25,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.loader import async_get_integration
 
 from .api import ImageProxyView, MAThumbnailView, MAQueueView, MusicAssistantBrowseView, MusicAssistantLibraryView, MusicAssistantProvidersView, MusicAssistantRecommendationsView, MusicAssistantSearchView, MusicAssistantSubitemsView, OutputsView, PlayerQueueJumpView, PlayerQueueView
+from .card_tabs import WS_COMMANDS as CARD_TAB_WS_COMMANDS, CardTabs, get_card_tabs
 from .const import CARD_JS_FILENAME, CARD_URL, CONF_CAN_SWITCH_USER, CONF_DEBUG_MODE, CONF_DEFAULT_OUTPUT_MODE, CONF_DEFAULT_PLAYER, CONF_DEFAULT_TAB, CONF_EXCLUDED_PLAYERS, CONF_HA_USER, CONF_HA_USERS, CONF_MA_URL, CONFIG_ENTRY_VERSION, DEFAULT_OUTPUT_MODE, DEFAULT_TAB, DOMAIN, ICON_URL, WS_CONFIG_COMMAND, WS_SUBSCRIBE_QUEUE_COMMAND
 from .duplicates import ISSUE_DUPLICATE_ENTITIES, async_track_duplicates, async_update_issue
 from .mass_connection import MyMusicLibraryConfigEntry, async_connect, async_disconnect
@@ -46,7 +47,7 @@ from .queue_watchdog import QueueWatchdog
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[str] = ["media_player"]
+PLATFORMS: list[str] = ["media_player", "select"]
 
 # Set up from the UI only; async_setup just prepares the shared queue store.
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -182,6 +183,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: MyMusicLibraryConfigEntr
     _apply_debug_mode(entry.options.get(CONF_DEBUG_MODE, False))
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
+    # Exposed cards (card_tabs.py): loaded once per HA process, before the select platform.
+    if get_card_tabs(hass) is None:
+        card_tabs = CardTabs(hass)
+        await card_tabs.async_load()
+        hass.data[DOMAIN]["card_tabs"] = card_tabs
+
     # From here on, failure raises ConfigEntryNotReady/ConfigEntryAuthFailed —
     # everything registered above stays in place so the card can still load and
     # report the "not connected" state via the WS config command.
@@ -284,6 +291,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: MyMusicLibraryConfigEnt
     return unload_ok
 
 
+async def async_remove_entry(hass: HomeAssistant, entry: MyMusicLibraryConfigEntry) -> None:
+    """The config entry is deleted: forget the exposed cards too (their entities go with the entry)."""
+    if (card_tabs := get_card_tabs(hass)) is None:
+        card_tabs = CardTabs(hass)
+    await card_tabs.async_remove_store()
+    hass.data.get(DOMAIN, {}).pop("card_tabs", None)
+
+
 async def async_remove_config_entry_device(
     hass: HomeAssistant, entry: MyMusicLibraryConfigEntry, device_entry: dr.DeviceEntry
 ) -> bool:
@@ -369,6 +384,8 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
 
     async_register_command(hass, ws_get_config)
     async_register_command(hass, ws_subscribe_queue)
+    for command in CARD_TAB_WS_COMMANDS:
+        async_register_command(hass, command)
     _LOGGER.debug("Registered WebSocket commands: %s, %s", WS_CONFIG_COMMAND, WS_SUBSCRIBE_QUEUE_COMMAND)
 
 

@@ -2,7 +2,7 @@
 
 A full-featured Music Assistant player card for Home Assistant: now playing, live queue, search, library and artist pages, playlists, and an output panel to move or group the music between speakers — with its own `media_player` entities for your automations.
 
-![Version](https://img.shields.io/badge/version-4.19.1-blue)
+![Version](https://img.shields.io/badge/version-4.20.2-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2026.2%2B-brightgreen)
 [![Marketplace (HACS)](https://img.shields.io/badge/Marketplace%20%28HACS%29-default-41BDF5)](https://hacs.xyz/)
 
@@ -13,7 +13,15 @@ A full-featured Music Assistant player card for Home Assistant: now playing, liv
 💬 Questions, feedback, ideas: [discussion on the Home Assistant Community forum](https://community.home-assistant.io/t/my-music-library-a-full-music-assistant-player-card-with-speaker-switching-and-grouping/1028632).
 
 > [!TIP]
-> **New in 4.9 — Profiles.** Each member of the household can have **their own music** in the card: their own Music Assistant account, streaming account, library and speakers — a child's tablet with their Deezer account and the bedtime stories, without seeing (or messing with) the parents' library. **[Set up profiles](#profiles--one-music-assistant-account-per-user)**.
+> **New in 4.20 — Browse everything, pin your favourite corners, and build your own dashboard around the card.**
+> - A **Browse** tab walks through every Music Assistant source the way Music Assistant itself does: TuneIn categories, RadioBrowser genres and countries, Deezer's *Made For You*… no need to add anything to your library first.
+> - Found a gem, say RadioBrowser › *By tag* › *Metal*? Tap **ⓘ**, copy, paste: you get a tab that opens **straight on that folder**, as a cover grid, with or without the path bar. **[A browse tab on one folder](#a-browse-tab-on-one-folder-path)**
+> - Give the card a `card_id` and its current tab becomes an entity, **`select.mml_<card_id>_tab`**: your own buttons, conditional cards and automations can read it and change it, and every screen follows along. **[Exposed tab](#exposed-tab--drive-the-card-from-outside)**
+>
+> ![A browse tab pinned on RadioBrowser › Metal, in grid view](https://raw.githubusercontent.com/Patafoin/ha-my-music-library/main/images/browse-path.png)
+
+> [!NOTE]
+> **Since 4.9 — Profiles.** Each member of the household can have **their own music** in the card: their own Music Assistant account, streaming account, library and speakers — a child's tablet with their Deezer account and the bedtime stories, without seeing (or messing with) the parents' library. **[Set up profiles](#profiles--one-music-assistant-account-per-user)**.
 
 > [!WARNING]
 > **Updating from 3.x?** Version 4 is a breaking update (Music Assistant API token, new player entities, new actions). Read **[Upgrading from 3.x](#upgrading-from-3x)** before updating.
@@ -44,6 +52,7 @@ Step-by-step guide: **[Upgrading from 3.x](#upgrading-from-3x)**.
 - [Profiles — one Music Assistant account per user](#profiles--one-music-assistant-account-per-user)
 - [Adding the card to a dashboard](#adding-the-card-to-a-dashboard)
 - [Card configuration (YAML)](#card-configuration-yaml) — tabs, library sections, playlist tab, nav bar
+- [Exposed tab — drive the card from outside](#exposed-tab--drive-the-card-from-outside) — `card_id`, `expose_tab`, entity `select.mml_<card_id>_tab`
 - [Button actions](#button-actions)
 - [Full configuration example](#full-configuration-example)
 - [Actions and entities](#actions-and-entities) — announcements and TTS, `my_music_library.play_media`, `my_music_library.transfer_queue`
@@ -55,6 +64,7 @@ Step-by-step guide: **[Upgrading from 3.x](#upgrading-from-3x)**.
 
 ## What's new in 4.x (since 3.14.0)
 
+- **Browse, pinned folders, exposed tab** (4.20) — a **Browse** tab for every source's own folders, tabs that open **straight on a folder** you picked (copied with the **ⓘ** button), list or cover grid, stable tab `id`s, and an exposed tab entity `select.mml_<card_id>_tab` to drive the card from buttons, conditional cards and automations. See [Browse tab](#browse-tab) and [Exposed tab](#exposed-tab--drive-the-card-from-outside).
 - **Output panel** — see where the music plays and **switch** it to other outputs (same track, same position), **group** outputs with per-output and group volume, **control** any output from the card; favorite groups, power on from the card, a default output per device.
 - **Profiles** (4.9) — each Home Assistant user can browse and play with their own Music Assistant account: their own library, music sources and speakers, and playback from their own streaming account. See [Profiles](#profiles--one-music-assistant-account-per-user).
 - **Own Music Assistant connection and players** — no dependency on the official integration; live `media_player` entities usable in automations, with `my_music_library.play_media` and `my_music_library.transfer_queue` ("the music follows me").
@@ -87,6 +97,8 @@ Details: [Changelog](https://github.com/Patafoin/ha-my-music-library/blob/main/C
 - **Search** — full-text search across artists, albums, playlists, radios and tracks via Music Assistant (each radio shows where it comes from: your library, RadioBrowser, TuneIn…); also searches local library (filenames) for more complete results
 - **Library** — your Music Assistant favorites (artists, albums, playlists, tracks, radios…) with a source filter (All / Local / Streaming); **Browse mode** to navigate the filesystem directory tree and play folders
 - **Discovery tab** — Music Assistant's recommendation folders (recently played, recently added, suggestions…), one section per folder
+- **Browse tab** — every music source's own folders, as in Music Assistant: TuneIn categories, RadioBrowser lists, Deezer "Made For You"… without adding anything to your library first. Albums open their tracks, artists their page; a tab can be locked to one source
+- **One source per tab** — `provider` on a library, discovery or browse tab keeps it to one Music Assistant source (a "Deezer" library tab, a "Radios" browse tab…)
 - **Artist page** — the artist's favorites from your library, plus their full album catalog, split into albums, EPs, singles and live albums; reachable from search, the library, or the "Artist" button of the player
 - **Album tracks** — the list button next to the **+** of every album (library, search, artist page) opens the album's tracks over the card: tap a track to play the album from it, or use its **+** to play it next, add it to the end, play only that track (the queue is replaced) or start a mix
 - **Playlist tab** — a dedicated tab locked to one playlist (picked in the visual editor), showing every track with list/grid view toggle; tapping a track plays it instantly without leaving the tab, thanks to a compact player bar (transport, progress, volume, output row) pinned at the bottom
@@ -94,7 +106,8 @@ Details: [Changelog](https://github.com/Patafoin/ha-my-music-library/blob/main/C
 - **Output panel** — the output row under the player shows where the music plays ("Living room + Kitchen") and opens a panel over the player with three modes: **Switch** (move the music — same track, same position — to one or more outputs, which then form a group), **Group** (add outputs to the current group or remove them, with a volume slider per output and one for the whole group; on a phone, each slider gets its own line and **–** / **+** buttons for 2 % steps) and **Control** (see what plays where and pick which output the card controls). Outputs are shown as tiles with an icon, a short name (card alias → Home Assistant area → cleaned-up name; an "i" button shows the full name, entity, model and provider), their state, the group leader's crown, and outputs that can't be grouped together greyed out with the reason. Also: favorite groups ("Whole house"…) saved server-side, turn an output on from its tile, offline outputs hidden behind a link, and a per-device default output (pin)
 - **Profiles** — Music Assistant accounts given to Home Assistant users: each person sees their own library, music sources and speakers, and plays from their own streaming account; one user can use several profiles, e.g. a user shared by every tablet, each card naming its own (see [Profiles](#profiles--one-music-assistant-account-per-user))
 - **Player exclusion** — hide specific players from the card via integration options; supports wildcard patterns (`media_player.browser_mod_*`)
-- **Fully configurable tabs** — reorder, rename, re-icon any tab; add action buttons in the tab bar; control which library sections appear and in what order; style any tab's nav button with a custom element (e.g. `button-card`)
+- **Exposed tab** — a card with a `card_id` and `expose_tab: true` gets a `select.mml_<card_id>_tab` entity: its state is the tab shown, and changing it changes the tab. Build your own navigation (buttons that light up on the current tab), show other cards next to a given tab, open a tab from an automation; every screen showing that card follows the same tab
+- **Fully configurable tabs** — reorder, rename, re-icon any tab; give a tab a stable `id`; add action buttons in the tab bar; control which library sections appear and in what order; style any tab's nav button with a custom element (e.g. `button-card`)
 - **Visual card editor** — WYSIWYG editor in the Lovelace UI: drag-and-drop tab reorder, live preview, no YAML needed
 - **Clear connection status** — if the Music Assistant connection is down (server unreachable, token revoked), the card shows a banner instead of going blank, and Home Assistant asks you to re-authenticate
 - **Debug logging** — toggleable from integration options; detailed logs in HA and browser console for troubleshooting
@@ -345,8 +358,9 @@ tabs:
 | `player` | Now playing, controls, queue (`show_queue: false` removes the queue and its button) |
 | `queue` | The queue alone ("Up next"), full size, on every screen width |
 | `search` | Full-text search |
-| `library` | Your Music Assistant favorites, with a source filter (All / Local / Streaming) and Browse mode |
-| `discovery` | Music Assistant recommendation folders, one section per folder (no options) |
+| `library` | Your Music Assistant favorites, with a source filter (All / Local / Streaming) and Browse mode (options `sections`, `layout`, `provider`) |
+| `discovery` | Music Assistant recommendation folders, one section per folder (option `provider`) |
+| `browse` | Every music source's own folders, as in Music Assistant (options `provider`, `path`, `show_path`, `view`) |
 | `playlist` | All tracks of one playlist, with a built-in mini player bar |
 | `settings` | Integration settings (providers, debug indicator) |
 | `button` | Action button (supports tap/hold/double-tap actions) |
@@ -354,9 +368,31 @@ tabs:
 
 Any tab can set `show_in_nav: false` to hide it from the nav bar while keeping it reachable via `mml_navigate_tab` actions.
 
+#### Tab id
+
+Every panel tab has an id, used by `mml_navigate_tab`, `default_tab`, the [exposed tab](#exposed-tab--drive-the-card-from-outside) entity, and what this device remembers per tab (playlist list / grid view, library source filter). By default it is computed from the tab's type and position (`library`, then `library-1`, `library-2`…), so it **changes when you reorder the tabs**. Give the tab its own `id` to keep it stable (visual editor: **Identifier**):
+
+```yaml
+tabs:
+  - type: library
+    id: biblio
+    sections: [artists, albums, playlists, radios]
+  - type: library
+    id: recos
+    sections: [flows, recommended, recently_played, recently_added]
+  - type: search        # no id: keeps its automatic id, "search"
+```
+
+- allowed on `player`, `queue`, `search`, `library`, `discovery`, `browse` and `playlist` tabs (not on `settings`, `button` or `custom_element`);
+- format: lowercase letters, digits, `-` and `_`, 32 characters at most, starting with a letter or a digit (`settings` is reserved);
+- an invalid id is ignored (the tab keeps its automatic id) and the card shows a warning; two tabs with the same id (or an id equal to another tab's automatic id): the first one keeps it, the card shows a warning and the editor flags the tab;
+- a tab without `id` keeps exactly the automatic id of earlier versions: nothing changes for existing cards. Adding an `id` to an existing tab starts its per-device memories afresh.
+
+A tab target (`mml_navigate_tab`, `default_tab`, the exposed tab entity) is looked up by id first, then as a type (the first tab of that type).
+
 #### Styled nav button for a panel tab
 
-Any panel tab (`player`, `search`, `library`, `discovery`, `playlist`, `settings`) can render its nav button with a custom element, the same way as `custom_element`, while still opening its panel when clicked:
+Any panel tab (`player`, `search`, `library`, `discovery`, `browse`, `playlist`, `settings`) can render its nav button with a custom element, the same way as `custom_element`, while still opening its panel when clicked:
 
 ```yaml
 tabs:
@@ -398,6 +434,76 @@ When `type: library`, the optional `sections` array controls which media types a
 Valid values: `artists`, `albums`, `playlists`, `tracks`, `radios`, `recently_played`, `recently_added`, `recommended`, `flows`.
 
 Defaults to `[artists, albums, playlists, tracks]` when omitted.
+
+#### Browse tab
+
+`type: browse` shows what each Music Assistant source offers, the way Music Assistant's own *Browse* page does: open a source, then its folders (TuneIn's *Music › Country*, RadioBrowser's *By popularity*, Deezer's *Made For You*…), whether or not the items are in your library. The breadcrumb at the top goes back up.
+
+- tap a **folder** to open it; folders of local sources (your files) also have a play button;
+- tap an **album** to see its tracks, an **artist** to open their page (when the card has a search tab), anything else (radio, track, playlist) to play it; the play button plays the album or artist, the **+** adds it to the queue;
+- at the top level, the sources turned off in **Settings** are hidden;
+- the button at the right of the breadcrumb switches between a **list** and a **grid** of covers; each device remembers the choice per tab (the library's Browse mode included);
+- the **ⓘ** button next to the path shows the folder's path (`radiobrowser://category/country/rs`…) and a browse tab opening on it, ready to paste in YAML, each with a copy button.
+
+![The ⓘ window: the folder's path and a ready-to-paste browse tab](https://raw.githubusercontent.com/Patafoin/ha-my-music-library/main/images/browse-path-info.png)
+
+#### A browse tab on one folder (`path`)
+
+To open straight on a folder instead of walking down to it every time, copy its path with the **ⓘ** button, then give it to a browse tab (visual editor: **Path**). For instance, a "Metal" tab that always opens on RadioBrowser's metal stations, as a cover grid:
+
+```yaml
+tabs:
+  - type: player
+  - type: search
+  - type: library
+  - type: browse
+    id: metal
+    path: radiobrowser://category/tag/metal
+    label: Metal
+    view: grid
+```
+
+![The "Metal" tab: RadioBrowser's metal stations, pinned, in grid view](https://raw.githubusercontent.com/Patafoin/ha-my-music-library/main/images/browse-path.png)
+
+Every option:
+
+```yaml
+tabs:
+  - type: browse
+    path: radiobrowser://category/country/rs
+    label: Serbia             # name of the top of the tab (default: the end of the path, "rs")
+    show_path: false          # no path bar (a back button shows up in sub-folders)
+    view: grid                # always a grid (or list): no list / grid button
+```
+
+- the path is the top of the tab: sub-folders open as usual, but the tab never goes above it;
+- the path names its source: `provider` is not needed (if both are given, the path wins and the card shows a warning);
+- `show_path: false` hides the path bar; `view: list` or `view: grid` forces the display and removes the list / grid button; with both, the tab shows its content only;
+- paths of sources such as Deezer or TuneIn contain the source's instance id (`deezer--6ZsVPa2v://…`): if the source is removed and added again in Music Assistant, the id changes and the tab shows "Nothing at …" until its path is copied again. A path also belongs to the account of the profile the card runs as.
+
+Music Assistant only lists the sources that can be browsed; a folder shows up to 500 items.
+
+#### One source per tab (`provider`)
+
+`library`, `discovery` and `browse` tabs accept `provider`: the tab then only shows that Music Assistant source. In the visual editor it is the **Music source** list; in YAML, give the source's name as Music Assistant shows it, its type (`tunein`, `deezer`, `spotify`…) or its instance id.
+
+```yaml
+tabs:
+  - type: browse
+    provider: tunein          # starts at TuneIn's root, named after it
+    label: Radios
+    icon: mdi:radio
+  - type: library
+    provider: Deezer          # your Deezer favorites only
+  - type: discovery
+    provider: spotify         # Spotify's recommendations only
+```
+
+- **library**: only that source's favorites, no All / Local / Streaming filter, and Browse mode starts at that source;
+- **discovery**: only that source's recommendation folders (not the library's own *Recently played*…);
+- **browse**: starts at that source's root and never goes above it.
+
+A tab's `provider` wins over the sources turned off in **Settings**. With two accounts of the same source (two Deezer accounts), pick the account in the editor (or give its name).
 
 #### Playlist tab
 
@@ -441,7 +547,9 @@ nav_buttons_right:
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `default_tab` | `string` | `player` | Tab shown on load: `player`, `search`, or `library` |
+| `default_tab` | `string` | `player` | Tab shown on load: a [tab id](#tab-id), or a tab type (the first tab of that type). On an [exposed card](#exposed-tab--drive-the-card-from-outside), the entity's tab wins. |
+| `card_id` | `string` | — | Name of the card for its [exposed tab](#exposed-tab--drive-the-card-from-outside): lowercase letters, digits and `_`, 32 characters at most. |
+| `expose_tab` | `boolean` | `false` | With `card_id`: the tab shown lives in the entity `select.mml_<card_id>_tab`. |
 | `height` | `number` or `string` | auto | Fixed card height (e.g. `600`, `"600px"`, `"80vh"`). Omit to fill the container. |
 | `entity` | `string` | — | Pre-select a media_player entity. User's runtime choice is saved in localStorage. With `show_device_select: false`, this output is fixed: it wins over the device's saved or pinned output. |
 | `profile` | `string` | — | Name (or id) of the [profile](#one-home-assistant-user-several-profiles-shared-tablets) this card runs as, among those its Home Assistant user may use. Empty: the user's default profile. |
@@ -474,6 +582,118 @@ nav_bar:
 
 ---
 
+## Exposed tab — drive the card from outside
+
+A card can hand its tab over to Home Assistant: give it a `card_id` and `expose_tab: true`, and My Music Library creates the entity **`select.mml_<card_id>_tab`** ("MML tab lab"):
+
+```yaml
+type: custom:my-music-library-card
+card_id: lab
+expose_tab: true
+nav_bar: { hidden: true }       # your own buttons instead, see below
+tabs:
+  - type: player
+    id: lecteur
+  - type: library
+    id: biblio
+    sections: [artists, albums, playlists, radios]
+  - type: library
+    id: recos
+    sections: [flows, recommended, recently_played, recently_added]
+  - type: search
+```
+
+- **state** = id of the tab shown (see [Tab id](#tab-id); giving your tabs an `id` keeps it stable). **Options** = the card's panel tabs (not `settings`). Attribute `tab_labels`: `{id: label}`.
+- **changing it** (`select.select_option` from a button, a script, an automation) switches the card. An option that is not one of the card's tabs is refused, as for any `select`.
+- **one tab per `card_id`, on every screen**: when the tab changes on one screen, every card with that `card_id` open elsewhere follows. To keep two screens independent, give their cards different `card_id`s.
+- the state means **"last tab shown"**, not "someone is looking": it stays after the page is closed and after a restart. When the card loads, it opens on the entity's tab (it wins over `default_tab`); without a valid state, on `default_tab`, which it then publishes.
+- the state change carries the Home Assistant user who changed tab from the card (`trigger.to_state.context.user_id` in an automation).
+- the card's own nav bar keeps working (and updates the entity); `nav_bar.hidden: true` is for when you build your own.
+- in the visual editor: **Card id** and **Expose the tab in Home Assistant**, with the entity that will be created.
+
+The entity is created the first time the card is displayed, by whoever displays it (any Home Assistant user: tablets are often not administrators), and kept across restarts. At most 20 exposed cards; beyond that, the card shows an error. To remove one: **Settings → Devices & services → My Music Library → Configure**, step **Exposed cards**. A card still configured with `expose_tab` creates it again the next time it is displayed: remove `expose_tab` from it first. Profiles and allowed outputs are not involved: changing tab plays nothing.
+
+### Your own nav bar (button-card)
+
+One card, a row of [button-card](https://github.com/custom-cards/button-card) buttons that change the tab and light up on the current one:
+
+```yaml
+type: vertical-stack
+cards:
+  - type: horizontal-stack
+    cards:
+      - type: custom:button-card
+        entity: select.mml_lab_tab
+        name: Player
+        icon: mdi:play-circle
+        show_state: false
+        tap_action:
+          action: perform-action
+          perform_action: select.select_option
+          target: { entity_id: select.mml_lab_tab }
+          data: { option: lecteur }
+        state:
+          - value: lecteur
+            styles:
+              card: [{ background-color: var(--primary-color) }]
+              name: [{ color: var(--text-primary-color) }]
+              icon: [{ color: var(--text-primary-color) }]
+      - type: custom:button-card
+        entity: select.mml_lab_tab
+        name: Library
+        icon: mdi:music-box-multiple
+        show_state: false
+        tap_action:
+          action: perform-action
+          perform_action: select.select_option
+          target: { entity_id: select.mml_lab_tab }
+          data: { option: biblio }
+        state:
+          - value: biblio
+            styles:
+              card: [{ background-color: var(--primary-color) }]
+              name: [{ color: var(--text-primary-color) }]
+              icon: [{ color: var(--text-primary-color) }]
+      # … one button per tab (recos, search)
+  - type: custom:my-music-library-card
+    card_id: lab
+    expose_tab: true
+    nav_bar: { hidden: true }
+    tabs: [...]               # as above
+```
+
+A button can also stay inside the card with `mml_navigate_tab`; going through the entity is what lets the other screens, conditional cards and automations follow.
+
+### A card next to a given tab
+
+Any card outside My Music Library can follow the tab, e.g. show the room's lights only next to the player:
+
+```yaml
+type: conditional
+conditions:
+  - condition: state
+    entity: select.mml_lab_tab
+    state: lecteur
+card:
+  type: entities
+  entities: [light.living_room]
+```
+
+### Open a tab from an automation
+
+```yaml
+alias: Recommendations in the morning
+triggers:
+  - trigger: time
+    at: "08:00:00"
+actions:
+  - action: select.select_option
+    target: { entity_id: select.mml_lab_tab }
+    data: { option: recos }
+```
+
+---
+
 ## Button Actions
 
 Button tabs and legacy nav buttons support `tap_action`, `hold_action`, and `double_tap_action`.
@@ -502,7 +722,7 @@ Button tabs and legacy nav buttons support `tap_action`, `hold_action`, and `dou
 | `url` | Open a URL. | `url_path: https://…`, `new_tab: true` |
 | `call-service` / `perform-action` | Call a HA service. | `perform_action: domain.service`, `data: {}`, `target: {}` |
 | `assist` | Open the Assist dialog. | — |
-| `mml_navigate_tab` | Navigate to a MML tab. | `tab: player` / `search` / `library` / `playlist` / `settings` |
+| `mml_navigate_tab` | Navigate to a MML tab. | `tab:` a [tab id](#tab-id) (`biblio`, `library-1`…) or a type (`player` / `search` / `library` / `playlist` / `settings`…: the first tab of that type) |
 | `mml_navigate_section` | Scroll to a library section. | `section: artists` / `albums` / `playlists` / `tracks` / `radios` / `recently_played` / `recently_added` / `recommended` / `flows` |
 | `mml_control` | Trigger a player control. | `command: play_pause` / `next` / `prev` / `shuffle` / `repeat` / `mute` |
 
@@ -558,6 +778,10 @@ tabs:
 ### Media players
 
 My Music Library creates one `media_player` entity per Music Assistant player (entity ID derived from the player name). They support play / pause / stop, previous / next, seek, volume (set, step, mute), shuffle, repeat (not while the queue plays a dynamic source: radio, dynamic playlist), turn on / off, `media_player.play_media`, `media_player.clear_playlist` (empties the queue), announcements (`tts.speak`, `announce: true`) and grouping (join / unjoin, when the player supports it). Each entity exposes a `mass_player_id` attribute (the Music Assistant player ID).
+
+### Exposed tab
+
+`select.mml_<card_id>_tab`, one per [exposed card](#exposed-tab--drive-the-card-from-outside): the tab it shows, which `select.select_option` changes.
 
 ### Announcements and text-to-speech
 

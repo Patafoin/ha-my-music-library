@@ -108,6 +108,13 @@
           "debug_mode": "Wenn aktiviert, erscheinen detaillierte Protokolle in den HA-Logs (Filter: my_music_library) und in der Browser-Konsole (F12). Wenn deaktiviert, gilt die mit `logger:` in configuration.yaml festgelegte Stufe (HA-Standard: warning). Nach dem Debugging deaktivieren.",
           "default_output_mode": "Modus, der beim Öffnen des Ausgabe-Panels in der Karte (Ausgabezeile) zuerst angezeigt wird."
         }
+      },
+      "exposed_cards": {
+        "title": "Freigegebene Karten",
+        "description": "{count} Karte(n) geben ihren Tab in einer Entität `select.mml_…_tab` (… = card_id) frei (Kartenoptionen `card_id` + `expose_tab`). Markiere die zu entfernenden: Ihre Entität und ihre Tab-Liste werden gelöscht. Eine Karte, die noch mit `expose_tab` konfiguriert ist, legt sie bei der nächsten Anzeige wieder an: Entferne zuerst `expose_tab` aus ihrer Konfiguration.",
+        "data": {
+          "remove_cards": "Zu entfernende Karten"
+        }
       }
     }
   },
@@ -201,6 +208,13 @@
         "switch": "Wechseln",
         "group": "Gruppieren",
         "control": "Steuern"
+      }
+    }
+  },
+  "entity": {
+    "select": {
+      "card_tab": {
+        "name": "MML-Tab {card_id}"
       }
     }
   }

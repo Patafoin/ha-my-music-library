@@ -108,6 +108,13 @@
           "debug_mode": "When enabled, detailed logs appear in HA logs (filter: my_music_library) and in the browser console (F12). When disabled, the level set by `logger:` in configuration.yaml applies (HA default: warning). Disable after debugging.",
           "default_output_mode": "Mode shown first when you open the output panel from the card (output row)."
         }
+      },
+      "exposed_cards": {
+        "title": "Exposed cards",
+        "description": "{count} card(s) expose their tab in a `select.mml_…_tab` (… = card_id) entity (card options `card_id` + `expose_tab`). Tick the ones to remove: their entity and their tab list are deleted. A card still configured with `expose_tab` creates them again the next time it is displayed: remove `expose_tab` from its configuration first.",
+        "data": {
+          "remove_cards": "Cards to remove"
+        }
       }
     }
   },
@@ -201,6 +208,13 @@
         "switch": "Switch",
         "group": "Group",
         "control": "Control"
+      }
+    }
+  },
+  "entity": {
+    "select": {
+      "card_tab": {
+        "name": "MML tab {card_id}"
       }
     }
   }

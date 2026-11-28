@@ -108,6 +108,13 @@
           "debug_mode": "Quand activé, des logs détaillés apparaissent dans les journaux HA (filtre : my_music_library) et dans la console du navigateur (F12). Quand désactivé, c'est le niveau défini par `logger:` dans configuration.yaml qui s'applique (par défaut dans HA : warning). Désactivez après le débogage.",
           "default_output_mode": "Mode affiché en premier quand vous ouvrez le panneau des sorties depuis la carte (ligne de sortie)."
         }
+      },
+      "exposed_cards": {
+        "title": "Cartes exposées",
+        "description": "{count} carte(s) exposent leur onglet dans une entité `select.mml_…_tab` (… = card_id) (options de carte `card_id` + `expose_tab`). Cochez celles à retirer : leur entité et leur liste d'onglets sont supprimées. Une carte encore configurée avec `expose_tab` les recrée à son prochain affichage : retirez d'abord `expose_tab` de sa configuration.",
+        "data": {
+          "remove_cards": "Cartes à retirer"
+        }
       }
     }
   },
@@ -201,6 +208,13 @@
         "switch": "Basculer",
         "group": "Grouper",
         "control": "Contrôler"
+      }
+    }
+  },
+  "entity": {
+    "select": {
+      "card_tab": {
+        "name": "Onglet MML {card_id}"
       }
     }
   }

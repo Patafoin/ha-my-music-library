@@ -29,6 +29,7 @@ from homeassistant.helpers.selector import (
     TextSelectorType,
 )
 
+from .card_tabs import entity_id_for, get_card_tabs
 from .const import (
     CONF_ALLOWED_PLAYERS,
     CONF_DEBUG_MODE,
@@ -230,13 +231,22 @@ class MyMusicLibraryConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class MyMusicLibraryOptionsFlow(OptionsFlow):
-    """Handle options for My Music Library (default player, excluded players, output panel mode, debug)."""
+    """Handle options for My Music Library (default player, excluded players, output panel mode, debug).
+
+    A second step, "exposed_cards", follows when cards expose their tab (card_tabs.py): it removes them.
+    """
+
+    _options: dict[str, Any]
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Manage the options."""
         if user_input is not None:
+            self._options = user_input
+            card_tabs = get_card_tabs(self.hass)
+            if card_tabs is not None and card_tabs.cards:
+                return await self.async_step_exposed_cards()
             return self.async_create_entry(data=user_input)
 
         all_players = _get_all_players(self.hass)
@@ -291,6 +301,40 @@ class MyMusicLibraryOptionsFlow(OptionsFlow):
         )
 
         return self.async_show_form(step_id="init", data_schema=schema)
+
+    async def async_step_exposed_cards(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Exposed cards: the ticked ones lose their select entity and their stored tab list."""
+        card_tabs = get_card_tabs(self.hass)
+        cards = sorted(card_tabs.cards) if card_tabs is not None else []
+        if user_input is not None:
+            for card_id in user_input.get("remove_cards", []):
+                if card_tabs is not None and card_id in card_tabs.cards:
+                    await card_tabs.async_remove(card_id)
+            return self.async_create_entry(data=self._options)
+
+        def _label(card_id: str) -> str:
+            entity = card_tabs.entities.get(card_id) if card_tabs is not None else None
+            entity_id = entity.entity_id if entity is not None else entity_id_for(card_id)
+            return f"{card_id} ({entity_id})"
+
+        schema = vol.Schema(
+            {
+                vol.Optional("remove_cards", default=[]): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[{"value": c, "label": _label(c)} for c in cards],
+                        multiple=True,
+                        mode=SelectSelectorMode.LIST,
+                    )
+                ),
+            }
+        )
+        return self.async_show_form(
+            step_id="exposed_cards",
+            data_schema=schema,
+            description_placeholders={"count": str(len(cards))},
+        )
 
 
 class ProfileSubentryFlow(ConfigSubentryFlow):

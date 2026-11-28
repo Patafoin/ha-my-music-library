@@ -2,6 +2,21 @@
 
 > **4.8.2 is the first public release of the 4.x line.** Versions 4.0.0 to 4.8.1 were never published: together, the entries from 4.5.0 to 4.8.2 below describe everything 4.8.2 brings since 3.14.0.
 
+## 4.20.2 — Browse tab, one source per tab, exposed tab
+
+> 4.20.0 and 4.20.1 were never published: everything below is new since 4.19.1.
+
+- **New** — browse tab option **`path`** (visual editor: *Path*): the tab opens straight on a folder of a source (`radiobrowser://category/country/rs`…) and never goes above it. The **ⓘ** button next to the path shows the folder's path and a ready-to-paste browse tab, each with a copy button. Options **`show_path: false`** (no path bar, a back button in sub-folders) and **`view: list | grid`** (display forced, no toggle). See [A browse tab on one folder](README.md#a-browse-tab-on-one-folder-path).
+
+- **New** — Browse (browse tabs and the library's Browse mode): a **list / grid** toggle at the right of the breadcrumb; the grid shows each folder, album, radio… as a cover tile. Remembered per tab on each device.
+- **New** — tab type **`browse`** (visual editor: *Browse*): every music source's own folders, as on Music Assistant's *Browse* page — TuneIn categories, RadioBrowser lists, Deezer *Made For You*… — without adding anything to your library first ([#24](https://github.com/Patafoin/ha-my-music-library/issues/24)). Tap a folder to open it, an album to see its tracks, an artist to open their page, a radio or a track to play it; the **+** adds albums, playlists, tracks and artists to the queue. The breadcrumb goes back up. See [Browse tab](README.md#browse-tab).
+- **New** — option **`provider`** on `library`, `discovery` and `browse` tabs (visual editor: *Music source*): the tab only shows that Music Assistant source — its favorites, its recommendations, or its folders from its own root. See [One source per tab](README.md#one-source-per-tab-provider).
+- **Changed** — Library → Browse mode: a folder shows up to 500 items instead of 200 (a source's *Albums* folder was cut short), streaming sources' folders no longer have a play button that could not work, albums and artists open like everywhere else in the card, and at the top level the sources turned off in **Settings** are hidden.
+- **New** — tab option **`id`** (visual editor: *Identifier*): a stable id for a panel tab, used by `mml_navigate_tab`, `default_tab` and what each device remembers per tab, instead of the automatic id that changes when tabs are reordered. Tabs without `id` keep their automatic id: nothing changes for existing cards. Invalid or duplicated ids are ignored with a warning in the card and in the editor. See [Tab id](README.md#tab-id).
+- **New** — **exposed tab**: with `card_id` and `expose_tab: true`, the card's tab lives in a new entity **`select.mml_<card_id>_tab`**. Buttons, conditional cards, scripts and automations can read it and change it, and every screen showing that card follows the same tab. The entity keeps its state across restarts; exposed cards can be removed from the integration's options (*Exposed cards*). See [Exposed tab](README.md#exposed-tab--drive-the-card-from-outside).
+- **Changed** — `default_tab` and `mml_navigate_tab` accept a tab id, then a type (the first tab of that type).
+- **Fix** — on a card without a player tab, playing something from the library, discovery, browse or a mix no longer leaves the card blank (it tried to show the missing player tab).
+
 ## 4.19.1 — Radios in the search, volume buttons everywhere
 - **New** — the search shows **radios** too, in their own section: tap one to play it. Under each one, where it comes from (your library, RadioBrowser, TuneIn…), since several stations often share a name.
 - **Changed** — search sections are now ordered artists, albums, playlists, radios, then tracks at the bottom.
